@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About Page Manager | MAGIC Youth Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0f0f13; }
+    input, select, textarea { background: #1a1a2e !important; border-color: #374151 !important; color: #f3f4f6 !important; }
+    input:focus, select:focus, textarea:focus { border-color: #7c3aed !important; outline: none !important; box-shadow: 0 0 0 2px rgba(124,58,237,0.2) !important; }
+    .section-card { background: linear-gradient(135deg,rgba(124,58,237,0.07),rgba(99,102,241,0.03)); border:1px solid rgba(124,58,237,0.15); }
+    .section-card:hover { border-color: rgba(124,58,237,0.3); }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background:#7c3aed; border-radius:2px; }
+  </style>
+</head>
+<body class="text-gray-100">
+  <div id="sidebarContainer"></div>
+
+  <div class="md:ml-64 min-h-screen">
+    <header class="sticky top-0 z-40 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleMobileSidebar()" class="md:hidden p-2 rounded-lg hover:bg-gray-800 text-gray-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <h1 class="text-lg font-bold text-white">About Page Manager</h1>
+          <p class="text-gray-500 text-xs">Edit the content sections shown on the public About page</p>
+        </div>
+      </div>
+      <button onclick="openModal()" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Add Section
+      </button>
+    </header>
+
+    <main class="p-6">
+      <!-- Preview notice -->
+      <div class="flex items-center gap-3 bg-indigo-900/20 border border-indigo-800/40 rounded-xl px-4 py-3 mb-6">
+        <svg class="w-5 h-5 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-sm text-indigo-300">Changes here immediately update the public <a href="/about.html" target="_blank" class="underline font-medium hover:text-indigo-200">About page</a>. The team section is managed separately in <a href="/admin/team.html" class="underline font-medium hover:text-indigo-200">Team</a>.</p>
+      </div>
+
+      <!-- Sections grid -->
+      <div id="sectionsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="col-span-2 text-gray-500 text-sm py-8 text-center">Loading sections...</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl">
+      <div class="flex items-center justify-between px-6 py-5 border-b border-gray-800">
+        <h2 class="text-lg font-semibold text-white" id="modalTitle">Add Section</h2>
+        <button onclick="closeModal()" class="text-gray-500 hover:text-white transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="sectionForm" class="p-6 space-y-4">
+        <input type="hidden" id="sectionId">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Section Key *</label>
+            <input type="text" id="sKey" required placeholder="e.g. vision" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+            <p class="text-gray-600 text-xs mt-1">Unique ID (no spaces)</p>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Icon / Emoji</label>
+            <input type="text" id="sIcon" placeholder="e.g. 🎯" class="w-full rounded-xl px-4 py-2.5 text-sm border text-center text-xl">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Section Title *</label>
+          <input type="text" id="sTitle" required placeholder="e.g. Our Vision" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Content</label>
+          <textarea id="sContent" rows="4" placeholder="Write the content for this section..." class="w-full rounded-xl px-4 py-2.5 text-sm border resize-none"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Display Order</label>
+            <input type="number" id="sOrder" min="0" placeholder="0" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+          <div class="flex items-end pb-0.5">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="sActive" class="w-4 h-4 accent-purple-500" checked>
+              <label for="sActive" class="text-sm text-gray-300">Visible on site</label>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2.5 rounded-xl border border-gray-700 text-gray-300 hover:bg-gray-800 text-sm transition">Cancel</button>
+          <button type="submit" id="submitBtn" class="flex-1 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition">Save Section</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    let editingId = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadSidebar('about');
+      loadSections();
+    });
+
+    async function loadSections() {
+      try {
+        const data = await api('/api/about/all');
+        renderSections(data.data);
+      } catch { showToast('Failed to load sections.', 'error'); }
+    }
+
+    function renderSections(sections) {
+      const grid = document.getElementById('sectionsGrid');
+      if (sections.length === 0) {
+        grid.innerHTML = `<div class="col-span-2 text-gray-500 text-sm py-8 text-center">No sections yet. <button onclick="openModal()" class="text-purple-400 hover:underline">Add the first one!</button></div>`;
+        return;
+      }
+      grid.innerHTML = sections.map(s => `
+        <div class="section-card rounded-2xl p-5 transition">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">${s.icon || '📄'}</span>
+              <div>
+                <h3 class="text-white font-semibold">${s.title}</h3>
+                <span class="text-xs text-gray-600 font-mono">${s.section_key}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              ${s.is_active
+                ? '<span class="text-xs bg-green-900/40 text-green-400 border border-green-800/40 px-2 py-0.5 rounded-full">Visible</span>'
+                : '<span class="text-xs bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">Hidden</span>'}
+            </div>
+          </div>
+          <p class="text-gray-400 text-sm leading-relaxed line-clamp-3 mb-4">${s.content || '<em class="text-gray-600">No content</em>'}</p>
+          <div class="flex items-center justify-between">
+            <span class="text-gray-600 text-xs">Order: ${s.display_order}</span>
+            <div class="flex gap-2">
+              <button onclick="editSection(${s.id})" class="px-3 py-1.5 rounded-lg text-xs text-purple-400 hover:bg-purple-900/20 border border-purple-800/30 hover:border-purple-700/50 transition">Edit</button>
+              <button onclick="toggleVisible(${s.id}, ${s.is_active})" class="px-3 py-1.5 rounded-lg text-xs text-gray-400 hover:bg-gray-800 border border-gray-700 transition">${s.is_active ? 'Hide' : 'Show'}</button>
+              <button onclick="deleteSection(${s.id}, '${s.title.replace(/'/g,"\\'")}\')" class="px-3 py-1.5 rounded-lg text-xs text-red-400 hover:bg-red-900/20 border border-red-800/30 transition">Delete</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openModal(data = null) {
+      editingId = data ? data.id : null;
+      document.getElementById('modalTitle').textContent = data ? 'Edit Section' : 'Add Section';
+      document.getElementById('sectionId').value = data?.id || '';
+      document.getElementById('sKey').value = data?.section_key || '';
+      document.getElementById('sKey').disabled = !!data; // can't change key on edit
+      document.getElementById('sIcon').value = data?.icon || '';
+      document.getElementById('sTitle').value = data?.title || '';
+      document.getElementById('sContent').value = data?.content || '';
+      document.getElementById('sOrder').value = data?.display_order ?? 0;
+      document.getElementById('sActive').checked = data ? !!data.is_active : true;
+      document.getElementById('submitBtn').textContent = data ? 'Save Changes' : 'Save Section';
+      document.getElementById('modal').classList.remove('hidden');
+    }
+    function closeModal() { document.getElementById('modal').classList.add('hidden'); editingId = null; }
+
+    async function editSection(id) {
+      try {
+        const data = await api('/api/about/all');
+        const s = data.data.find(x => x.id === id);
+        if (s) openModal(s);
+      } catch { showToast('Failed to load section.', 'error'); }
+    }
+
+    document.getElementById('sectionForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      const payload = {
+        section_key: document.getElementById('sKey').value,
+        title: document.getElementById('sTitle').value,
+        content: document.getElementById('sContent').value,
+        icon: document.getElementById('sIcon').value,
+        display_order: parseInt(document.getElementById('sOrder').value) || 0,
+        is_active: document.getElementById('sActive').checked
+      };
+      try {
+        if (editingId) { await api(`/api/about/${editingId}`, { method: 'PUT', body: JSON.stringify(payload) }); showToast('Section updated!'); }
+        else { await api('/api/about', { method: 'POST', body: JSON.stringify(payload) }); showToast('Section added!'); }
+        closeModal(); loadSections();
+      } catch (err) { showToast(err.message, 'error');
+      } finally { btn.disabled = false; btn.textContent = editingId ? 'Save Changes' : 'Save Section'; }
+    });
+
+    async function toggleVisible(id, current) {
+      try {
+        await api(`/api/about/${id}`, { method: 'PUT', body: JSON.stringify({ is_active: current ? 0 : 1 }) });
+        showToast(current ? 'Section hidden.' : 'Section is now visible!');
+        loadSections();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function deleteSection(id, title) {
+      const confirmed = await confirmDelete(`Delete "${title}"? This will remove it from the public About page.`);
+      if (!confirmed) return;
+      try { await api(`/api/about/${id}`, { method: 'DELETE' }); showToast('Section deleted.'); loadSections(); }
+      catch (err) { showToast(err.message, 'error'); }
+    }
+
+    document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal(); });
+  </script>
+</body>
+</html>

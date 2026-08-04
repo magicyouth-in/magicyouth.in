@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: magic-youth-backend
+    runtime: node
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: MONGODB_URI
+        sync: false   # Set manually in Render dashboard
+      - key: SESSION_SECRET
+        sync: false   # Set manually in Render dashboard

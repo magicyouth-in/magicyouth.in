@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAGIC Youth Journey | Activity Timeline</title>
+  <meta name="description" content="Explore the MAGIC Youth journey — a complete timeline of events, achievements, and milestones since our founding." />
+  <link rel="stylesheet" href="assets/nav.css" />
+  <style>
+    html, body { margin:0; padding:0; min-height:100vh; background:linear-gradient(135deg,#0d0015 0%,#0a0010 40%,#12002a 100%); color:#fff; font-family:'Inter',sans-serif; }
+    ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:#0a0010} ::-webkit-scrollbar-thumb{background:#7c3aed;border-radius:2px}
+    .year-btn{border:1px solid rgba(167,139,250,0.25);color:#a78bfa;padding:.35rem 1.1rem;border-radius:9999px;font-size:.8rem;transition:all .2s;background:transparent;cursor:pointer;font-family:'Inter',sans-serif;}
+    .year-btn:hover{background:rgba(124,58,237,0.2);border-color:rgba(167,139,250,0.5)}
+    .year-btn.active{background:rgba(124,58,237,0.4);border-color:rgba(167,139,250,0.7);color:#d8b4fe}
+    footer{background:rgba(0,0,0,0.55);border-top:1px solid rgba(167,139,250,0.12);padding:20px;text-align:center;font-size:.82rem;color:rgba(255,255,255,0.45)}
+    footer a{color:rgba(167,139,250,0.7);text-decoration:none;margin:0 8px} footer a:hover{color:#c084fc}
+    .tl-card{background:rgba(0,0,0,0.35);border:1px solid rgba(167,139,250,0.12);border-radius:14px;padding:20px 24px;margin-bottom:28px;transition:border-color .3s;}
+    .tl-card:hover{border-color:rgba(167,139,250,0.4)}
+    .tl-card h3{margin:0 0 6px;font-size:1.1rem;font-weight:700;color:#e9d5ff}
+    .tl-dot{position:absolute;left:-12px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:#7c3aed;border:2px solid #a78bfa;}
+    .tl-year{font-size:.75rem;color:#a78bfa;margin-bottom:4px;font-weight:600;letter-spacing:.05em}
+    .tl-desc{font-size:.88rem;color:rgba(255,255,255,0.65);line-height:1.6}
+    #timelineItems{padding-left:20px}
+    #timelineContainer{position:relative;padding-left:16px}
+    #timelineContainer::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:rgba(124,58,237,0.3)}
+    main{padding:100px 24px 60px;max-width:900px;margin:0 auto}
+    .page-title{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:800;text-align:center;margin:0 0 10px;background:linear-gradient(135deg,#fff 0%,#c084fc 60%,#818cf8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .page-sub{text-align:center;color:rgba(255,255,255,0.55);margin:0 0 32px;font-size:.95rem}
+  </style>
+</head>
+<body class="bg-gradient-to-br from-purple-900 via-black to-purple-800 text-white font-sans min-h-screen">
+
+  <div id="my-announcements-banner" class="my-ann-hidden"><div id="my-announcements-text"></div></div>
+  <nav id="my-navbar" role="navigation" aria-label="Main navigation">
+    <a href="index.html" class="my-nav-brand"><img src="assets/magic-logo.png" alt="Magic Youth Logo" class="my-nav-logo" /><span class="my-nav-title">MAGIC YOUTH</span></a>
+    <div class="my-nav-right">
+      <a id="my-nav-home" href="index.html" class="my-nav-link">🏠 Home</a>
+      <a href="/admin/login.html" class="my-nav-admin-btn">🔐 Admin</a>
+      <button id="my-hamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="my-nav-dropdown"><span class="my-ham-bar"></span><span class="my-ham-bar"></span><span class="my-ham-bar"></span></button>
+    </div>
+  </nav>
+  <div id="my-nav-overlay" aria-hidden="true"></div>
+  <div id="my-nav-dropdown" role="menu">
+    <div class="my-nav-section-label">Explore</div>
+    <a href="about.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">ℹ️</span> About Us</a>
+    <a href="mission.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">🎯</span> Mission</a>
+    <a href="events.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📅</span> Events</a>
+    <a href="gallery.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">🖼️</span> Gallery</a>
+    <a href="programs.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📚</span> Programs</a>
+    <a href="timeline.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">🕐</span> Our Journey</a>
+    <a href="documents.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📄</span> Documents</a>
+    <div class="my-nav-divider"></div>
+    <div class="my-nav-section-label">Connect</div>
+    <a href="JoinMagic.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">✨</span> Join Us</a>
+    <a href="contact.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📬</span> Contact</a>
+  </div>
+
+  <main class="pt-32 pb-16 px-6 max-w-4xl mx-auto">
+    <div class="text-center mb-12">
+      <h2 class="text-4xl font-bold mb-3">MAGIC Youth Journey</h2>
+      <p class="text-purple-300 max-w-2xl mx-auto">A living archive of every event, milestone, and achievement — preserving our history for future generations of MAGIC Youth.</p>
+    </div>
+
+    <!-- Year Filter -->
+    <div id="yearFilters" class="flex flex-wrap gap-2 justify-center mb-10">
+      <button onclick="filterYear('')" id="year-all" class="year-btn px-4 py-1.5 rounded-full text-sm border border-purple-500 text-purple-300 bg-purple-900/40 font-medium">All Years</button>
+    </div>
+
+    <!-- Timeline -->
+    <div id="timelineContainer" class="relative">
+      <!-- Vertical line -->
+      <div class="absolute left-8 top-0 bottom-0 w-0.5 bg-purple-700/40"></div>
+
+      <div id="timelineItems" class="space-y-8 pl-20">
+        <div class="text-purple-400 text-center py-12">Loading MAGIC Youth journey...</div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="hidden text-center py-16">
+      <div class="text-5xl mb-4">🚀</div>
+      <p class="text-purple-300 font-medium text-lg">The journey is just beginning!</p>
+      <p class="text-purple-500 text-sm mt-2">Timeline entries will appear here as MAGIC Youth grows.</p>
+    </div>
+  </main>
+
+  <footer class="bg-black bg-opacity-60 py-6 text-center">
+    <p class="text-sm">© 2025 Magic Youth | All Rights Reserved</p>
+    <div class="flex justify-center space-x-4 mt-2">
+      <a href="https://www.instagram.com/magicyouth.in/" target="_blank" class="hover:text-pink-400">Instagram (Magic)</a>
+      <a href="https://maps.google.com/?q=Andhra+Loyola+Institute+of+Engineering+and+Technology" target="_blank" class="hover:text-blue-400">Location</a>
+    </div>
+  </footer>
+
+  <script>
+    let currentYear = '';
+
+    async function loadYears() {
+      try {
+        const res = await fetch('/api/timeline/years');
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          const container = document.getElementById('yearFilters');
+          data.data.forEach(year => {
+            const btn = document.createElement('button');
+            btn.id = `year-${year}`;
+            btn.className = 'year-btn px-4 py-1.5 rounded-full text-sm border border-purple-700/50 text-purple-400 hover:border-purple-500 hover:text-purple-300 transition';
+            btn.textContent = year;
+            btn.onclick = () => filterYear(year);
+            container.appendChild(btn);
+          });
+        }
+      } catch {}
+    }
+
+    function filterYear(year) {
+      currentYear = year;
+      document.querySelectorAll('.year-btn').forEach(btn => {
+        btn.className = 'year-btn px-4 py-1.5 rounded-full text-sm border border-purple-700/50 text-purple-400 hover:border-purple-500 hover:text-purple-300 transition';
+      });
+      const activeId = year ? `year-${year}` : 'year-all';
+      const activeBtn = document.getElementById(activeId);
+      if (activeBtn) activeBtn.className = 'year-btn px-4 py-1.5 rounded-full text-sm border border-purple-500 text-purple-300 bg-purple-900/40 font-medium';
+      loadTimeline(year);
+    }
+
+    async function loadTimeline(year = '') {
+      const container = document.getElementById('timelineItems');
+      const empty = document.getElementById('emptyState');
+      container.innerHTML = '<div class="text-purple-400 text-center py-12">Loading...</div>';
+      empty.classList.add('hidden');
+
+      try {
+        let url = '/api/timeline?';
+        if (year) url += `year=${encodeURIComponent(year)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!data.success || data.data.length === 0) {
+          container.innerHTML = '';
+          document.getElementById('timelineContainer').classList.add('hidden');
+          empty.classList.remove('hidden');
+          return;
+        }
+
+        document.getElementById('timelineContainer').classList.remove('hidden');
+        container.innerHTML = data.data.map(item => `
+          <div class="relative">
+            <!-- Timeline dot -->
+            <div class="absolute -left-[3.75rem] top-5 w-5 h-5 rounded-full bg-purple-600 border-2 border-purple-900 shadow-lg shadow-purple-900/80 flex items-center justify-center">
+              <div class="w-2 h-2 rounded-full bg-purple-300"></div>
+            </div>
+
+            <!-- Card -->
+            <div class="bg-black/30 border border-purple-800/40 rounded-2xl p-6 hover:border-purple-600/60 transition backdrop-blur-sm">
+              <div class="flex items-start justify-between gap-3 flex-wrap mb-3">
+                <div>
+                  ${item.academic_year ? `<span class="inline-block text-xs text-purple-400 bg-purple-900/40 border border-purple-700/30 px-2.5 py-0.5 rounded-full mb-2">${item.academic_year}</span>` : ''}
+                  <h3 class="text-lg font-bold text-white">${item.event_name}</h3>
+                </div>
+                ${item.event_date ? `<span class="text-purple-400 text-sm font-medium bg-purple-900/30 px-3 py-1 rounded-full flex-shrink-0">📅 ${new Date(item.event_date).toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'})}</span>` : ''}
+              </div>
+
+              ${item.description ? `<p class="text-purple-200/80 text-sm leading-relaxed mb-4">${item.description}</p>` : ''}
+
+              <!-- Photos thumbnails -->
+              ${item.photos && item.photos.length > 0 ? `
+                <div class="flex gap-2 flex-wrap mb-3">
+                  ${item.photos.slice(0, 4).map(photo => `
+                    <img src="/uploads/gallery/${photo}" alt="Event photo" class="w-16 h-16 rounded-lg object-cover border border-purple-700/30">
+                  `).join('')}
+                  ${item.photos.length > 4 ? `<div class="w-16 h-16 rounded-lg bg-purple-900/40 border border-purple-700/30 flex items-center justify-center text-purple-400 text-sm font-medium">+${item.photos.length - 4}</div>` : ''}
+                </div>
+              ` : ''}
+
+              <!-- Document link -->
+              ${item.document_title ? `
+                <a href="/uploads/documents/${item.document_filename}" target="_blank" class="inline-flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 transition bg-indigo-900/20 border border-indigo-800/30 px-3 py-1.5 rounded-lg">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  ${item.document_title}
+                </a>
+              ` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch {
+        container.innerHTML = '<div class="text-red-400 text-center py-12">Failed to load timeline. Please try again.</div>';
+      }
+    }
+
+    loadYears();
+    loadTimeline();
+  </script>
+  <script src="assets/nav.js"></script>
+</body>
+</html>

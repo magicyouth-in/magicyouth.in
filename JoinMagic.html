@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join Magic Youth</title>
+  <meta name="description" content="Join MAGIC Youth — become part of a student-driven movement at ALIET inspiring creativity, service, and leadership." />
+  <link rel="stylesheet" href="assets/nav.css" />
+  <style>
+    html, body { margin: 0; padding: 0; min-height: 100vh; background: linear-gradient(135deg, #0d0015 0%, #0a0010 40%, #12002a 100%); color: #fff; font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #0a0010; } ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 2px; }
+    main { padding: 100px 16px 60px; text-align: center; }
+    h1 { font-size: clamp(1.8rem,5vw,2.8rem); font-weight: 800; margin: 0 0 12px; background: linear-gradient(135deg,#fff 0%,#c084fc 60%,#818cf8 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .lead { color: rgba(255,255,255,0.65); margin: 0 0 28px; font-size: 1rem; }
+    iframe { max-width: 100%; border-radius: 12px; border: 1px solid rgba(167,139,250,0.2); }
+  </style>
+</head>
+<body>
+  <div id="my-announcements-banner" class="my-ann-hidden"><div id="my-announcements-text"></div></div>
+  <nav id="my-navbar" role="navigation" aria-label="Main navigation">
+    <a href="index.html" class="my-nav-brand"><img src="assets/magic-logo.png" alt="Magic Youth Logo" class="my-nav-logo" /><span class="my-nav-title">MAGIC YOUTH</span></a>
+    <div class="my-nav-right">
+      <a id="my-nav-home" href="index.html" class="my-nav-link">🏠 Home</a>
+      <a href="/admin/login.html" class="my-nav-admin-btn">🔐 Admin</a>
+      <button id="my-hamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="my-nav-dropdown"><span class="my-ham-bar"></span><span class="my-ham-bar"></span><span class="my-ham-bar"></span></button>
+    </div>
+  </nav>
+  <div id="my-nav-overlay" aria-hidden="true"></div>
+  <div id="my-nav-dropdown" role="menu">
+    <div class="my-nav-section-label">Explore</div>
+    <a href="about.html"     class="my-nav-link" role="menuitem"><span class="my-nav-icon">ℹ️</span> About Us</a>
+    <a href="mission.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">🎯</span> Mission</a>
+    <a href="events.html"    class="my-nav-link" role="menuitem"><span class="my-nav-icon">📅</span> Events</a>
+    <a href="gallery.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">🖼️</span> Gallery</a>
+    <a href="programs.html"  class="my-nav-link" role="menuitem"><span class="my-nav-icon">📚</span> Programs</a>
+    <a href="timeline.html"  class="my-nav-link" role="menuitem"><span class="my-nav-icon">🕐</span> Our Journey</a>
+    <a href="documents.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📄</span> Documents</a>
+    <div class="my-nav-divider"></div>
+    <div class="my-nav-section-label">Connect</div>
+    <a href="JoinMagic.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">✨</span> Join Us</a>
+    <a href="contact.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">📬</span> Contact</a>
+  </div>
+
+  <main>
+    <h1>Join Magic Youth</h1>
+    <p class="lead">Fill out the form below to join our community!</p>
+    <iframe
+      src="https://docs.google.com/forms/d/1YkHTySIyerapDZREPq5Xg1Brtp6nZo3rTCd_oaFxJaM/viewform?embedded=true"
+      width="640" height="820" frameborder="0" marginheight="0" marginwidth="0"
+      title="Join Magic Youth Form">Loading…</iframe>
+  </main>
+
+  <script src="assets/nav.js"></script>
+</body>
+</html>

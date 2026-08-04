@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gallery | MAGIC Youth</title>
+  <meta name="description" content="Explore the MAGIC Youth photo gallery — memories from events, programs, and activities organized over the years." />
+  <link rel="stylesheet" href="assets/nav.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0a0a0f; }
+    ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 2px; }
+
+    .album-card {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(167,139,250,0.12);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .album-card:hover {
+      border-color: rgba(167,139,250,0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(124,58,237,0.18);
+    }
+    .album-card img { transition: transform 0.5s ease; }
+    .album-card:hover img { transform: scale(1.08); }
+
+    .filter-btn {
+      border: 1px solid rgba(167,139,250,0.25);
+      color: #a78bfa;
+      padding: 0.35rem 1.1rem;
+      border-radius: 9999px;
+      font-size: .8rem;
+      transition: all .2s;
+    }
+    .filter-btn:hover { background: rgba(124,58,237,0.2); }
+    .filter-btn.active {
+      background: rgba(124,58,237,0.4);
+      border-color: rgba(167,139,250,0.7);
+      color: #d8b4fe;
+    }
+
+    #lightbox { backdrop-filter: blur(8px); }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
+
+    .section-heading::after {
+      content: '';
+      display: block;
+      width: 48px;
+      height: 3px;
+      background: linear-gradient(90deg, #7c3aed, #a855f7);
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-purple-900 via-black to-purple-800 text-white min-h-screen">
+
+  <div id="my-announcements-banner" class="my-ann-hidden"><div id="my-announcements-text"></div></div>
+  <nav id="my-navbar" role="navigation" aria-label="Main navigation">
+    <a href="index.html" class="my-nav-brand"><img src="assets/magic-logo.png" alt="Magic Youth Logo" class="my-nav-logo" /><span class="my-nav-title">MAGIC YOUTH</span></a>
+    <div class="my-nav-right">
+      <a id="my-nav-home" href="index.html" class="my-nav-link">🏠 Home</a>
+      <a href="/admin/login.html" class="my-nav-admin-btn">🔐 Admin</a>
+      <button id="my-hamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="my-nav-dropdown"><span class="my-ham-bar"></span><span class="my-ham-bar"></span><span class="my-ham-bar"></span></button>
+    </div>
+  </nav>
+  <div id="my-nav-overlay" aria-hidden="true"></div>
+  <div id="my-nav-dropdown" role="menu">
+    <div class="my-nav-section-label">Explore</div>
+    <a href="about.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">ℹ️</span> About Us</a>
+    <a href="mission.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">🎯</span> Mission</a>
+    <a href="events.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📅</span> Events</a>
+    <a href="gallery.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">🖼️</span> Gallery</a>
+    <a href="programs.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📚</span> Programs</a>
+    <a href="timeline.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">🕐</span> Our Journey</a>
+    <a href="documents.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📄</span> Documents</a>
+    <div class="my-nav-divider"></div>
+    <div class="my-nav-section-label">Connect</div>
+    <a href="JoinMagic.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">✨</span> Join Us</a>
+    <a href="contact.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📬</span> Contact</a>
+  </div>
+  <main class="pt-28 pb-24 max-w-6xl mx-auto px-6">
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-extrabold mb-3 section-heading">Gallery</h1>
+      <p class="text-purple-300 mt-6 max-w-2xl mx-auto">Memories from MAGIC Youth events, programs, and activities over the years</p>
+    </div>
+
+    <!-- Year filter -->
+    <div id="yearFilters" class="flex flex-wrap gap-2 justify-center mb-10">
+      <button onclick="filterByYear('')" id="year-all" class="filter-btn active">All Years</button>
+    </div>
+
+    <!-- Albums view -->
+    <div id="albumsView">
+      <div id="albumsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="col-span-3 text-center text-purple-500 py-16">Loading gallery...</div>
+      </div>
+    </div>
+
+    <!-- Photos view -->
+    <div id="photosView" class="hidden">
+      <div class="flex items-center gap-3 mb-6">
+        <button onclick="backToAlbums()"
+          class="flex items-center gap-1 text-purple-400 hover:text-purple-200 transition text-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          Back to Albums
+        </button>
+        <h2 class="text-xl font-bold text-white" id="albumTitle"></h2>
+        <span class="text-purple-400 text-sm" id="albumPhotoCount"></span>
+      </div>
+      <div id="photosGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="hidden text-center py-20">
+      <div class="text-6xl mb-4">📷</div>
+      <p class="text-purple-300 font-medium text-lg">No photos uploaded yet.</p>
+      <p class="text-purple-500 text-sm mt-2">Check back soon for event memories!</p>
+    </div>
+  </main>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+    <button onclick="closeLightbox()"
+      class="absolute top-4 right-4 text-white text-3xl hover:text-purple-300 transition leading-none">✕</button>
+    <img id="lightboxImg" src="" alt="" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl object-contain" />
+    <p id="lightboxCaption"
+      class="absolute bottom-6 left-1/2 -translate-x-1/2 text-white text-sm bg-black/60 px-4 py-2 rounded-full"></p>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-black/60 py-6 text-center border-t border-purple-900/30">
+    <p class="text-sm text-purple-300">© 2025 Magic Youth | All Rights Reserved</p>
+    <div class="flex justify-center space-x-4 mt-2">
+      <a href="https://www.instagram.com/magicyouth.in/" target="_blank" class="hover:text-pink-400 text-sm transition">Instagram (Magic)</a>
+      <a href="https://maps.google.com/?q=Andhra+Loyola+Institute+of+Engineering+and+Technology" target="_blank" class="hover:text-blue-400 text-sm transition">Location</a>
+    </div>
+  </footer>
+
+  <script>
+    let currentYear = '';
+
+    async function loadYears() {
+      try {
+        const res = await fetch('/api/gallery/years');
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          const container = document.getElementById('yearFilters');
+          data.data.forEach(year => {
+            const btn = document.createElement('button');
+            btn.id = `year-${year}`;
+            btn.className = 'filter-btn';
+            btn.textContent = year;
+            btn.onclick = () => filterByYear(year);
+            container.appendChild(btn);
+          });
+        }
+      } catch {}
+    }
+
+    function filterByYear(year) {
+      currentYear = year;
+      document.querySelectorAll('#yearFilters .filter-btn').forEach(b => b.classList.remove('active'));
+      const activeId = year ? `year-${year}` : 'year-all';
+      document.getElementById(activeId)?.classList.add('active');
+      loadAlbums(year);
+    }
+
+    async function loadAlbums(year = '') {
+      const grid = document.getElementById('albumsGrid');
+      const emptyState = document.getElementById('emptyState');
+      document.getElementById('albumsView').classList.remove('hidden');
+      document.getElementById('photosView').classList.add('hidden');
+      emptyState.classList.add('hidden');
+      grid.innerHTML = '<div class="col-span-3 text-center text-purple-500 py-16">Loading...</div>';
+      try {
+        let url = '/api/gallery/albums?';
+        if (year) url += `year=${encodeURIComponent(year)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.success || data.data.length === 0) {
+          grid.innerHTML = ''; emptyState.classList.remove('hidden'); return;
+        }
+        grid.innerHTML = data.data.map((album, i) => `
+          <div onclick="viewAlbum('${album.event_name.replace(/'/g,"\\'")}', '${album.academic_year || ''}')"
+            class="album-card rounded-2xl overflow-hidden fade-in" style="animation-delay:${i*0.06}s">
+            <div class="aspect-video overflow-hidden bg-purple-900/20">
+              ${album.cover_photo
+                ? `<img src="/uploads/gallery/${album.cover_photo}" alt="${album.event_name}" class="w-full h-full object-cover">`
+                : `<div class="w-full h-full flex items-center justify-center text-purple-700">
+                    <svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                  </div>`}
+            </div>
+            <div class="p-4">
+              <h3 class="font-semibold text-white">${album.event_name}</h3>
+              <p class="text-purple-400 text-sm mt-0.5">${album.photo_count} photo${album.photo_count !== 1 ? 's' : ''}${album.academic_year ? ' · ' + album.academic_year : ''}</p>
+            </div>
+          </div>
+        `).join('');
+      } catch {
+        grid.innerHTML = '<div class="col-span-3 text-center text-red-400 py-12">Failed to load gallery. Please try again.</div>';
+      }
+    }
+
+    async function viewAlbum(eventName, year) {
+      try {
+        let url = `/api/gallery?event=${encodeURIComponent(eventName)}`;
+        if (year) url += `&year=${encodeURIComponent(year)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        document.getElementById('albumsView').classList.add('hidden');
+        document.getElementById('photosView').classList.remove('hidden');
+        document.getElementById('albumTitle').textContent = eventName;
+        document.getElementById('albumPhotoCount').textContent = `(${data.data.length} photos)`;
+        const grid = document.getElementById('photosGrid');
+        grid.innerHTML = data.data.map(photo => `
+          <div onclick="openLightbox('/uploads/gallery/${photo.filename}', '${(photo.caption||'').replace(/'/g,"\\'")}')"
+            class="aspect-square rounded-xl overflow-hidden cursor-pointer group relative border border-purple-700/20 hover:border-purple-500/50 transition">
+            <img src="/uploads/gallery/${photo.filename}" alt="${photo.caption||'Event Photo'}"
+              class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
+            ${photo.caption ? `
+              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <p class="text-white text-xs">${photo.caption}</p>
+              </div>` : ''}
+          </div>
+        `).join('');
+      } catch { alert('Failed to load album photos.'); }
+    }
+
+    function backToAlbums() {
+      document.getElementById('albumsView').classList.remove('hidden');
+      document.getElementById('photosView').classList.add('hidden');
+      loadAlbums(currentYear);
+    }
+
+    function openLightbox(src, caption) {
+      document.getElementById('lightboxImg').src = src;
+      const cap = document.getElementById('lightboxCaption');
+      cap.textContent = caption;
+      cap.style.display = caption ? 'block' : 'none';
+      document.getElementById('lightbox').classList.remove('hidden');
+    }
+    function closeLightbox() { document.getElementById('lightbox').classList.add('hidden'); }
+    document.getElementById('lightbox').addEventListener('click', e => {
+      if (e.target === document.getElementById('lightbox')) closeLightbox();
+    });
+
+    loadYears();
+    loadAlbums();
+  </script>
+  <script src="assets/nav.js"></script>
+</body>
+</html>

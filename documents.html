@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Documents &amp; Reports | MAGIC Youth</title>
+  <meta name="description" content="MAGIC Youth digital archive — event reports, annual reports, magazines, certificates, and organizational documents." />
+  <link rel="stylesheet" href="assets/nav.css" />
+  <style>
+    html, body { margin:0; padding:0; min-height:100vh; background:linear-gradient(135deg,#0d0015 0%,#0a0010 40%,#12002a 100%); color:#fff; font-family:'Inter',sans-serif; }
+    ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:#0a0010} ::-webkit-scrollbar-thumb{background:#7c3aed;border-radius:2px}
+    main { padding: 100px 24px 60px; max-width: 1100px; margin: 0 auto; }
+    .page-title { font-size:clamp(1.8rem,5vw,2.6rem); font-weight:800; text-align:center; margin:0 0 8px; background:linear-gradient(135deg,#fff 0%,#c084fc 60%,#818cf8 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .page-sub { text-align:center; color:rgba(255,255,255,0.55); margin:0 0 32px; font-size:.93rem; }
+    /* Category buttons */
+    .cat-bar { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:32px; }
+    .cat-btn { border:1px solid rgba(167,139,250,0.25); color:#a78bfa; padding:.35rem 1.1rem; border-radius:9999px; font-size:.8rem; background:transparent; cursor:pointer; transition:all .2s; font-family:'Inter',sans-serif; }
+    .cat-btn:hover { background:rgba(124,58,237,0.2); border-color:rgba(167,139,250,0.5); }
+    .cat-btn.active { background:rgba(124,58,237,0.4); border-color:rgba(167,139,250,0.7); color:#d8b4fe; }
+    /* Docs grid */
+    #docsGrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
+    .doc-card { background:rgba(0,0,0,0.35); border:1px solid rgba(167,139,250,0.12); border-radius:14px; padding:20px; transition:all .3s; }
+    .doc-card:hover { border-color:rgba(167,139,250,0.4); transform:translateY(-3px); box-shadow:0 14px 36px rgba(124,58,237,0.18); }
+    .doc-icon { font-size:2rem; margin-bottom:10px; }
+    .doc-cat { display:inline-block; font-size:.7rem; background:rgba(124,58,237,0.3); border:1px solid rgba(167,139,250,0.3); border-radius:20px; padding:2px 10px; color:#c084fc; margin-bottom:10px; }
+    .doc-title { font-size:.95rem; font-weight:700; margin:0 0 6px; color:#f3e8ff; }
+    .doc-meta { font-size:.78rem; color:rgba(255,255,255,0.5); margin:0 0 14px; line-height:1.7; }
+    .doc-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .doc-btn { flex:1; min-width:90px; text-align:center; padding:8px 12px; border-radius:8px; font-size:.8rem; font-weight:600; text-decoration:none; transition:all .2s; }
+    .doc-btn-view { border:1px solid rgba(167,139,250,0.35); color:#a78bfa; }
+    .doc-btn-view:hover { background:rgba(124,58,237,0.2); }
+    .doc-btn-dl { background:linear-gradient(135deg,#7c3aed,#6d28d9); color:#fff; border:none; cursor:pointer; }
+    .doc-btn-dl:hover { background:linear-gradient(135deg,#8b5cf6,#7c3aed); }
+    .doc-viewonly { flex:1; text-align:center; padding:8px; font-size:.78rem; color:rgba(255,255,255,0.35); }
+    footer { background:rgba(0,0,0,0.55); border-top:1px solid rgba(167,139,250,0.12); padding:20px; text-align:center; font-size:.82rem; color:rgba(255,255,255,0.45); }
+    footer a { color:rgba(167,139,250,0.7); text-decoration:none; margin:0 8px; } footer a:hover { color:#c084fc; }
+  </style>
+</head>
+<body>
+  <div id="my-announcements-banner" class="my-ann-hidden"><div id="my-announcements-text"></div></div>
+  <nav id="my-navbar" role="navigation" aria-label="Main navigation">
+    <a href="index.html" class="my-nav-brand"><img src="assets/magic-logo.png" alt="Magic Youth Logo" class="my-nav-logo" /><span class="my-nav-title">MAGIC YOUTH</span></a>
+    <div class="my-nav-right">
+      <a id="my-nav-home" href="index.html" class="my-nav-link">🏠 Home</a>
+      <a href="/admin/login.html" class="my-nav-admin-btn">🔐 Admin</a>
+      <button id="my-hamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="my-nav-dropdown"><span class="my-ham-bar"></span><span class="my-ham-bar"></span><span class="my-ham-bar"></span></button>
+    </div>
+  </nav>
+  <div id="my-nav-overlay" aria-hidden="true"></div>
+  <div id="my-nav-dropdown" role="menu">
+    <div class="my-nav-section-label">Explore</div>
+    <a href="about.html"     class="my-nav-link" role="menuitem"><span class="my-nav-icon">ℹ️</span> About Us</a>
+    <a href="mission.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">🎯</span> Mission</a>
+    <a href="events.html"    class="my-nav-link" role="menuitem"><span class="my-nav-icon">📅</span> Events</a>
+    <a href="gallery.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">🖼️</span> Gallery</a>
+    <a href="programs.html"  class="my-nav-link" role="menuitem"><span class="my-nav-icon">📚</span> Programs</a>
+    <a href="timeline.html"  class="my-nav-link" role="menuitem"><span class="my-nav-icon">🕐</span> Our Journey</a>
+    <a href="documents.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📄</span> Documents</a>
+    <div class="my-nav-divider"></div>
+    <div class="my-nav-section-label">Connect</div>
+    <a href="JoinMagic.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">✨</span> Join Us</a>
+    <a href="contact.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">📬</span> Contact</a>
+  </div>
+
+  <main>
+    <h1 class="page-title">Documents &amp; Reports</h1>
+    <p class="page-sub">Digital archive of MAGIC Youth reports, magazines, certificates, and official documents</p>
+
+    <div class="cat-bar">
+      <button onclick="filterCategory('')"                   id="cat-all"     class="cat-btn active">All</button>
+      <button onclick="filterCategory('Event Reports')"      id="cat-event"   class="cat-btn">📋 Event Reports</button>
+      <button onclick="filterCategory('Annual Reports')"     id="cat-annual"  class="cat-btn">📊 Annual Reports</button>
+      <button onclick="filterCategory('Magazines')"          id="cat-mag"     class="cat-btn">📰 Magazines</button>
+      <button onclick="filterCategory('Certificates')"       id="cat-cert"    class="cat-btn">🏆 Certificates</button>
+      <button onclick="filterCategory('Letters/Documents')"  id="cat-letters" class="cat-btn">📄 Letters</button>
+    </div>
+
+    <div id="docsGrid"><div style="grid-column:1/-1;text-align:center;padding:48px;color:rgba(167,139,250,0.6)">Loading documents...</div></div>
+    <div id="emptyState" class="hidden" style="text-align:center;padding:60px 0;">
+      <div style="font-size:3rem;margin-bottom:12px">📂</div>
+      <p style="color:rgba(255,255,255,0.5)">No documents available yet.</p>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2025 Magic Youth | All Rights Reserved</p>
+    <div style="margin-top:8px;">
+      <a href="https://www.instagram.com/magicyouth.in/" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://maps.google.com/?q=Andhra+Loyola+Institute+of+Engineering+and+Technology" target="_blank" rel="noopener">Location</a>
+    </div>
+  </footer>
+
+  <script src="assets/nav.js"></script>
+  <script>
+    const ICONS = { 'Event Reports':'📋', 'Annual Reports':'📊', 'Magazines':'📰', 'Certificates':'🏆', 'Letters/Documents':'📄' };
+
+    async function loadDocs(category = '') {
+      const grid  = document.getElementById('docsGrid');
+      const empty = document.getElementById('emptyState');
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:48px;color:rgba(167,139,250,0.6)">Loading...</div>';
+      empty.classList.add('hidden');
+      try {
+        let url = '/api/documents?';
+        if (category) url += `category=${encodeURIComponent(category)}`;
+        const res  = await fetch(url);
+        const data = await res.json();
+        if (!data.success || data.data.length === 0) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+        grid.innerHTML = data.data.map(d => {
+          const isPDF = d.filename.toLowerCase().endsWith('.pdf');
+          const date  = d.eventDate ? new Date(d.eventDate).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '';
+          return `<div class="doc-card">
+            <div class="doc-icon">${ICONS[d.category] || '📄'}</div>
+            <span class="doc-cat">${d.category}</span>
+            <div class="doc-title">${d.title}</div>
+            <div class="doc-meta">
+              ${d.eventName ? `📌 ${d.eventName}<br>` : ''}
+              ${date ? `📅 ${date}<br>` : ''}
+              ${d.academicYear ? `🎓 ${d.academicYear}` : ''}
+            </div>
+            <div class="doc-actions">
+              ${isPDF ? `<a href="/uploads/documents/${d.filename}" target="_blank" class="doc-btn doc-btn-view">View PDF</a>` : ''}
+              ${d.isDownloadable ? `<a href="/uploads/documents/${d.filename}" download class="doc-btn doc-btn-dl">⬇ Download</a>` : '<span class="doc-viewonly">View Only</span>'}
+            </div>
+          </div>`;
+        }).join('');
+      } catch {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:48px;color:#f87171">Failed to load documents.</div>';
+      }
+    }
+
+    function filterCategory(cat) {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      const activeId = cat ? `cat-${cat.split(' ')[0].toLowerCase().replace('/', '')}` : 'cat-all';
+      (document.getElementById(activeId) || document.getElementById('cat-all')).classList.add('active');
+      loadDocs(cat);
+    }
+
+    loadDocs();
+  </script>
+</body>
+</html>

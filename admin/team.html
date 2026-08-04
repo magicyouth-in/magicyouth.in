@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Team Management | MAGIC Youth Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0f0f13; }
+    input, select, textarea { background: #1a1a2e !important; border-color: #374151 !important; color: #f3f4f6 !important; }
+    input:focus, select:focus, textarea:focus { border-color: #7c3aed !important; outline: none !important; box-shadow: 0 0 0 2px rgba(124,58,237,0.2) !important; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 2px; }
+  </style>
+</head>
+<body class="text-gray-100">
+  <div id="sidebarContainer"></div>
+
+  <div class="md:ml-64 min-h-screen">
+    <header class="sticky top-0 z-40 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleMobileSidebar()" class="md:hidden p-2 rounded-lg hover:bg-gray-800 text-gray-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <h1 class="text-lg font-bold text-white">Team Management</h1>
+          <p class="text-gray-500 text-xs">Current team and leadership archive by year</p>
+        </div>
+      </div>
+      <button onclick="openModal()" class="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Add Member
+      </button>
+    </header>
+
+    <main class="p-6">
+      <!-- Year Filter Tabs -->
+      <div class="flex flex-wrap items-center gap-3 mb-6">
+        <button onclick="filterYear('')" id="yearBtn-all" class="year-btn px-4 py-1.5 rounded-full text-sm border border-purple-600 bg-purple-900/30 text-purple-300 font-medium">All Years</button>
+        <button onclick="filterYear('current')" id="yearBtn-current" class="year-btn px-4 py-1.5 rounded-full text-sm border border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300">Current Team</button>
+        <div id="yearBtns" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <!-- Team Grid -->
+      <div id="teamGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div class="text-gray-500 text-sm">Loading team members...</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div class="flex items-center justify-between px-6 py-5 border-b border-gray-800">
+        <h2 class="text-lg font-semibold text-white" id="modalTitle">Add Team Member</h2>
+        <button onclick="closeModal()" class="text-gray-500 hover:text-white transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="memberForm" class="p-6 space-y-4" enctype="multipart/form-data">
+        <input type="hidden" id="memberId">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Full Name *</label>
+            <input type="text" id="memName" required placeholder="e.g. Ravi Kumar" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Position / Role</label>
+            <input type="text" id="memPosition" placeholder="e.g. President, Secretary" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Department</label>
+            <input type="text" id="memDept" placeholder="e.g. CSE, ECE" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Batch / Academic Year</label>
+            <input type="text" id="memBatch" placeholder="e.g. 2022-26" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Team Year</label>
+            <input type="text" id="memTeamYear" placeholder="e.g. 2025-26" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Contact</label>
+            <input type="text" id="memContact" placeholder="Phone / Email" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Display Order</label>
+            <input type="number" id="memOrder" placeholder="0 = first" min="0" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Instagram</label>
+            <input type="text" id="memInstagram" placeholder="@username" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">LinkedIn</label>
+            <input type="text" id="memLinkedin" placeholder="Profile URL" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+          <div class="md:col-span-2 flex items-center gap-3">
+            <input type="checkbox" id="memIsCurrent" class="w-4 h-4 accent-green-500" checked>
+            <label for="memIsCurrent" class="text-sm text-gray-300">Current team member (uncheck to archive)</label>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Profile Photo</label>
+            <input type="file" id="memPhoto" accept="image/*" class="w-full rounded-xl px-4 py-2.5 text-sm border file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-green-900/40 file:text-green-300 file:text-xs cursor-pointer">
+            <div id="photoPreviewContainer" class="hidden mt-2"></div>
+          </div>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2.5 rounded-xl border border-gray-700 text-gray-300 hover:bg-gray-800 text-sm transition">Cancel</button>
+          <button type="submit" id="submitBtn" class="flex-1 px-4 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition">Save Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    let currentFilter = '';
+    let editingId = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadSidebar('team');
+      loadYears();
+      loadTeam();
+    });
+
+    async function loadYears() {
+      try {
+        const data = await api('/api/team/years');
+        const container = document.getElementById('yearBtns');
+        container.innerHTML = data.data.map(y => `
+          <button onclick="filterYear('${y}')" id="yearBtn-${y}" class="year-btn px-4 py-1.5 rounded-full text-sm border border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300">${y}</button>
+        `).join('');
+      } catch {}
+    }
+
+    function filterYear(year) {
+      currentFilter = year;
+      document.querySelectorAll('.year-btn').forEach(btn => {
+        btn.className = 'year-btn px-4 py-1.5 rounded-full text-sm border border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300';
+      });
+      const activeBtn = document.getElementById(`yearBtn-${year || 'all'}`);
+      if (activeBtn) activeBtn.className = 'year-btn px-4 py-1.5 rounded-full text-sm border border-purple-600 bg-purple-900/30 text-purple-300 font-medium';
+      loadTeam();
+    }
+
+    async function loadTeam() {
+      let url = '/api/team?';
+      if (currentFilter === 'current') url += 'current=1';
+      else if (currentFilter) url += `year=${encodeURIComponent(currentFilter)}`;
+
+      try {
+        const data = await api(url);
+        renderGrid(data.data);
+      } catch { showToast('Failed to load team.', 'error'); }
+    }
+
+    function renderGrid(members) {
+      const grid = document.getElementById('teamGrid');
+      if (members.length === 0) {
+        grid.innerHTML = `<div class="col-span-4 text-gray-500 text-sm py-8">No team members found. <button onclick="openModal()" class="text-green-400 hover:underline">Add the first one!</button></div>`;
+        return;
+      }
+      grid.innerHTML = members.map(m => `
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 hover:border-gray-700 transition">
+          <div class="flex items-start gap-3">
+            ${m.photo
+              ? `<img src="/uploads/team/${m.photo}" class="w-14 h-14 rounded-xl object-cover flex-shrink-0">`
+              : `<div class="w-14 h-14 rounded-xl bg-gradient-to-br from-green-900/50 to-teal-900/50 flex items-center justify-center flex-shrink-0 text-xl font-bold text-green-400">${m.name[0]}</div>`}
+            <div class="flex-1 min-w-0">
+              <p class="text-white font-semibold text-sm truncate">${m.name}</p>
+              <p class="text-green-400 text-xs truncate">${m.position || '—'}</p>
+              <p class="text-gray-500 text-xs">${m.department || ''} ${m.teamYear ? '· ' + m.teamYear : ''}</p>
+            </div>
+          </div>
+          ${m.isCurrent ? '<span class="inline-block mt-2 px-2 py-0.5 rounded-full text-xs bg-green-900/40 text-green-400 border border-green-800/50">Current</span>' : '<span class="inline-block mt-2 px-2 py-0.5 rounded-full text-xs bg-gray-800 text-gray-500 border border-gray-700">Archived</span>'}
+          <div class="flex gap-2 mt-3 pt-3 border-t border-gray-800">
+            <button onclick="editMember('${m._id}')" class="flex-1 py-1.5 rounded-lg text-xs text-gray-400 hover:text-purple-400 hover:bg-purple-900/20 transition">Edit</button>
+            <button onclick="deleteMember('${m._id}', '${m.name.replace(/'/g, "\\'")}')"
+              class="flex-1 py-1.5 rounded-lg text-xs text-gray-400 hover:text-red-400 hover:bg-red-900/20 transition">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openModal(data = null) {
+      editingId = data ? data._id : null;
+      document.getElementById('modalTitle').textContent = data ? 'Edit Member' : 'Add Team Member';
+      document.getElementById('memberId').value = data?._id || '';
+      document.getElementById('memName').value = data?.name || '';
+      document.getElementById('memPosition').value = data?.position || '';
+      document.getElementById('memDept').value = data?.department || '';
+      document.getElementById('memBatch').value = data?.batchYear || '';
+      document.getElementById('memTeamYear').value = data?.teamYear || '';
+      document.getElementById('memContact').value = data?.contact || '';
+      document.getElementById('memOrder').value = data?.displayOrder ?? 0;
+      document.getElementById('memInstagram').value = data?.socialLinks?.instagram || '';
+      document.getElementById('memLinkedin').value = data?.socialLinks?.linkedin || '';
+      document.getElementById('memIsCurrent').checked = data ? !!data.isCurrent : true;
+      document.getElementById('memPhoto').value = '';
+
+      const preview = document.getElementById('photoPreviewContainer');
+      if (data?.photo) {
+        preview.innerHTML = `<img src="/uploads/team/${data.photo}" class="h-16 w-16 rounded-xl object-cover">`;
+        preview.classList.remove('hidden');
+      } else { preview.classList.add('hidden'); preview.innerHTML = ''; }
+
+      document.getElementById('modal').classList.remove('hidden');
+    }
+
+    function closeModal() { document.getElementById('modal').classList.add('hidden'); editingId = null; }
+
+    async function editMember(id) {
+      try {
+        const data = await api(`/api/team/${id}`);
+        if (data.data) openModal(data.data);
+      } catch { showToast('Failed to load member.', 'error'); }
+    }
+
+    document.getElementById('memberForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+
+      const social_links = JSON.stringify({
+        instagram: document.getElementById('memInstagram').value,
+        linkedin: document.getElementById('memLinkedin').value
+      });
+
+      const form = new FormData();
+      form.append('name', document.getElementById('memName').value);
+      form.append('position', document.getElementById('memPosition').value);
+      form.append('department', document.getElementById('memDept').value);
+      form.append('batch_year', document.getElementById('memBatch').value);
+      form.append('team_year', document.getElementById('memTeamYear').value);
+      form.append('contact', document.getElementById('memContact').value);
+      form.append('display_order', document.getElementById('memOrder').value);
+      form.append('social_links', social_links);
+      form.append('is_current', document.getElementById('memIsCurrent').checked ? '1' : '0');
+      const photo = document.getElementById('memPhoto').files[0];
+      if (photo) form.append('photo', photo);
+
+      try {
+        const url = editingId ? `/api/team/${editingId}` : '/api/team';
+        const method = editingId ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, body: form });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        showToast(editingId ? 'Member updated!' : 'Member added!');
+        closeModal();
+        loadTeam();
+      } catch (err) { showToast(err.message, 'error');
+      } finally { btn.disabled = false; btn.textContent = 'Save Member'; }
+    });
+
+    async function deleteMember(id, name) {
+      const confirmed = await confirmDelete(`Remove "${name}" from the team?`);
+      if (!confirmed) return;
+      try {
+        await api(`/api/team/${id}`, { method: 'DELETE' });
+        showToast('Member removed.');
+        loadTeam();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    document.getElementById('modal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modal')) closeModal();
+    });
+  </script>
+</body>
+</html>

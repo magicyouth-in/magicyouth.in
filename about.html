@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>About | Magic Youth</title>
+  <meta name="description" content="About MAGIC Youth — a student-driven movement at ALIET inspiring creativity, service, and leadership. Meet our team, explore events, gallery, programs, and get in touch." />
+  <link rel="stylesheet" href="assets/nav.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+
+    /* ── Scrollbar ───────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0a0a0f; }
+    ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 2px; }
+
+    /* ── Nav link active state ───────────────────── */
+    .nav-link { transition: color .2s; }
+    .nav-link.active, .nav-link:hover { color: #c4b5fd; }
+
+    /* ── Section anchors offset (fixed header) ───── */
+    [id] { scroll-margin-top: 90px; }
+
+    /* ── Member cards ────────────────────────────── */
+    .member-card {
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(167,139,250,0.15);
+      transition: all 0.3s ease;
+    }
+    .member-card:hover {
+      border-color: rgba(167,139,250,0.45);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(124,58,237,0.2);
+    }
+
+    /* ── Year filter buttons ─────────────────────── */
+    .year-btn {
+      border: 1px solid rgba(167,139,250,0.25);
+      color: #a78bfa;
+      transition: all 0.2s;
+    }
+    .year-btn:hover {
+      background: rgba(124,58,237,0.2);
+      border-color: rgba(167,139,250,0.5);
+    }
+    .year-btn-active {
+      background: rgba(124,58,237,0.4);
+      border-color: rgba(167,139,250,0.7);
+      color: #d8b4fe;
+    }
+
+    /* ── Gallery cards ───────────────────────────── */
+    .album-card {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(167,139,250,0.12);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .album-card:hover {
+      border-color: rgba(167,139,250,0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(124,58,237,0.18);
+    }
+    .album-card img { transition: transform 0.5s ease; }
+    .album-card:hover img { transform: scale(1.08); }
+
+    /* ── Event cards ─────────────────────────────── */
+    .event-card {
+      background: rgba(0,0,0,0.32);
+      border: 1px solid rgba(167,139,250,0.12);
+      transition: all 0.3s ease;
+    }
+    .event-card:hover {
+      border-color: rgba(167,139,250,0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(124,58,237,0.18);
+    }
+
+    /* ── Program cards ───────────────────────────── */
+    .program-card {
+      background: rgba(0,0,0,0.32);
+      border: 1px solid rgba(167,139,250,0.12);
+      transition: all 0.3s ease;
+    }
+    .program-card:hover {
+      border-color: rgba(167,139,250,0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(124,58,237,0.18);
+    }
+
+    /* ── Contact form ────────────────────────────── */
+    .contact-input {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(167,139,250,0.2);
+      color: #f3f4f6;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .contact-input:focus {
+      outline: none;
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+    }
+    .contact-input::placeholder { color: rgba(167,139,250,0.45); }
+
+    /* ── Timeline ────────────────────────────────── */
+    .timeline-card {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(124,58,237,0.25);
+      transition: border-color .3s;
+    }
+    .timeline-card:hover { border-color: rgba(167,139,250,0.5); }
+
+    /* ── Section divider ─────────────────────────── */
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(124,58,237,0.4), transparent);
+    }
+
+    /* ── Lightbox ────────────────────────────────── */
+    #lightbox { backdrop-filter: blur(8px); }
+
+    /* ── Animations ──────────────────────────────── */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .slide-up { animation: slideUp 0.5s ease forwards; }
+
+    /* ── Section heading accent ──────────────────── */
+    .section-heading::after {
+      content: '';
+      display: block;
+      width: 48px;
+      height: 3px;
+      background: linear-gradient(90deg, #7c3aed, #a855f7);
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+
+    /* ── Nav smooth highlight ────────────────────── */
+    .nav-section-link {
+      border-bottom: 2px solid transparent;
+      padding-bottom: 2px;
+      transition: all .2s;
+    }
+    .nav-section-link:hover, .nav-section-link.active {
+      color: #c4b5fd;
+      border-bottom-color: #7c3aed;
+    }
+
+    /* ── Filter tab buttons ──────────────────────── */
+    .filter-btn {
+      border: 1px solid rgba(167,139,250,0.25);
+      color: #a78bfa;
+      padding: 0.35rem 1.1rem;
+      border-radius: 9999px;
+      font-size: .8rem;
+      transition: all .2s;
+    }
+    .filter-btn:hover { background: rgba(124,58,237,0.2); border-color: rgba(167,139,250,0.5); }
+    .filter-btn.active {
+      background: rgba(124,58,237,0.4);
+      border-color: rgba(167,139,250,0.7);
+      color: #d8b4fe;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-purple-900 via-black to-purple-800 text-white min-h-screen">
+
+  <!-- ── Announcements Banner ─────────────────────────────────────────────── -->
+  <div id="my-announcements-banner" class="my-ann-hidden">
+    <div id="my-announcements-text"></div>
+  </div>
+
+  <!-- ── Navigation ──────────────────────────────────────────────────────── -->
+  <nav id="my-navbar" role="navigation" aria-label="Main navigation">
+    <a href="index.html" class="my-nav-brand" aria-label="MAGIC Youth Home">
+      <img src="assets/magic-logo.png" alt="Magic Youth Logo" class="my-nav-logo" />
+      <span class="my-nav-title">MAGIC YOUTH</span>
+    </a>
+    <div class="my-nav-right">
+      <a id="my-nav-home" href="index.html" class="my-nav-link" aria-label="Home">🏠 Home</a>
+      <a href="/admin/login.html" class="my-nav-admin-btn" aria-label="Admin panel">🔐 Admin</a>
+      <button id="my-hamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="my-nav-dropdown">
+        <span class="my-ham-bar"></span>
+        <span class="my-ham-bar"></span>
+        <span class="my-ham-bar"></span>
+      </button>
+    </div>
+  </nav>
+  <div id="my-nav-overlay" aria-hidden="true"></div>
+  <div id="my-nav-dropdown" role="menu" aria-label="Site navigation">
+    <div class="my-nav-section-label">Explore</div>
+    <a href="about.html"     class="my-nav-link" role="menuitem"><span class="my-nav-icon">ℹ️</span> About Us</a>
+    <a href="mission.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">🎯</span> Mission</a>
+    <a href="events.html"    class="my-nav-link" role="menuitem"><span class="my-nav-icon">📅</span> Events</a>
+    <a href="gallery.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">🖼️</span> Gallery</a>
+    <a href="programs.html"  class="my-nav-link" role="menuitem"><span class="my-nav-icon">📚</span> Programs</a>
+    <a href="timeline.html"  class="my-nav-link" role="menuitem"><span class="my-nav-icon">🕐</span> Our Journey</a>
+    <a href="documents.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📄</span> Documents</a>
+    <div class="my-nav-divider"></div>
+    <div class="my-nav-section-label">Connect</div>
+    <a href="JoinMagic.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">✨</span> Join Us</a>
+    <a href="contact.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">📬</span> Contact</a>
+  </div>
+
+  <main class="pt-28 pb-24">
+
+    <!-- ══════════════════ ABOUT HERO ══════════════════ -->
+    <section class="text-center px-6 max-w-4xl mx-auto mb-20 slide-up">
+      <h1 class="text-5xl font-extrabold mb-5 section-heading">About Magic Youth</h1>
+      <p class="text-lg leading-relaxed text-purple-100 max-w-3xl mx-auto mt-6">
+        Magic Youth is a student-driven movement at ALIET that inspires creativity, service, and leadership.
+        We create events, programs, and outreach activities that bring transformation and unity among youth.
+      </p>
+    </section>
+
+    <!-- ══════════════════ ABOUT CONTENT SECTIONS (admin-managed) ══════════════════ -->
+    <section id="about-sections" class="max-w-5xl mx-auto px-6 mb-20">
+      <div id="aboutSectionsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Populated by JS from /api/about -->
+      </div>
+    </section>
+
+    <div class="section-divider max-w-4xl mx-auto mb-20"></div>
+
+    <!-- ══════════════════ TEAM SECTION ══════════════════ -->
+    <section id="team-section" class="max-w-6xl mx-auto px-6 mb-20">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold section-heading">Our Team</h2>
+        <p class="text-purple-400 text-sm mt-5">The people who make MAGIC Youth happen</p>
+      </div>
+
+      <!-- Year Filter Tabs -->
+      <div id="yearFilterContainer" class="flex flex-wrap justify-center gap-2 mb-8">
+        <button id="year-btn-current" onclick="selectYear('current')"
+          class="year-btn year-btn-active px-5 py-2 rounded-full text-sm font-medium">
+          ⭐ Current Team
+        </button>
+      </div>
+
+      <p id="yearLabel" class="text-center text-purple-300 text-sm mb-6 font-medium"></p>
+
+      <div id="teamGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        <div class="col-span-4 text-center text-purple-500 py-16">Loading team...</div>
+      </div>
+      <div id="teamEmpty" class="hidden text-center py-16">
+        <div class="text-5xl mb-4">👥</div>
+        <p class="text-purple-300 font-medium">No team members added yet.</p>
+        <p class="text-purple-500 text-sm mt-1">Check back soon!</p>
+      </div>
+    </section>
+
+    <div class="section-divider max-w-4xl mx-auto mb-20"></div>
+
+    <!-- ══════════════════ GALLERY SECTION ══════════════════ -->
+    <section id="gallery-section" class="max-w-6xl mx-auto px-6 mb-20">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold section-heading">Gallery</h2>
+        <p class="text-purple-400 text-sm mt-5">Memories from MAGIC Youth events, programs, and activities</p>
+      </div>
+
+      <!-- Year filter -->
+      <div id="galleryYearFilters" class="flex flex-wrap gap-2 justify-center mb-8">
+        <button onclick="filterGalleryYear('')" id="gal-year-all"
+          class="filter-btn active">All Years</button>
+      </div>
+
+      <!-- Albums grid -->
+      <div id="albumsView">
+        <div id="albumsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="col-span-3 text-center text-purple-500 py-16">Loading gallery...</div>
+        </div>
+      </div>
+
+      <!-- Photos view (inside album) -->
+      <div id="photosView" class="hidden">
+        <div class="flex items-center gap-3 mb-6">
+          <button onclick="backToAlbums()"
+            class="flex items-center gap-1 text-purple-400 hover:text-purple-200 transition text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back to Albums
+          </button>
+          <h3 class="text-xl font-bold text-white" id="albumTitle"></h3>
+          <span class="text-purple-400 text-sm" id="albumPhotoCount"></span>
+        </div>
+        <div id="photosGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+      </div>
+
+      <div id="galleryEmpty" class="hidden text-center py-16">
+        <div class="text-5xl mb-4">📷</div>
+        <p class="text-purple-300 font-medium">No photos uploaded yet.</p>
+        <p class="text-purple-500 text-sm mt-1">Check back soon for event memories!</p>
+      </div>
+    </section>
+
+    <div class="section-divider max-w-4xl mx-auto mb-20"></div>
+
+    <!-- ══════════════════ PROGRAMS SECTION ══════════════════ -->
+    <section id="programs-section" class="max-w-6xl mx-auto px-6 mb-20">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold section-heading">Programs</h2>
+        <p class="text-purple-400 text-sm mt-5">Our community initiatives and social impact programs</p>
+      </div>
+
+      <div id="programsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="col-span-3 text-center text-purple-500 py-16">Loading programs...</div>
+      </div>
+
+      <div id="programsEmpty" class="hidden text-center py-16">
+        <div class="text-5xl mb-4">🌟</div>
+        <p class="text-purple-300 font-medium">No programs added yet.</p>
+        <p class="text-purple-500 text-sm mt-1">Check back soon!</p>
+      </div>
+    </section>
+
+    <div class="section-divider max-w-4xl mx-auto mb-20"></div>
+
+    <!-- ══════════════════ EVENTS SECTION ══════════════════ -->
+    <section id="events-section" class="max-w-6xl mx-auto px-6 mb-20">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold section-heading">Events</h2>
+        <p class="text-purple-400 text-sm mt-5">Explore all events organized by MAGIC Youth</p>
+      </div>
+
+      <!-- Event filters -->
+      <div class="flex flex-wrap gap-2 justify-center mb-8">
+        <button onclick="filterEventsSection('')" id="ev-filter-all" class="filter-btn active">All</button>
+        <button onclick="filterEventsSection('upcoming')" id="ev-filter-upcoming" class="filter-btn">Upcoming</button>
+        <button onclick="filterEventsSection('completed')" id="ev-filter-completed" class="filter-btn">Completed</button>
+      </div>
+
+      <div id="eventsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="col-span-3 text-center text-purple-500 py-16">Loading events...</div>
+      </div>
+      <div id="eventsEmpty" class="hidden text-center py-16">
+        <div class="text-5xl mb-4">🎉</div>
+        <p class="text-purple-300 font-medium">No events found.</p>
+      </div>
+    </section>
+
+    <div class="section-divider max-w-4xl mx-auto mb-20"></div>
+
+    <!-- ══════════════════ CONTACT SECTION ══════════════════ -->
+    <section id="contact-section" class="max-w-2xl mx-auto px-6 mb-20">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold section-heading">Contact Us</h2>
+        <p class="text-purple-400 text-sm mt-5">Have a question or want to connect? Reach out!</p>
+      </div>
+
+      <div class="bg-black/30 border border-purple-700/25 rounded-3xl p-8 backdrop-blur-sm">
+        <form id="contactForm" class="space-y-5">
+          <div>
+            <label for="c-name" class="block text-sm font-medium text-purple-300 mb-1.5">Name</label>
+            <input type="text" id="c-name" name="name" required placeholder="Your full name"
+              class="contact-input w-full rounded-xl px-4 py-3 text-sm" />
+          </div>
+          <div>
+            <label for="c-email" class="block text-sm font-medium text-purple-300 mb-1.5">Email</label>
+            <input type="email" id="c-email" name="email" required placeholder="you@example.com"
+              class="contact-input w-full rounded-xl px-4 py-3 text-sm" />
+          </div>
+          <div>
+            <label for="c-phone" class="block text-sm font-medium text-purple-300 mb-1.5">Phone Number</label>
+            <input type="tel" id="c-phone" name="phone" placeholder="+91 9876543210"
+              class="contact-input w-full rounded-xl px-4 py-3 text-sm" />
+          </div>
+          <div>
+            <label for="c-query" class="block text-sm font-medium text-purple-300 mb-1.5">Message</label>
+            <textarea id="c-query" name="query" rows="4" required placeholder="Write your message here..."
+              class="contact-input w-full rounded-xl px-4 py-3 text-sm resize-none"></textarea>
+          </div>
+          <button type="submit" id="contactBtn"
+            class="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl transition-all duration-200 active:scale-95">
+            Send Message ✉️
+          </button>
+        </form>
+        <div id="contactMessage" class="mt-4 text-center text-sm hidden"></div>
+
+        <!-- Contact info -->
+        <div class="mt-8 pt-6 border-t border-purple-700/20 flex flex-col sm:flex-row gap-4 justify-center text-center">
+          <a href="https://www.instagram.com/magicyouth.in/" target="_blank"
+            class="flex items-center justify-center gap-2 text-pink-400 hover:text-pink-300 transition text-sm">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+            @magicyouth.in
+          </a>
+          <a href="https://maps.google.com/?q=Andhra+Loyola+Institute+of+Engineering+and+Technology" target="_blank"
+            class="flex items-center justify-center gap-2 text-blue-400 hover:text-blue-300 transition text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            ALIET, Vijayawada
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider max-w-4xl mx-auto mb-20"></div>
+
+    <!-- ══════════════════ JOURNEY / TIMELINE SECTION ══════════════════ -->
+    <section id="journey-section" class="max-w-4xl mx-auto px-6 mb-20">
+      <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold section-heading">Our Journey</h2>
+        <p class="text-purple-400 text-sm mt-5 max-w-2xl mx-auto">A living archive of every event, milestone, and achievement — preserving our history for future generations of MAGIC Youth.</p>
+      </div>
+
+      <!-- Year filter -->
+      <div id="journeyYearFilters" class="flex flex-wrap gap-2 justify-center mb-10">
+        <button onclick="filterJourneyYear('')" id="j-year-all" class="filter-btn active">All Years</button>
+      </div>
+
+      <!-- Timeline -->
+      <div id="journeyContainer" class="relative">
+        <div class="absolute left-6 top-0 bottom-0 w-0.5 bg-purple-700/40"></div>
+        <div id="journeyItems" class="space-y-8 pl-16">
+          <div class="text-purple-500 text-center py-12">Loading journey...</div>
+        </div>
+      </div>
+
+      <div id="journeyEmpty" class="hidden text-center py-16">
+        <div class="text-5xl mb-4">🚀</div>
+        <p class="text-purple-300 font-medium text-lg">The journey is just beginning!</p>
+        <p class="text-purple-500 text-sm mt-2">Timeline entries will appear here as MAGIC Youth grows.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════════════════ LIGHTBOX ══════════════════ -->
+  <div id="lightbox" class="hidden fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+    <button onclick="closeLightbox()"
+      class="absolute top-4 right-4 text-white text-3xl hover:text-purple-300 transition leading-none">✕</button>
+    <img id="lightboxImg" src="" alt="" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl object-contain" />
+    <p id="lightboxCaption"
+      class="absolute bottom-6 left-1/2 -translate-x-1/2 text-white text-sm bg-black/60 px-4 py-2 rounded-full"></p>
+  </div>
+
+  <!-- ══════════════════ FOOTER ══════════════════ -->
+  <footer class="bg-black/60 py-6 text-center border-t border-purple-900/30">
+    <p class="text-sm text-purple-300">© 2025 Magic Youth | All Rights Reserved</p>
+    <div class="flex justify-center space-x-4 mt-2">
+      <a href="https://www.instagram.com/magicyouth.in/" target="_blank" class="hover:text-pink-400 text-sm transition">Instagram (Magic)</a>
+      <a href="https://maps.google.com/?q=Andhra+Loyola+Institute+of+Engineering+and+Technology" target="_blank" class="hover:text-blue-400 text-sm transition">Location</a>
+    </div>
+  </footer>
+
+  <!-- ══════════════════ SCRIPTS ══════════════════ -->
+  <script>
+    /* ════════════════════════════════════════════════
+       1. ABOUT SECTIONS (admin-managed content)
+    ════════════════════════════════════════════════ */
+    (async function loadAboutSections() {
+      try {
+        const res = await fetch('/api/about');
+        const data = await res.json();
+        const grid = document.getElementById('aboutSectionsGrid');
+        if (!data.success || !data.data || data.data.length === 0) {
+          grid.parentElement.classList.add('hidden');
+          return;
+        }
+        grid.innerHTML = data.data.map(s => `
+          <div class="bg-black/30 border border-purple-700/20 rounded-2xl p-6 backdrop-blur-sm hover:border-purple-600/40 transition">
+            <div class="flex items-start gap-3 mb-3">
+              ${s.icon ? `<span class="text-3xl">${s.icon}</span>` : ''}
+              <h3 class="text-lg font-bold text-white">${s.title}</h3>
+            </div>
+            <p class="text-purple-200/80 text-sm leading-relaxed">${s.content || ''}</p>
+          </div>
+        `).join('');
+      } catch { document.getElementById('aboutSectionsGrid').parentElement.classList.add('hidden'); }
+    })();
+
+    /* ════════════════════════════════════════════════
+       2. TEAM
+    ════════════════════════════════════════════════ */
+    let selectedYear = 'current';
+
+    async function loadYearTabs() {
+      try {
+        const res = await fetch('/api/team/years');
+        const data = await res.json();
+        if (!data.success) return;
+        const container = document.getElementById('yearFilterContainer');
+        data.data.forEach(year => {
+          const btn = document.createElement('button');
+          btn.id = `year-btn-${year}`;
+          btn.className = 'year-btn px-5 py-2 rounded-full text-sm font-medium';
+          btn.textContent = year;
+          btn.onclick = () => selectYear(year);
+          container.appendChild(btn);
+        });
+      } catch {}
+    }
+
+    function selectYear(year) {
+      selectedYear = year;
+      document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('year-btn-active'));
+      const ab = document.getElementById(`year-btn-${year}`);
+      if (ab) ab.classList.add('year-btn-active');
+      loadTeam(year);
+    }
+
+    async function loadTeam(year) {
+      const grid = document.getElementById('teamGrid');
+      const empty = document.getElementById('teamEmpty');
+      const label = document.getElementById('yearLabel');
+      grid.innerHTML = '<div class="col-span-4 text-center text-purple-500 py-16">Loading...</div>';
+      empty.classList.add('hidden');
+      try {
+        let url = '/api/team?';
+        if (year === 'current') { url += 'current=1'; label.textContent = 'Current Leadership Team'; }
+        else { url += `year=${encodeURIComponent(year)}`; label.textContent = `${year} Team`; }
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.success || data.data.length === 0) {
+          grid.innerHTML = ''; empty.classList.remove('hidden'); return;
+        }
+        grid.innerHTML = data.data.map((m, i) => `
+          <div class="member-card rounded-2xl p-5 text-center fade-in" style="animation-delay:${i*0.06}s">
+            <div class="mx-auto mb-4 w-20 h-20 rounded-full overflow-hidden border-2 border-purple-600/50 shadow-lg shadow-purple-900/50">
+              ${m.photo
+                ? `<img src="/uploads/team/${m.photo}" alt="${m.name}" class="w-full h-full object-cover">`
+                : `<div class="w-full h-full bg-gradient-to-br from-purple-700 to-indigo-800 flex items-center justify-center text-2xl font-bold text-purple-200">${m.name.charAt(0).toUpperCase()}</div>`}
+            </div>
+            <h4 class="font-bold text-white text-sm leading-tight">${m.name}</h4>
+            ${m.position ? `<p class="text-purple-300 text-xs mt-0.5 font-medium">${m.position}</p>` : ''}
+            ${m.department ? `<p class="text-purple-500 text-xs mt-0.5">${m.department}</p>` : ''}
+            ${m.batch_year ? `<p class="text-purple-600 text-xs">${m.batch_year}</p>` : ''}
+            ${(m.social_links && (m.social_links.instagram || m.social_links.linkedin)) ? `
+              <div class="flex justify-center gap-3 mt-3">
+                ${m.social_links.instagram ? `
+                  <a href="https://instagram.com/${m.social_links.instagram.replace('@','')}" target="_blank"
+                     class="text-pink-400 hover:text-pink-300 transition" title="Instagram">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                  </a>` : ''}
+                ${m.social_links.linkedin ? `
+                  <a href="${m.social_links.linkedin.startsWith('http') ? m.social_links.linkedin : 'https://linkedin.com/in/'+m.social_links.linkedin}" target="_blank"
+                     class="text-blue-400 hover:text-blue-300 transition" title="LinkedIn">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                  </a>` : ''}
+              </div>` : ''}
+          </div>
+        `).join('');
+      } catch {
+        grid.innerHTML = '<div class="col-span-4 text-center text-red-400 py-12">Failed to load team. Please try again.</div>';
+      }
+    }
+
+    /* ════════════════════════════════════════════════
+       3. GALLERY
+    ════════════════════════════════════════════════ */
+    let galleryCurrentYear = '';
+
+    async function loadGalleryYears() {
+      try {
+        const res = await fetch('/api/gallery/years');
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          const container = document.getElementById('galleryYearFilters');
+          data.data.forEach(year => {
+            const btn = document.createElement('button');
+            btn.id = `gal-year-${year}`;
+            btn.className = 'filter-btn';
+            btn.textContent = year;
+            btn.onclick = () => filterGalleryYear(year);
+            container.appendChild(btn);
+          });
+        }
+      } catch {}
+    }
+
+    function filterGalleryYear(year) {
+      galleryCurrentYear = year;
+      document.querySelectorAll('#galleryYearFilters .filter-btn').forEach(b => b.classList.remove('active'));
+      const activeId = year ? `gal-year-${year}` : 'gal-year-all';
+      const ab = document.getElementById(activeId);
+      if (ab) ab.classList.add('active');
+      loadAlbums(year);
+    }
+
+    async function loadAlbums(year = '') {
+      const grid = document.getElementById('albumsGrid');
+      const empty = document.getElementById('galleryEmpty');
+      document.getElementById('albumsView').classList.remove('hidden');
+      document.getElementById('photosView').classList.add('hidden');
+      empty.classList.add('hidden');
+      grid.innerHTML = '<div class="col-span-3 text-center text-purple-500 py-16">Loading...</div>';
+      try {
+        let url = '/api/gallery/albums?';
+        if (year) url += `year=${encodeURIComponent(year)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.success || data.data.length === 0) {
+          grid.innerHTML = ''; empty.classList.remove('hidden'); return;
+        }
+        grid.innerHTML = data.data.map(album => `
+          <div onclick="viewAlbum('${album.event_name.replace(/'/g,"\\'")}', '${album.academic_year || ''}')"
+            class="album-card rounded-2xl overflow-hidden">
+            <div class="aspect-video overflow-hidden bg-purple-900/20">
+              ${album.cover_photo
+                ? `<img src="/uploads/gallery/${album.cover_photo}" alt="${album.event_name}" class="w-full h-full object-cover">`
+                : `<div class="w-full h-full flex items-center justify-center text-purple-700">
+                    <svg class="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                  </div>`}
+            </div>
+            <div class="p-4">
+              <h3 class="font-semibold text-white">${album.event_name}</h3>
+              <p class="text-purple-400 text-sm mt-0.5">${album.photo_count} photo${album.photo_count !== 1 ? 's' : ''}${album.academic_year ? ' · ' + album.academic_year : ''}</p>
+            </div>
+          </div>
+        `).join('');
+      } catch {
+        grid.innerHTML = '<div class="col-span-3 text-center text-red-400 py-12">Failed to load gallery.</div>';
+      }
+    }
+
+    async function viewAlbum(eventName, year) {
+      try {
+        let url = `/api/gallery?event=${encodeURIComponent(eventName)}`;
+        if (year) url += `&year=${encodeURIComponent(year)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        document.getElementById('albumsView').classList.add('hidden');
+        document.getElementById('photosView').classList.remove('hidden');
+        document.getElementById('albumTitle').textContent = eventName;
+        document.getElementById('albumPhotoCount').textContent = `(${data.data.length} photos)`;
+        const grid = document.getElementById('photosGrid');
+        grid.innerHTML = data.data.map(photo => `
+          <div onclick="openLightbox('/uploads/gallery/${photo.filename}', '${(photo.caption||'').replace(/'/g,"\\'")}')"
+            class="aspect-square rounded-xl overflow-hidden cursor-pointer group relative border border-purple-700/20 hover:border-purple-500/50 transition">
+            <img src="/uploads/gallery/${photo.filename}" alt="${photo.caption||'Event Photo'}"
+              class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300">
+            ${photo.caption ? `
+              <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <p class="text-white text-xs">${photo.caption}</p>
+              </div>` : ''}
+          </div>
+        `).join('');
+      } catch { alert('Failed to load album photos.'); }
+    }
+
+    function backToAlbums() {
+      document.getElementById('albumsView').classList.remove('hidden');
+      document.getElementById('photosView').classList.add('hidden');
+      loadAlbums(galleryCurrentYear);
+    }
+
+    function openLightbox(src, caption) {
+      document.getElementById('lightboxImg').src = src;
+      const cap = document.getElementById('lightboxCaption');
+      cap.textContent = caption;
+      cap.style.display = caption ? 'block' : 'none';
+      document.getElementById('lightbox').classList.remove('hidden');
+    }
+    function closeLightbox() { document.getElementById('lightbox').classList.add('hidden'); }
+    document.getElementById('lightbox').addEventListener('click', e => {
+      if (e.target === document.getElementById('lightbox')) closeLightbox();
+    });
+
+    /* ════════════════════════════════════════════════
+       4. PROGRAMS
+    ════════════════════════════════════════════════ */
+    async function loadPrograms() {
+      const grid = document.getElementById('programsGrid');
+      const empty = document.getElementById('programsEmpty');
+      try {
+        const res = await fetch('/api/events?type=program');
+        const data = await res.json();
+        // Fallback: if no type=program API, try /api/programs
+        if (!data.success || !data.data || data.data.length === 0) {
+          throw new Error('none');
+        }
+        empty.classList.add('hidden');
+        grid.innerHTML = data.data.map((p, i) => `
+          <div class="program-card rounded-2xl overflow-hidden fade-in" style="animation-delay:${i*0.07}s">
+            ${p.poster_image
+              ? `<div class="aspect-video overflow-hidden"><img src="/uploads/events/${p.poster_image}" alt="${p.title}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"></div>`
+              : `<div class="aspect-video bg-gradient-to-br from-purple-900/40 to-indigo-900/40 flex items-center justify-center">
+                  <svg class="w-14 h-14 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                  </svg>
+                </div>`}
+            <div class="p-5">
+              <h3 class="font-bold text-white text-base mb-2">${p.title}</h3>
+              <p class="text-purple-300/80 text-sm leading-relaxed">${(p.description||'').substring(0,150)}${(p.description||'').length>150?'...':''}</p>
+            </div>
+          </div>
+        `).join('');
+      } catch {
+        // Show static fallback programs if API returns none
+        grid.innerHTML = `
+          <div class="program-card rounded-2xl overflow-hidden">
+            <div class="aspect-video bg-gradient-to-br from-purple-900/40 to-pink-900/30 flex items-center justify-center">
+              <span class="text-5xl">💜</span>
+            </div>
+            <div class="p-5">
+              <h3 class="font-bold text-white text-base mb-2">Compassion Connect</h3>
+              <p class="text-purple-300/80 text-sm leading-relaxed">A community initiative to spread kindness and support. Volunteers engage in social activities and awareness campaigns.</p>
+            </div>
+          </div>
+          <div class="program-card rounded-2xl overflow-hidden">
+            <div class="aspect-video bg-gradient-to-br from-amber-900/30 to-orange-900/20 flex items-center justify-center">
+              <span class="text-5xl">🪔</span>
+            </div>
+            <div class="p-5">
+              <h3 class="font-bold text-white text-base mb-2">Ganesh Celebration</h3>
+              <p class="text-purple-300/80 text-sm leading-relaxed">A festive celebration with cultural performances, decorations, and community gatherings to bring joy and devotion together.</p>
+            </div>
+          </div>
+          <div class="program-card rounded-2xl overflow-hidden">
+            <div class="aspect-video bg-gradient-to-br from-green-900/30 to-teal-900/20 flex items-center justify-center">
+              <span class="text-5xl">🚫</span>
+            </div>
+            <div class="p-5">
+              <h3 class="font-bold text-white text-base mb-2">DrugFree365</h3>
+              <p class="text-purple-300/80 text-sm leading-relaxed">Awareness program promoting a drug-free lifestyle throughout the year via campaigns, workshops, and events.</p>
+            </div>
+          </div>
+        `;
+        empty.classList.add('hidden');
+      }
+    }
+
+    /* ════════════════════════════════════════════════
+       5. EVENTS
+    ════════════════════════════════════════════════ */
+    let allEventsData = [];
+
+    async function loadEventsSection() {
+      const grid = document.getElementById('eventsGrid');
+      const empty = document.getElementById('eventsEmpty');
+      try {
+        const res = await fetch('/api/events');
+        const data = await res.json();
+        if (!data.success) throw new Error('fail');
+        allEventsData = data.data;
+        renderEventsSection(allEventsData);
+      } catch {
+        grid.innerHTML = '<div class="col-span-3 text-center text-red-400 py-12">Failed to load events.</div>';
+      }
+    }
+
+    function filterEventsSection(status) {
+      document.querySelectorAll('[id^="ev-filter-"]').forEach(b => b.classList.remove('active'));
+      const activeId = status ? `ev-filter-${status}` : 'ev-filter-all';
+      document.getElementById(activeId)?.classList.add('active');
+      const filtered = status ? allEventsData.filter(e => e.status === status) : allEventsData;
+      renderEventsSection(filtered);
+    }
+
+    function renderEventsSection(events) {
+      const grid = document.getElementById('eventsGrid');
+      const empty = document.getElementById('eventsEmpty');
+      if (!events.length) {
+        grid.innerHTML = ''; empty.classList.remove('hidden'); return;
+      }
+      empty.classList.add('hidden');
+      grid.innerHTML = events.map((e, i) => `
+        <div class="event-card rounded-2xl overflow-hidden fade-in" style="animation-delay:${i*0.06}s">
+          ${e.poster_image
+            ? `<div class="aspect-video overflow-hidden"><img src="/uploads/events/${e.poster_image}" alt="${e.title}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-500"></div>`
+            : `<div class="aspect-video bg-gradient-to-br from-purple-900/40 to-indigo-900/40 flex items-center justify-center">
+                <svg class="w-14 h-14 text-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </div>`}
+          <div class="p-5">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs px-2.5 py-0.5 rounded-full font-medium ${e.status==='upcoming' ? 'bg-blue-900/40 text-blue-300 border border-blue-700/30' : 'bg-green-900/40 text-green-300 border border-green-700/30'} capitalize">${e.status}</span>
+              ${e.academic_year ? `<span class="text-purple-500 text-xs">${e.academic_year}</span>` : ''}
+            </div>
+            <h3 class="font-bold text-white text-base mb-1">${e.title}</h3>
+            ${e.date ? `<p class="text-purple-400 text-xs mb-1">📅 ${new Date(e.date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</p>` : ''}
+            ${e.venue ? `<p class="text-purple-400 text-xs mb-2">📍 ${e.venue}</p>` : ''}
+            <p class="text-purple-300/80 text-sm leading-relaxed">${(e.description||'').substring(0,120)}${(e.description||'').length>120?'...':''}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    /* ════════════════════════════════════════════════
+       6. CONTACT
+    ════════════════════════════════════════════════ */
+    document.getElementById('contactForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('contactBtn');
+      btn.disabled = true; btn.textContent = 'Sending...';
+      const msg = document.getElementById('contactMessage');
+      const data = Object.fromEntries(new FormData(this));
+      try {
+        const res = await fetch('/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const result = await res.json();
+        msg.textContent = result.message || 'Message sent! We\'ll get back to you soon.';
+        msg.className = 'mt-4 text-center text-sm text-green-400';
+        msg.classList.remove('hidden');
+        this.reset();
+      } catch {
+        msg.textContent = 'Error submitting form. Please try again.';
+        msg.className = 'mt-4 text-center text-sm text-red-400';
+        msg.classList.remove('hidden');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Send Message ✉️';
+      }
+    });
+
+    /* ════════════════════════════════════════════════
+       7. JOURNEY / TIMELINE (admin-managed)
+    ════════════════════════════════════════════════ */
+    let journeyCurrentYear = '';
+
+    async function loadJourneyYears() {
+      try {
+        const res = await fetch('/api/timeline/years');
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          const container = document.getElementById('journeyYearFilters');
+          data.data.forEach(year => {
+            const btn = document.createElement('button');
+            btn.id = `j-year-${year}`;
+            btn.className = 'filter-btn';
+            btn.textContent = year;
+            btn.onclick = () => filterJourneyYear(year);
+            container.appendChild(btn);
+          });
+        }
+      } catch {}
+    }
+
+    function filterJourneyYear(year) {
+      journeyCurrentYear = year;
+      document.querySelectorAll('#journeyYearFilters .filter-btn').forEach(b => b.classList.remove('active'));
+      const activeId = year ? `j-year-${year}` : 'j-year-all';
+      document.getElementById(activeId)?.classList.add('active');
+      loadJourney(year);
+    }
+
+    async function loadJourney(year = '') {
+      const container = document.getElementById('journeyItems');
+      const empty = document.getElementById('journeyEmpty');
+      container.innerHTML = '<div class="text-purple-500 text-center py-12">Loading...</div>';
+      empty.classList.add('hidden');
+      try {
+        let url = '/api/timeline?';
+        if (year) url += `year=${encodeURIComponent(year)}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!data.success || data.data.length === 0) {
+          container.innerHTML = '';
+          document.getElementById('journeyContainer').classList.add('hidden');
+          empty.classList.remove('hidden');
+          return;
+        }
+        document.getElementById('journeyContainer').classList.remove('hidden');
+        container.innerHTML = data.data.map(item => `
+          <div class="relative">
+            <!-- Timeline dot -->
+            <div class="absolute -left-[2.9rem] top-5 w-5 h-5 rounded-full bg-purple-600 border-2 border-purple-900 shadow-lg shadow-purple-900/80 flex items-center justify-center">
+              <div class="w-2 h-2 rounded-full bg-purple-300"></div>
+            </div>
+            <!-- Card -->
+            <div class="timeline-card rounded-2xl p-6 backdrop-blur-sm">
+              <div class="flex items-start justify-between gap-3 flex-wrap mb-3">
+                <div>
+                  ${item.academic_year ? `<span class="inline-block text-xs text-purple-400 bg-purple-900/40 border border-purple-700/30 px-2.5 py-0.5 rounded-full mb-2">${item.academic_year}</span>` : ''}
+                  <h3 class="text-base font-bold text-white">${item.event_name}</h3>
+                </div>
+                ${item.event_date ? `<span class="text-purple-400 text-sm font-medium bg-purple-900/30 px-3 py-1 rounded-full flex-shrink-0">📅 ${new Date(item.event_date).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</span>` : ''}
+              </div>
+              ${item.description ? `<p class="text-purple-200/80 text-sm leading-relaxed mb-4">${item.description}</p>` : ''}
+              ${item.photos && item.photos.length > 0 ? `
+                <div class="flex gap-2 flex-wrap mb-3">
+                  ${item.photos.slice(0,4).map(photo => `
+                    <img src="/uploads/gallery/${photo}" alt="Event photo" class="w-16 h-16 rounded-lg object-cover border border-purple-700/30">
+                  `).join('')}
+                  ${item.photos.length > 4 ? `<div class="w-16 h-16 rounded-lg bg-purple-900/40 border border-purple-700/30 flex items-center justify-center text-purple-400 text-sm font-medium">+${item.photos.length-4}</div>` : ''}
+                </div>` : ''}
+              ${item.document_title ? `
+                <a href="/uploads/documents/${item.document_filename}" target="_blank"
+                  class="inline-flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 transition bg-indigo-900/20 border border-indigo-800/30 px-3 py-1.5 rounded-lg">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  ${item.document_title}
+                </a>` : ''}
+            </div>
+          </div>
+        `).join('');
+      } catch {
+        container.innerHTML = '<div class="text-red-400 text-center py-12">Failed to load journey. Please try again.</div>';
+      }
+    }
+
+    /* ════════════════════════════════════════════════
+       INIT — load all sections on page load
+    ════════════════════════════════════════════════ */
+    loadYearTabs();
+    loadTeam('current');
+    loadGalleryYears();
+    loadAlbums();
+    loadPrograms();
+    loadEventsSection();
+    loadJourneyYears();
+    loadJourney();
+
+    /* ════════════════════════════════════════════════
+       Smooth scroll for nav section links
+    ════════════════════════════════════════════════ */
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+  </script>
+  <script src="assets/nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timeline / History | MAGIC Youth Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0f0f13; }
+    input, select, textarea { background: #1a1a2e !important; border-color: #374151 !important; color: #f3f4f6 !important; }
+    input:focus, select:focus, textarea:focus { border-color: #7c3aed !important; outline: none !important; box-shadow: 0 0 0 2px rgba(124,58,237,0.2) !important; }
+    .timeline-line { border-left: 2px solid rgba(124,58,237,0.3); }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 2px; }
+  </style>
+</head>
+<body class="text-gray-100">
+  <div id="sidebarContainer"></div>
+  <div class="md:ml-64 min-h-screen">
+    <header class="sticky top-0 z-40 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleMobileSidebar()" class="md:hidden p-2 rounded-lg hover:bg-gray-800 text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <div><h1 class="text-lg font-bold text-white">MAGIC Youth Journey</h1><p class="text-gray-500 text-xs">Activity timeline and organizational history</p></div>
+      </div>
+      <button onclick="openModal()" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Add Entry
+      </button>
+    </header>
+
+    <main class="p-6">
+      <div class="flex flex-wrap gap-3 mb-6">
+        <select id="filterYear" onchange="loadTimeline()" class="rounded-xl px-4 py-2 text-sm border">
+          <option value="">All Years</option>
+        </select>
+      </div>
+
+      <div id="timelineContainer" class="relative timeline-line ml-4 pl-6 space-y-6">
+        <div class="text-gray-500 text-sm">Loading timeline...</div>
+      </div>
+    </main>
+  </div>
+
+  <div id="modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div class="flex items-center justify-between px-6 py-5 border-b border-gray-800">
+        <h2 class="text-lg font-semibold text-white" id="modalTitle">Add Timeline Entry</h2>
+        <button onclick="closeModal()" class="text-gray-500 hover:text-white transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <form id="timelineForm" class="p-6 space-y-4">
+        <input type="hidden" id="entryId">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="md:col-span-2"><label class="block text-xs font-medium text-gray-400 mb-1.5">Event Name *</label><input type="text" id="tlEvent" required placeholder="e.g. Chess Tournament" class="w-full rounded-xl px-4 py-2.5 text-sm border"></div>
+          <div><label class="block text-xs font-medium text-gray-400 mb-1.5">Event Date</label><input type="date" id="tlDate" class="w-full rounded-xl px-4 py-2.5 text-sm border"></div>
+          <div><label class="block text-xs font-medium text-gray-400 mb-1.5">Academic Year</label><input type="text" id="tlYear" placeholder="e.g. 2024-25" class="w-full rounded-xl px-4 py-2.5 text-sm border"></div>
+          <div class="md:col-span-2"><label class="block text-xs font-medium text-gray-400 mb-1.5">Description</label><textarea id="tlDesc" rows="3" placeholder="What happened at this event?" class="w-full rounded-xl px-4 py-2.5 text-sm border resize-none"></textarea></div>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Linked Document (optional)</label>
+            <select id="tlDocId" class="w-full rounded-xl px-4 py-2.5 text-sm border"><option value="">None</option></select>
+          </div>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2.5 rounded-xl border border-gray-700 text-gray-300 hover:bg-gray-800 text-sm transition">Cancel</button>
+          <button type="submit" id="submitBtn" class="flex-1 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition">Save Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    let editingId = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadSidebar('timeline');
+      loadYears();
+      loadTimeline();
+      loadDocs();
+    });
+
+    async function loadYears() {
+      try {
+        const data = await api('/api/timeline/years');
+        const sel = document.getElementById('filterYear');
+        data.data.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; sel.appendChild(o); });
+      } catch {}
+    }
+
+    async function loadDocs() {
+      try {
+        const data = await api('/api/documents');
+        const sel = document.getElementById('tlDocId');
+        data.data.forEach(d => { const o = document.createElement('option'); o.value = d.id; o.textContent = `${d.title} (${d.category})`; sel.appendChild(o); });
+      } catch {}
+    }
+
+    async function loadTimeline() {
+      const year = document.getElementById('filterYear').value;
+      let url = '/api/timeline?';
+      if (year) url += `year=${encodeURIComponent(year)}`;
+      try {
+        const data = await api(url);
+        renderTimeline(data.data);
+      } catch { showToast('Failed to load timeline.', 'error'); }
+    }
+
+    function renderTimeline(items) {
+      const container = document.getElementById('timelineContainer');
+      if (items.length === 0) {
+        container.innerHTML = `<div class="text-gray-500 text-sm py-8">No timeline entries yet. <button onclick="openModal()" class="text-purple-400 hover:underline">Add the first one!</button></div>`;
+        return;
+      }
+      container.innerHTML = items.map(item => `
+        <div class="relative">
+          <div class="absolute -left-9 top-1 w-4 h-4 rounded-full bg-purple-600 border-2 border-purple-900 shadow-lg shadow-purple-900/50"></div>
+          <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 hover:border-gray-700 transition">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  ${item.academicYear ? `<span class="text-xs text-purple-400 font-medium bg-purple-900/30 px-2 py-0.5 rounded-full">${item.academicYear}</span>` : ''}
+                  <span class="text-gray-500 text-xs">${formatDate(item.eventDate)}</span>
+                </div>
+                <h3 class="text-white font-semibold">${item.eventName}</h3>
+                ${item.description ? `<p class="text-gray-400 text-sm mt-1">${item.description}</p>` : ''}
+                ${item.documentTitle ? `<a href="/uploads/documents/${item.documentFilename}" target="_blank" class="inline-flex items-center gap-1.5 mt-2 text-xs text-blue-400 hover:text-blue-300"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>${item.documentTitle}</a>` : ''}
+              </div>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button onclick="editEntry('${item._id}')" class="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-purple-400 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                <button onclick="deleteEntry('${item._id}', '${item.eventName.replace(/'/g, "\\'")}')"
+                  class="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-red-400 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openModal(data = null) {
+      editingId = data ? data._id : null;
+      document.getElementById('modalTitle').textContent = data ? 'Edit Entry' : 'Add Timeline Entry';
+      document.getElementById('entryId').value = data?._id || '';
+      document.getElementById('tlEvent').value = data?.eventName || '';
+      document.getElementById('tlDate').value = data?.eventDate ? data.eventDate.substring(0,10) : '';
+      document.getElementById('tlYear').value = data?.academicYear || '';
+      document.getElementById('tlDesc').value = data?.description || '';
+      document.getElementById('tlDocId').value = data?.documentId || '';
+      document.getElementById('submitBtn').textContent = data ? 'Save Changes' : 'Save Entry';
+      document.getElementById('modal').classList.remove('hidden');
+    }
+    function closeModal() { document.getElementById('modal').classList.add('hidden'); editingId = null; }
+
+    document.getElementById('timelineForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn'); btn.disabled = true; btn.textContent = 'Saving...';
+      const payload = { event_name: document.getElementById('tlEvent').value, event_date: document.getElementById('tlDate').value, academic_year: document.getElementById('tlYear').value, description: document.getElementById('tlDesc').value, document_id: document.getElementById('tlDocId').value || null };
+      try {
+        if (editingId) { await api(`/api/timeline/${editingId}`, { method: 'PUT', body: JSON.stringify(payload) }); }
+        else { await api('/api/timeline', { method: 'POST', body: JSON.stringify(payload) }); }
+        showToast('Entry saved!'); closeModal(); loadTimeline(); loadYears();
+      } catch (err) { showToast(err.message, 'error');
+      } finally { btn.disabled = false; btn.textContent = editingId ? 'Save Changes' : 'Save Entry'; }
+    });
+
+    async function editEntry(id) {
+      try {
+        const data = await api('/api/timeline');
+        const item = data.data.find(i => String(i._id) === String(id));
+        if (item) openModal(item);
+      } catch { showToast('Failed to load entry.', 'error'); }
+    }
+
+    async function deleteEntry(id, name) {
+      const confirmed = await confirmDelete(`Delete "${name}" from timeline?`);
+      if (!confirmed) return;
+      try { await api(`/api/timeline/${id}`, { method: 'DELETE' }); showToast('Entry deleted.'); loadTimeline(); }
+      catch (err) { showToast(err.message, 'error'); }
+    }
+
+    document.getElementById('modal').addEventListener('click', (e) => { if (e.target === document.getElementById('modal')) closeModal(); });
+  </script>
+</body>
+</html>

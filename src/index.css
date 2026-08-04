@@ -1,0 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@layer base {
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: #0a0010;
+    color: #ffffff;
+    font-family: 'Inter', 'Manrope', system-ui, -apple-system, sans-serif;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Page transition background continuity */
+  #root {
+    background: linear-gradient(160deg, #0d0015 0%, #0a0010 45%, #12002a 100%);
+    min-height: 100vh;
+  }
+}
+
+/* ── Custom Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #08000f; }
+::-webkit-scrollbar-thumb { background: #6d28d9; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a855f7; }
+
+/* ── Dark Glassmorphism Cards ────────────────────────────────────── */
+.dark-glass-card {
+  background: rgba(12, 5, 28, 0.70);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(167, 139, 250, 0.14);
+  border-radius: 18px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark-glass-card:hover {
+  border-color: rgba(167, 139, 250, 0.40);
+  transform: translateY(-3px);
+  box-shadow: 0 20px 50px rgba(124, 58, 237, 0.22), 0 0 25px rgba(168, 85, 247, 0.12);
+}
+
+/* ── Purple Glow Buttons ─────────────────────────────────────────── */
+.btn-purple-glow {
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 22px rgba(124, 58, 237, 0.50);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+}
+
+.btn-purple-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 35px rgba(168, 85, 247, 0.65);
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.btn-purple-glow:active {
+  transform: translateY(0);
+}
+
+/* ── Ghost / Outline Buttons ─────────────────────────────────────── */
+.btn-ghost {
+  background: transparent;
+  color: #c084fc;
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  transition: all 0.22s ease;
+}
+
+.btn-ghost:hover {
+  background: rgba(124, 58, 237, 0.18);
+  border-color: rgba(167, 139, 250, 0.65);
+  color: #e9d5ff;
+}
+
+/* ── Premium Gradient Text ───────────────────────────────────────── */
+.gradient-text-purple {
+  background: linear-gradient(135deg, #ffffff 0%, #c084fc 50%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Inline Purple Glow Shadow Utility ───────────────────────────── */
+.shadow-purple-glow {
+  box-shadow: 0 0 22px rgba(124, 58, 237, 0.38);
+}
+
+/* ── Input Fields ────────────────────────────────────────────────── */
+input, textarea, select {
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: rgba(167, 139, 250, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.20);
+}
+
+/* ── Page Header Utility ─────────────────────────────────────────── */
+.page-header {
+  padding-top: 6rem;
+  padding-bottom: 4rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+  background: rgba(5, 0, 20, 0.45);
+}
+
+/* ── Section Divider ─────────────────────────────────────────────── */
+.section-divider {
+  border-top: 1px solid rgba(124, 58, 237, 0.15);
+  background: rgba(5, 0, 20, 0.50);
+}
+
+/* ── Status Badge Variants ───────────────────────────────────────── */
+.badge-upcoming {
+  background: rgba(109, 40, 217, 0.80);
+  color: #ddd6fe;
+  border: 1px solid rgba(139, 92, 246, 0.45);
+}
+
+.badge-completed {
+  background: rgba(15, 23, 42, 0.80);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.35);
+}
+
+.badge-ongoing {
+  background: rgba(6, 78, 59, 0.75);
+  color: #6ee7b7;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}

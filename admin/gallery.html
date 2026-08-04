@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gallery Management | MAGIC Youth Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0f0f13; }
+    input, select, textarea { background: #1a1a2e !important; border-color: #374151 !important; color: #f3f4f6 !important; }
+    input:focus, select:focus { border-color: #7c3aed !important; outline: none !important; box-shadow: 0 0 0 2px rgba(124,58,237,0.2) !important; }
+    .photo-card:hover .photo-actions { opacity: 1; }
+    .photo-actions { opacity: 0; transition: opacity 0.2s; }
+    .drop-zone { border: 2px dashed #374151; transition: all 0.3s; }
+    .drop-zone.dragover { border-color: #7c3aed; background: rgba(124,58,237,0.08); }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 2px; }
+  </style>
+</head>
+<body class="text-gray-100">
+  <div id="sidebarContainer"></div>
+
+  <div class="md:ml-64 min-h-screen">
+    <header class="sticky top-0 z-40 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleMobileSidebar()" class="md:hidden p-2 rounded-lg hover:bg-gray-800 text-gray-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <h1 class="text-lg font-bold text-white">Gallery Management</h1>
+          <p class="text-gray-500 text-xs">Upload and manage event photos by album</p>
+        </div>
+      </div>
+      <button onclick="document.getElementById('uploadSection').scrollIntoView({behavior:'smooth'})" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Upload Photos
+      </button>
+    </header>
+
+    <main class="p-6">
+      <!-- Upload Section -->
+      <div id="uploadSection" class="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-8">
+        <h2 class="font-semibold text-white mb-4">Upload Photos</h2>
+        <form id="uploadForm" enctype="multipart/form-data" class="space-y-4">
+          <div class="grid md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1.5">Event Name *</label>
+              <input type="text" id="upEventName" required placeholder="e.g. Chess Tournament" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1.5">Academic Year</label>
+              <input type="text" id="upYear" placeholder="e.g. 2024-25" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1.5">Caption (optional)</label>
+              <input type="text" id="upCaption" placeholder="Photo caption" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+            </div>
+          </div>
+
+          <!-- Drop Zone -->
+          <div id="dropZone" class="drop-zone rounded-2xl p-8 text-center cursor-pointer" onclick="document.getElementById('photoFiles').click()">
+            <svg class="w-12 h-12 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p class="text-gray-400 text-sm font-medium">Drop photos here or click to browse</p>
+            <p class="text-gray-600 text-xs mt-1">Supports JPG, PNG, WebP — Max 15MB each — Up to 30 photos at once</p>
+            <input type="file" id="photoFiles" accept="image/*" multiple class="hidden">
+          </div>
+
+          <!-- Preview -->
+          <div id="previewGrid" class="hidden grid grid-cols-3 md:grid-cols-6 gap-2"></div>
+
+          <button type="submit" id="uploadBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Upload Photos
+          </button>
+        </form>
+      </div>
+
+      <!-- Filter -->
+      <div class="flex flex-wrap gap-3 mb-6">
+        <input type="text" id="filterYear" placeholder="Filter by year (e.g. 2024-25)" class="rounded-xl px-4 py-2 text-sm border w-60" onkeyup="loadAlbums()">
+      </div>
+
+      <!-- Albums Grid -->
+      <div id="albumsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="text-gray-500 text-sm">Loading albums...</div>
+      </div>
+
+      <!-- Photos Grid (when album is selected) -->
+      <div id="photosView" class="hidden">
+        <div class="flex items-center gap-3 mb-4">
+          <button onclick="backToAlbums()" class="text-gray-400 hover:text-white transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+          </button>
+          <h2 class="text-white font-semibold" id="currentAlbumName"></h2>
+          <span class="text-gray-500 text-sm" id="currentAlbumCount"></span>
+        </div>
+        <div id="photosGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadSidebar('gallery');
+      loadAlbums();
+      setupDropZone();
+    });
+
+    // ─── DROP ZONE ───────────────────────────────────────────────────────────────
+    function setupDropZone() {
+      const zone = document.getElementById('dropZone');
+      const input = document.getElementById('photoFiles');
+
+      zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault(); zone.classList.remove('dragover');
+        input.files = e.dataTransfer.files;
+        showPreviews(input.files);
+      });
+      input.addEventListener('change', () => showPreviews(input.files));
+    }
+
+    function showPreviews(files) {
+      const grid = document.getElementById('previewGrid');
+      grid.innerHTML = '';
+      grid.classList.remove('hidden');
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const div = document.createElement('div');
+          div.className = 'aspect-square rounded-lg overflow-hidden';
+          div.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`;
+          grid.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ─── UPLOAD ──────────────────────────────────────────────────────────────────
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('uploadBtn');
+      const files = document.getElementById('photoFiles').files;
+      if (!files.length) { showToast('Please select photos to upload.', 'warning'); return; }
+
+      btn.disabled = true; btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Uploading...';
+
+      const form = new FormData();
+      form.append('event_name', document.getElementById('upEventName').value);
+      form.append('academic_year', document.getElementById('upYear').value);
+      form.append('caption', document.getElementById('upCaption').value);
+      Array.from(files).forEach(f => form.append('photos', f));
+
+      try {
+        const res = await fetch('/api/gallery', { method: 'POST', body: form });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        showToast(`${data.count} photo(s) uploaded!`);
+        document.getElementById('uploadForm').reset();
+        document.getElementById('previewGrid').classList.add('hidden');
+        document.getElementById('previewGrid').innerHTML = '';
+        loadAlbums();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false; btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg> Upload Photos';
+      }
+    });
+
+    // ─── ALBUMS ──────────────────────────────────────────────────────────────────
+    async function loadAlbums() {
+      const year = document.getElementById('filterYear').value;
+      let url = '/api/gallery/albums?';
+      if (year) url += `year=${encodeURIComponent(year)}`;
+
+      try {
+        const data = await api(url);
+        renderAlbums(data.data);
+      } catch { showToast('Failed to load albums.', 'error'); }
+    }
+
+    function renderAlbums(albums) {
+      const grid = document.getElementById('albumsGrid');
+      document.getElementById('albumsGrid').classList.remove('hidden');
+      document.getElementById('photosView').classList.add('hidden');
+
+      if (albums.length === 0) {
+        grid.innerHTML = '<div class="col-span-3 text-gray-500 text-sm py-8">No albums yet. Upload photos above to create an album.</div>';
+        return;
+      }
+      grid.innerHTML = albums.map(a => `
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden hover:border-gray-700 transition cursor-pointer group" onclick="viewAlbum('${(a.eventName||'').replace(/'/g,"\\'").trim()}','${(a.academicYear||'').trim()}')">
+          <div class="aspect-video bg-gray-800 overflow-hidden">
+            ${a.coverPhoto
+              ? `<img src="/uploads/gallery/${a.coverPhoto}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">`
+              : `<div class="w-full h-full flex items-center justify-center text-gray-600"><svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>`}
+          </div>
+          <div class="p-4">
+            <h3 class="text-white font-semibold text-sm truncate">${a.eventName || 'Unknown Event'}</h3>
+            <p class="text-gray-500 text-xs mt-1">${a.photoCount} photo${a.photoCount !== 1 ? 's' : ''} · ${a.academicYear || 'No year'}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function viewAlbum(eventName, year) {
+      try {
+        let url = `/api/gallery?event=${encodeURIComponent(eventName)}`;
+        if (year) url += `&year=${encodeURIComponent(year)}`;
+        const data = await api(url);
+
+        document.getElementById('albumsGrid').classList.add('hidden');
+        document.getElementById('photosView').classList.remove('hidden');
+        document.getElementById('currentAlbumName').textContent = eventName;
+        document.getElementById('currentAlbumCount').textContent = `(${data.data.length} photos)`;
+        document.getElementById('filterYear').value = year;
+
+        const grid = document.getElementById('photosGrid');
+        grid.innerHTML = data.data.map(p => `
+          <div class="photo-card relative aspect-square rounded-xl overflow-hidden bg-gray-800" data-id="${p._id}">
+            <img src="/uploads/gallery/${p.filename}" class="w-full h-full object-cover">
+            <div class="photo-actions absolute inset-0 bg-black/60 flex items-center justify-center gap-2">
+              <button onclick="deletePhoto('${p._id}')" class="p-2 rounded-full bg-red-600/80 hover:bg-red-600 text-white transition" title="Delete">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+            ${p.caption ? `<div class="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-xs text-white truncate">${p.caption}</div>` : ''}
+          </div>
+        `).join('');
+      } catch (err) { showToast('Failed to load album.', 'error'); }
+    }
+
+    function backToAlbums() {
+      document.getElementById('albumsGrid').classList.remove('hidden');
+      document.getElementById('photosView').classList.add('hidden');
+      loadAlbums();
+    }
+
+    async function deletePhoto(id) {
+      const confirmed = await confirmDelete('Delete this photo permanently?');
+      if (!confirmed) return;
+      try {
+        await api(`/api/gallery/${id}`, { method: 'DELETE' });
+        showToast('Photo deleted.');
+        // Remove the card from DOM using data-id attribute
+        document.querySelector(`[data-id="${id}"]`)?.remove();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+  </script>
+</body>
+</html>

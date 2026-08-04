@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notifications | MAGIC Youth Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0f0f13; }
+    input, select, textarea { background: #1a1a2e !important; border-color: #374151 !important; color: #f3f4f6 !important; }
+    input:focus, select:focus, textarea:focus { border-color: #7c3aed !important; outline: none !important; box-shadow: 0 0 0 2px rgba(124,58,237,0.2) !important; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background:#7c3aed; border-radius:2px; }
+  </style>
+</head>
+<body class="text-gray-100">
+  <div id="sidebarContainer"></div>
+
+  <div class="md:ml-64 min-h-screen">
+    <header class="sticky top-0 z-40 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleMobileSidebar()" class="md:hidden p-2 rounded-lg hover:bg-gray-800 text-gray-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <h1 class="text-lg font-bold text-white">Notifications</h1>
+          <p class="text-gray-500 text-xs">Send alerts and pop-up notifications to website visitors</p>
+        </div>
+      </div>
+      <button onclick="openModal()" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        New Notification
+      </button>
+    </header>
+
+    <main class="p-6">
+      <!-- How it works -->
+      <div class="grid md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex gap-3">
+          <span class="text-2xl">📢</span>
+          <div><p class="text-white text-sm font-medium">Banner</p><p class="text-gray-500 text-xs mt-0.5">Shows as a slim bar at the top of all public pages</p></div>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex gap-3">
+          <span class="text-2xl">🔔</span>
+          <div><p class="text-white text-sm font-medium">Pop-up</p><p class="text-gray-500 text-xs mt-0.5">Appears as a modal when visitors first open the site</p></div>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex gap-3">
+          <span class="text-2xl">📅</span>
+          <div><p class="text-white text-sm font-medium">Expiry</p><p class="text-gray-500 text-xs mt-0.5">Notifications auto-hide after the expiry date</p></div>
+        </div>
+      </div>
+
+      <!-- Notifications list -->
+      <div id="notifList" class="space-y-4">
+        <div class="text-gray-500 text-sm">Loading notifications...</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="modal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between px-6 py-5 border-b border-gray-800">
+        <h2 class="text-lg font-semibold text-white" id="modalTitle">New Notification</h2>
+        <button onclick="closeModal()" class="text-gray-500 hover:text-white transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="notifForm" class="p-6 space-y-4">
+        <input type="hidden" id="notifId">
+
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Title *</label>
+          <input type="text" id="nTitle" required placeholder="e.g. Registrations Open for Chess Tournament!" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Message (optional)</label>
+          <textarea id="nMessage" rows="3" placeholder="Additional details about this notification..." class="w-full rounded-xl px-4 py-2.5 text-sm border resize-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Type</label>
+            <select id="nType" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+              <option value="info">ℹ️ Info</option>
+              <option value="success">✅ Success</option>
+              <option value="warning">⚠️ Warning</option>
+              <option value="urgent">🔴 Urgent</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Expires On</label>
+            <input type="date" id="nExpiry" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Button Text (optional)</label>
+            <input type="text" id="nLinkText" placeholder="e.g. Register Now" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Button Link (optional)</label>
+            <input type="text" id="nLinkUrl" placeholder="e.g. /events.html" class="w-full rounded-xl px-4 py-2.5 text-sm border">
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3 pt-1">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" id="nPopup" class="w-4 h-4 accent-purple-500">
+            <div>
+              <label for="nPopup" class="text-sm text-gray-300">Show as pop-up</label>
+              <p class="text-xs text-gray-600">Appears as a modal dialog when visitors open the site</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <input type="checkbox" id="nActive" class="w-4 h-4 accent-purple-500" checked>
+            <label for="nActive" class="text-sm text-gray-300">Active (visible to visitors)</label>
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2.5 rounded-xl border border-gray-700 text-gray-300 hover:bg-gray-800 text-sm transition">Cancel</button>
+          <button type="submit" id="submitBtn" class="flex-1 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition">Send</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+  <script>
+    let editingId = null;
+
+    const TYPE_STYLES = {
+      info:    { bg: 'bg-blue-900/15 border-blue-700/40',  badge: 'bg-blue-900/40 text-blue-300',   icon: 'ℹ️' },
+      success: { bg: 'bg-green-900/15 border-green-700/40', badge: 'bg-green-900/40 text-green-300', icon: '✅' },
+      warning: { bg: 'bg-yellow-900/15 border-yellow-700/40', badge: 'bg-yellow-900/40 text-yellow-300', icon: '⚠️' },
+      urgent:  { bg: 'bg-red-900/15 border-red-700/40',    badge: 'bg-red-900/40 text-red-300',     icon: '🔴' }
+    };
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadSidebar('notifications');
+      loadNotifications();
+    });
+
+    async function loadNotifications() {
+      try {
+        const data = await api('/api/notifications/all');
+        renderList(data.data);
+      } catch { showToast('Failed to load notifications.', 'error'); }
+    }
+
+    function renderList(items) {
+      const list = document.getElementById('notifList');
+      if (items.length === 0) {
+        list.innerHTML = `<div class="text-gray-500 text-sm py-8 text-center">No notifications yet. <button onclick="openModal()" class="text-purple-400 hover:underline">Create one!</button></div>`;
+        return;
+      }
+      list.innerHTML = items.map(n => {
+        const t = TYPE_STYLES[n.type] || TYPE_STYLES.info;
+        const isExpired = n.expiresAt && new Date(n.expiresAt) < new Date();
+        return `
+          <div class="bg-gray-900 border ${t.bg} rounded-2xl p-5">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1">
+                <div class="flex items-center flex-wrap gap-2 mb-2">
+                  <span class="text-lg">${t.icon}</span>
+                  <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${t.badge} capitalize">${n.type}</span>
+                  ${n.showPopup ? '<span class="inline-flex px-2 py-0.5 rounded-full text-xs bg-purple-900/40 text-purple-300 border border-purple-800/50">🔔 Popup</span>' : ''}
+                  ${n.isActive && !isExpired ? '<span class="inline-flex px-2 py-0.5 rounded-full text-xs bg-green-900/40 text-green-400 border border-green-800/50">Active</span>' : ''}
+                  ${isExpired ? '<span class="inline-flex px-2 py-0.5 rounded-full text-xs bg-gray-800 text-gray-500">Expired</span>' : ''}
+                  ${!n.isActive ? '<span class="inline-flex px-2 py-0.5 rounded-full text-xs bg-gray-800 text-gray-500">Inactive</span>' : ''}
+                  ${n.expiresAt ? `<span class="text-gray-600 text-xs">Expires: ${formatDate(n.expiresAt)}</span>` : ''}
+                </div>
+                <h3 class="text-white font-semibold">${n.title}</h3>
+                ${n.message ? `<p class="text-gray-400 text-sm mt-1">${n.message}</p>` : ''}
+                ${n.linkText && n.linkUrl ? `<a href="${n.linkUrl}" target="_blank" class="inline-flex items-center gap-1 mt-2 text-xs text-purple-400 hover:underline">${n.linkText} →</a>` : ''}
+              </div>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button onclick="toggleActive('${n._id}', ${n.isActive})" class="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-yellow-400 transition" title="${n.isActive ? 'Deactivate' : 'Activate'}">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${n.isActive ? 'M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21' : 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'}"/></svg>
+                </button>
+                <button onclick="editNotif('${n._id}')" class="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-purple-400 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                <button onclick="deleteNotif('${n._id}', '${n.title.replace(/'/g, "\\'")}')"
+                  class="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-red-400 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openModal(data = null) {
+      editingId = data ? data._id : null;
+      document.getElementById('modalTitle').textContent = data ? 'Edit Notification' : 'New Notification';
+      document.getElementById('notifId').value = data?._id || '';
+      document.getElementById('nTitle').value = data?.title || '';
+      document.getElementById('nMessage').value = data?.message || '';
+      document.getElementById('nType').value = data?.type || 'info';
+      document.getElementById('nExpiry').value = data?.expiresAt ? data.expiresAt.substring(0,10) : '';
+      document.getElementById('nLinkText').value = data?.linkText || '';
+      document.getElementById('nLinkUrl').value = data?.linkUrl || '';
+      document.getElementById('nPopup').checked = !!data?.showPopup;
+      document.getElementById('nActive').checked = data ? !!data.isActive : true;
+      document.getElementById('submitBtn').textContent = data ? 'Save Changes' : 'Send';
+      document.getElementById('modal').classList.remove('hidden');
+    }
+    function closeModal() { document.getElementById('modal').classList.add('hidden'); editingId = null; }
+
+    document.getElementById('notifForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      const payload = {
+        title: document.getElementById('nTitle').value,
+        message: document.getElementById('nMessage').value,
+        type: document.getElementById('nType').value,
+        expires_at: document.getElementById('nExpiry').value || null,
+        link_text: document.getElementById('nLinkText').value,
+        link_url: document.getElementById('nLinkUrl').value,
+        show_popup: document.getElementById('nPopup').checked,
+        is_active: document.getElementById('nActive').checked ? 1 : 0
+      };
+      try {
+        if (editingId) { await api(`/api/notifications/${editingId}`, { method: 'PUT', body: JSON.stringify(payload) }); showToast('Updated!'); }
+        else { await api('/api/notifications', { method: 'POST', body: JSON.stringify(payload) }); showToast('Notification sent!'); }
+        closeModal(); loadNotifications();
+      } catch (err) { showToast(err.message, 'error');
+      } finally { btn.disabled = false; btn.textContent = editingId ? 'Save Changes' : 'Send'; }
+    });
+
+    async function editNotif(id) {
+      try {
+        const data = await api(`/api/notifications/${id}`);
+        openModal(data.data);
+      } catch { showToast('Failed to load notification.', 'error'); }
+    }
+
+    async function toggleActive(id, current) {
+      try {
+        await api(`/api/notifications/${id}`, { method: 'PUT', body: JSON.stringify({ is_active: current ? 0 : 1 }) });
+        showToast(current ? 'Deactivated.' : 'Activated!');
+        loadNotifications();
+      } catch (err) { showToast(err.message, 'error'); }
+    }
+
+    async function deleteNotif(id, title) {
+      const confirmed = await confirmDelete(`Delete "${title}"?`);
+      if (!confirmed) return;
+      try { await api(`/api/notifications/${id}`, { method: 'DELETE' }); showToast('Deleted.'); loadNotifications(); }
+      catch (err) { showToast(err.message, 'error'); }
+    }
+
+    document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal(); });
+  </script>
+</body>
+</html>

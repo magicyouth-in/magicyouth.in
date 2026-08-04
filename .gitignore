@@ -1,0 +1,23 @@
+# ── Dependencies ──────────────────────────────────────────────
+node_modules/
+
+# ── Environment secrets ───────────────────────────────────────
+.env
+
+# ── Local SQLite database (legacy) ───────────────────────────
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# ── Uploaded files (store separately in production) ──────────
+uploads/
+
+# ── OS / Editor ───────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+
+# ── Package lock (keep package-lock.json, ignore npm-debug) ──
+npm-debug.log*

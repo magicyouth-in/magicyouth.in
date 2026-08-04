@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mission | Magic Youth</title>
+  <meta name="description" content="The mission of MAGIC Youth — Motivation, Action, Growth, Innovation, and Commitment — empowering students at ALIET to lead, serve, and innovate." />
+  <link rel="stylesheet" href="assets/nav.css" />
+  <style>
+    html, body { margin: 0; padding: 0; min-height: 100vh; background: linear-gradient(135deg, #0d0015 0%, #0a0010 40%, #12002a 100%); color: #fff; font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #0a0010; } ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 2px; }
+    main { padding: 110px 24px 60px; max-width: 900px; margin: 0 auto; text-align: center; }
+    h2 { font-size: clamp(2rem,5vw,2.8rem); font-weight: 800; margin: 0 0 20px; background: linear-gradient(135deg,#fff 0%,#c084fc 60%,#818cf8 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .mission-lead { font-size: 1.05rem; color: rgba(255,255,255,0.72); line-height: 1.8; max-width: 720px; margin: 0 auto 48px; }
+    .mission-lead span { color: #c084fc; font-weight: 600; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-top: 16px; }
+    .card { background: rgba(0,0,0,0.38); border: 1px solid rgba(167,139,250,0.15); border-radius: 16px; padding: 28px 20px; transition: all 0.3s; }
+    .card:hover { border-color: rgba(167,139,250,0.45); transform: translateY(-4px); box-shadow: 0 16px 40px rgba(124,58,237,0.2); }
+    .card h3 { font-size: 1.15rem; font-weight: 700; margin: 0 0 10px; }
+    .card p { font-size: 0.9rem; color: rgba(255,255,255,0.65); line-height: 1.6; margin: 0; }
+    footer { background: rgba(0,0,0,0.55); border-top: 1px solid rgba(167,139,250,0.12); padding: 20px; text-align: center; font-size: 0.82rem; color: rgba(255,255,255,0.45); }
+    footer a { color: rgba(167,139,250,0.7); text-decoration: none; margin: 0 8px; } footer a:hover { color: #c084fc; }
+  </style>
+</head>
+<body>
+  <div id="my-announcements-banner" class="my-ann-hidden"><div id="my-announcements-text"></div></div>
+  <nav id="my-navbar" role="navigation" aria-label="Main navigation">
+    <a href="index.html" class="my-nav-brand"><img src="assets/magic-logo.png" alt="Magic Youth Logo" class="my-nav-logo" /><span class="my-nav-title">MAGIC YOUTH</span></a>
+    <div class="my-nav-right">
+      <a id="my-nav-home" href="index.html" class="my-nav-link">🏠 Home</a>
+      <a href="/admin/login.html" class="my-nav-admin-btn">🔐 Admin</a>
+      <button id="my-hamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="my-nav-dropdown"><span class="my-ham-bar"></span><span class="my-ham-bar"></span><span class="my-ham-bar"></span></button>
+    </div>
+  </nav>
+  <div id="my-nav-overlay" aria-hidden="true"></div>
+  <div id="my-nav-dropdown" role="menu">
+    <div class="my-nav-section-label">Explore</div>
+    <a href="about.html"     class="my-nav-link" role="menuitem"><span class="my-nav-icon">ℹ️</span> About Us</a>
+    <a href="mission.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">🎯</span> Mission</a>
+    <a href="events.html"    class="my-nav-link" role="menuitem"><span class="my-nav-icon">📅</span> Events</a>
+    <a href="gallery.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">🖼️</span> Gallery</a>
+    <a href="programs.html"  class="my-nav-link" role="menuitem"><span class="my-nav-icon">📚</span> Programs</a>
+    <a href="timeline.html"  class="my-nav-link" role="menuitem"><span class="my-nav-icon">🕐</span> Our Journey</a>
+    <a href="documents.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">📄</span> Documents</a>
+    <div class="my-nav-divider"></div>
+    <div class="my-nav-section-label">Connect</div>
+    <a href="JoinMagic.html" class="my-nav-link" role="menuitem"><span class="my-nav-icon">✨</span> Join Us</a>
+    <a href="contact.html"   class="my-nav-link" role="menuitem"><span class="my-nav-icon">📬</span> Contact</a>
+  </div>
+
+  <main>
+    <h2>Our Mission</h2>
+    <p class="mission-lead">
+      Our mission is to build a community of young minds who inspire positive change through creativity, compassion, and leadership.
+      Magic Youth stands for <span>Motivation, Action, Growth, Innovation, and Commitment</span>.
+      We believe every student holds the power to bring transformation through service, unity, and purpose.
+    </p>
+    <div class="cards">
+      <div class="card"><h3>🌟 Empower Youth</h3><p>Encourage students to discover their inner potential and express their ideas with confidence.</p></div>
+      <div class="card"><h3>💡 Lead with Purpose</h3><p>Shape young leaders who act responsibly and inspire others through commitment and teamwork.</p></div>
+      <div class="card"><h3>🤝 Serve the Community</h3><p>Spread kindness and make a meaningful impact through social awareness and volunteer programs.</p></div>
+      <div class="card"><h3>🚀 Innovate for Change</h3><p>Promote creative projects that use technology, art, and collaboration to create real-world solutions.</p></div>
+    </div>
+  </main>
+
+  <footer>
+    <p>© 2025 Magic Youth | All Rights Reserved</p>
+    <div style="margin-top:8px;">
+      <a href="https://www.instagram.com/magicyouth.in/" target="_blank" rel="noopener">Instagram (Magic)</a>
+      <a href="https://maps.google.com/?q=Andhra+Loyola+Institute+of+Engineering+and+Technology" target="_blank" rel="noopener">Location</a>
+    </div>
+  </footer>
+
+  <script src="assets/nav.js"></script>
+</body>
+</html>
