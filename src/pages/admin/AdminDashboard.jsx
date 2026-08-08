@@ -6,6 +6,7 @@ import {
   ChevronDown, Menu, X, Loader2, Plus, Check, AlertCircle, Edit, Trash2,
   ShieldCheck, ToggleLeft, ToggleRight, KeyRound, Download, HeartHandshake, MessageSquare,
 } from 'lucide-react';
+import magicLogo from '../../assets/magic-logo.png';
 
 // ─── API helper ───────────────────────────────────────────────────────────────
 async function api(url, opts = {}) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ChevronRight } from 'lucide-react';
+import magicLogo from '../../assets/magic-logo.png';
 import '../../styles/navbar.css';
 
 export default function Navbar() {
@@ -39,7 +40,7 @@ export default function Navbar() {
         {/* Brand */}
         <Link to="/" className="navbar-brand">
           <img
-            src="/assets/magic-logo.png"
+            src={magicLogo}
             alt="MAGIC Youth Logo"
             className="navbar-logo"
           />

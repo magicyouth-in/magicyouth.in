@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
+import magicLogo from '../../assets/magic-logo.png';
 import '../../styles/admin.css';
 
 export default function AdminLogin() {
@@ -54,7 +55,7 @@ export default function AdminLogin() {
         {/* Brand logo & header */}
         <div className="admin-login-header">
           <img
-            src="/assets/magic-logo.png"
+            src={magicLogo}
             alt="MAGIC Youth Logo"
             className="admin-logo-img"
           />
