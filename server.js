@@ -20,6 +20,8 @@ const { connectDB }  = require('./database/mongoose');
 const { initStorage } = require('./utils/webdav');
 
 const app    = express();
+app.set('trust proxy', 1);
+
 const server = http.createServer(app);
 const io     = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] }
@@ -188,8 +190,8 @@ if (fs.existsSync(path.join(__dirname, 'dist'))) {
 // ─── ERROR HANDLER ──────────────────────────────────────────────────────────────
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   if (err.name === 'MulterError') return res.status(400).json({ success: false, message: err.message });
-  console.error('[ERROR]', err.message);
-  res.status(500).json({ success: false, message: 'Internal server error.' });
+  console.error('[SERVER ERROR]', err.stack || err.message);
+  res.status(500).json({ success: false, message: err.message || 'Internal server error.' });
 });
 
 // ─── START ──────────────────────────────────────────────────────────────────────
