@@ -23,11 +23,12 @@ const storage = multer.diskStorage({
 });
 const uploadPhoto = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (allowed.includes(file.mimetype)) return cb(null, true);
-    cb(new Error('Only image files (JPEG, PNG, WEBP) are allowed.'));
+    const allowed = ['image/jpeg','image/jpg','image/png','image/webp','image/gif','image/heic','image/heif','image/heic-sequence','image/heif-sequence'];
+    const allowedExts = /\.(jpeg|jpg|png|webp|gif|heic|heif)$/i;
+    if (allowed.includes(file.mimetype) || allowedExts.test(path.extname(file.originalname))) return cb(null, true);
+    cb(new Error('Only image files (JPEG, PNG, WEBP, GIF, HEIC) are allowed.'));
   },
 });
 

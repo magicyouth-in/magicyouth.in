@@ -499,7 +499,7 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                                     {memberPhoto ? memberPhoto.name : 'Upload Photo (optional)'}
                                   </div>
-                                  <input type="file" accept="image/*" style={{ display: 'none' }}
+                                  <input type="file" accept="image/*,.heic,.heif" style={{ display: 'none' }}
                                     onChange={e => {
                                       const f = e.target.files?.[0];
                                       if (!f) return;
@@ -1057,7 +1057,7 @@ function EventsModule({ toast, admin, currentUnitId, units = [] }) {
 
             <div>
               <label className="admin-label">Event Poster Image</label>
-              <input type="file" accept="image/*,.pdf" onChange={e => setPosterFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} />
+              <input type="file" accept="image/*,.heic,.heif,.pdf" onChange={e => setPosterFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} />
             </div>
           </div>
 
@@ -1469,7 +1469,7 @@ function GalleryModule({ toast, admin, currentUnitId, units = [] }) {
 
           <div>
             <label className="admin-label">Select Photo File(s) *</label>
-            <input type="file" accept="image/*,.pdf" multiple onChange={e => setSelectedFiles(Array.from(e.target.files))} className="admin-input" style={{ padding: '0.375rem' }} required />
+            <input type="file" accept="image/*,.heic,.heif,.pdf" multiple onChange={e => setSelectedFiles(Array.from(e.target.files))} className="admin-input" style={{ padding: '0.375rem' }} required />
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
@@ -1635,7 +1635,7 @@ function DocumentsModule({ toast, admin, currentUnitId, units = [] }) {
 
           <div>
             <label className="admin-label">Document File (PDF, DOCX, XLSX, PPTX, JPG, PNG, CSV, ZIP) *</label>
-            <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp,.svg,.zip,image/*,application/pdf" onChange={e => setDocFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} required />
+            <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp,.svg,.zip,.heic,.heif,image/*,application/pdf" onChange={e => setDocFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} required />
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>

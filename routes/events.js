@@ -20,10 +20,14 @@ const storage = multer.diskStorage({
   filename:    (req, file, cb) => { cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname).toLowerCase()}`); },
 });
 const fileFilter = (req, file, cb) => {
-  const allowedExts = /\.(jpeg|jpg|png|gif|webp|pdf)$/i;
-  const allowedMimes = ['image/jpeg','image/jpg','image/png','image/gif','image/webp','application/pdf'];
+  const allowedExts = /\.(jpeg|jpg|png|gif|webp|pdf|heic|heif)$/i;
+  const allowedMimes = [
+    'image/jpeg','image/jpg','image/png','image/gif','image/webp',
+    'image/heic','image/heif','image/heic-sequence','image/heif-sequence',
+    'application/pdf',
+  ];
   if (allowedExts.test(path.extname(file.originalname)) || allowedMimes.includes(file.mimetype)) return cb(null, true);
-  cb(new Error('Only image files (JPEG, PNG, WEBP, GIF) and PDF files are allowed.'));
+  cb(new Error('Only image files (JPEG, PNG, WEBP, GIF, HEIC) and PDF files are allowed.'));
 };
 const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 }, fileFilter });
 

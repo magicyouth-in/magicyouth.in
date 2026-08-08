@@ -31,6 +31,7 @@ const ALLOWED_MIMES = [
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   // Images
   'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+  'image/heic', 'image/heif', 'image/heic-sequence', 'image/heif-sequence',
   // Text
   'text/plain',
   // Zip / Archive
@@ -49,7 +50,7 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB for documents
   fileFilter: (req, file, cb) => {
     // Allow if in ALLOWED_MIMES OR if extension matches common doc types
-    const allowedExts = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|jpg|jpeg|png|gif|webp|svg|zip)$/i;
+    const allowedExts = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|jpg|jpeg|png|gif|webp|svg|zip|heic|heif)$/i;
     if (ALLOWED_MIMES.includes(file.mimetype) || allowedExts.test(path.extname(file.originalname))) {
       return cb(null, true);
     }
