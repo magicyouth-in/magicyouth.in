@@ -203,14 +203,14 @@ function MemberCard({ member }) {
       <div className="member-photo-box">
         {member.photo ? (
           <img
-            src={`/api/gallery/file/${member.photo}`}
+            src={member.photo}
             alt={member.name}
             className="member-photo"
             loading="lazy"
           />
         ) : (
           <div className="member-placeholder">
-            {member.name ? member.name[0] : 'U'}
+            {member.name ? member.name[0].toUpperCase() : 'U'}
           </div>
         )}
       </div>

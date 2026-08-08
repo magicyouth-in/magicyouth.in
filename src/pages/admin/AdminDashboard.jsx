@@ -292,6 +292,8 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
 
   const [activeTeamForMember, setActiveTeamForMember] = useState(null);
   const [memberForm, setMemberForm] = useState({ name: '', position: 'Lead', biography: '', department: '' });
+  const [memberPhoto, setMemberPhoto] = useState(null);   // File object
+  const [memberPhotoPreview, setMemberPhotoPreview] = useState(null); // Object URL
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -341,9 +343,29 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
       toast('Please enter Member Name and Position (e.g. Lead, President)', 'error'); return;
     }
     try {
-      await api(`/api/teams/${teamId}/members`, { method: 'POST', body: JSON.stringify(memberForm) });
+      const fd = new FormData();
+      fd.append('name', memberForm.name);
+      fd.append('position', memberForm.position);
+      fd.append('biography', memberForm.biography || '');
+      fd.append('department', memberForm.department || '');
+      if (memberPhoto) fd.append('photo', memberPhoto);
+
+      await fetch(`/api/teams/${teamId}/members`, {
+        method: 'POST',
+        credentials: 'include',
+        body: fd,
+      }).then(async r => {
+        const d = await r.json();
+        if (!d.success) throw new Error(d.message);
+        return d;
+      });
+
       toast(`Lead/Member ${memberForm.name} added.`);
-      setMemberForm({ name: '', position: 'Lead', biography: '', department: '' }); setActiveTeamForMember(null); loadData();
+      setMemberForm({ name: '', position: 'Lead', biography: '', department: '' });
+      setMemberPhoto(null);
+      setMemberPhotoPreview(null);
+      setActiveTeamForMember(null);
+      loadData();
     } catch (e) { toast(e.message, 'error'); }
   };
 
@@ -467,9 +489,29 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
                               <input placeholder="Full Name *" value={memberForm.name} onChange={e => setMemberForm(m => ({ ...m, name: e.target.value }))} className="admin-input" style={{ padding: '0.375rem 0.625rem' }} />
                               <input placeholder="Position / Role (e.g. Lead, President) *" value={memberForm.position} onChange={e => setMemberForm(m => ({ ...m, position: e.target.value }))} className="admin-input" style={{ padding: '0.375rem 0.625rem' }} />
                               <input placeholder="Department (e.g. CSE)" value={memberForm.department} onChange={e => setMemberForm(m => ({ ...m, department: e.target.value }))} className="admin-input" style={{ padding: '0.375rem 0.625rem' }} />
+                              {/* Photo Upload */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                {memberPhotoPreview && (
+                                  <img src={memberPhotoPreview} alt="preview" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid #5B21B6', flexShrink: 0 }} />
+                                )}
+                                <label style={{ flex: 1, cursor: 'pointer' }}>
+                                  <div className="admin-input" style={{ padding: '0.375rem 0.625rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: memberPhoto ? '#5B21B6' : '#9CA3AF', cursor: 'pointer' }}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                    {memberPhoto ? memberPhoto.name : 'Upload Photo (optional)'}
+                                  </div>
+                                  <input type="file" accept="image/*" style={{ display: 'none' }}
+                                    onChange={e => {
+                                      const f = e.target.files?.[0];
+                                      if (!f) return;
+                                      setMemberPhoto(f);
+                                      setMemberPhotoPreview(URL.createObjectURL(f));
+                                    }}
+                                  />
+                                </label>
+                              </div>
                               <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button onClick={() => addMember(t._id)} className="admin-btn-primary" style={{ width: 'auto', padding: '0.375rem 0.875rem' }}>Add Lead</button>
-                                <button onClick={() => setActiveTeamForMember(null)} className="admin-btn-action">Cancel</button>
+                                <button onClick={() => { setActiveTeamForMember(null); setMemberPhoto(null); setMemberPhotoPreview(null); }} className="admin-btn-action">Cancel</button>
                               </div>
                             </div>
                           )}
@@ -480,9 +522,18 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
                               {teamMems.map(m => (
                                 <div key={m._id} style={{ backgroundColor: '#F8F7FC', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <div>
-                                    <p style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>{m.name}</p>
-                                    <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>{m.position} {m.department ? `(${m.department})` : ''}</p>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    {m.photo ? (
+                                      <img src={m.photo} alt={m.name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '2px solid #5B21B6', flexShrink: 0 }} />
+                                    ) : (
+                                      <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#5B21B6', flexShrink: 0 }}>
+                                        {m.name ? m.name[0].toUpperCase() : 'U'}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <p style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>{m.name}</p>
+                                      <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>{m.position} {m.department ? `(${m.department})` : ''}</p>
+                                    </div>
                                   </div>
                                   <button onClick={() => deleteMember(m._id)} className="admin-btn-danger" style={{ padding: '0.2rem 0.4rem' }}>
                                     <Trash2 style={{ width: 12, height: 12 }} />

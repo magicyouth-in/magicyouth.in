@@ -5,9 +5,29 @@
 
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const supabase = require('../utils/supabaseClient');
+const { BUCKETS, uploadFile, deleteFile } = require('../utils/supabaseStorage');
 const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
+
+// Temp storage for member photo uploads
+const tmpDir = path.join(__dirname, '..', 'uploads', 'tmp');
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => { try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {} cb(null, tmpDir); },
+  filename:    (req, file, cb) => { cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname).toLowerCase()}`); },
+});
+const uploadPhoto = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (allowed.includes(file.mimetype)) return cb(null, true);
+    cb(new Error('Only image files (JPEG, PNG, WEBP) are allowed.'));
+  },
+});
 
 /** GET /api/teams */
 router.get('/', async (req, res) => {
@@ -141,7 +161,8 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
 });
 
 /** POST /api/teams/:id/members */
-router.post('/:id/members', authenticateAdmin, requireAnyAdmin, async (req, res) => {
+router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.single('photo'), async (req, res) => {
+  const tmpFile = req.file ? req.file.path : null;
   try {
     const { data: team } = await supabase.from('teams').select('*').eq('id', req.params.id).single();
     if (!team) return res.status(404).json({ success: false, message: 'Team not found.' });
@@ -149,6 +170,14 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, async (req, res)
 
     const { name, position, biography, department, batchYear, socialLinks, displayOrder, isActive } = req.body;
     if (!name || !position) return res.status(400).json({ success: false, message: 'Name and position are required.' });
+
+    // Upload photo to Supabase Storage if provided
+    let photoUrl = null;
+    if (tmpFile) {
+      const dest = `team-photos/${Date.now()}-${path.basename(tmpFile)}`;
+      const { publicUrl } = await uploadFile(BUCKETS.GALLERY, tmpFile, dest, req.file.mimetype);
+      photoUrl = publicUrl;
+    }
 
     const { data: member, error } = await supabase
       .from('team_members')
@@ -159,7 +188,8 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, async (req, res)
         biography: biography || '',
         department: department || '',
         batch_year: batchYear || '',
-        social_links: socialLinks || {},
+        photo: photoUrl,
+        social_links: socialLinks ? (typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks) : {},
         display_order: displayOrder ?? 0,
         is_active: isActive !== undefined ? isActive : true,
       }])
@@ -169,9 +199,11 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, async (req, res)
     if (error) throw error;
 
     await logAction(req, 'Create Team Member', 'TeamMember', member.id, team.unit_id);
-    res.status(201).json({ success: true, data: { ...member, _id: member.id, teamId: member.team_id }, message: 'Team member added.' });
+    res.status(201).json({ success: true, data: { ...member, _id: member.id, teamId: member.team_id, photo: member.photo }, message: 'Team member added.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  } finally {
+    if (tmpFile && fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
   }
 });
 
