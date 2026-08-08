@@ -29,10 +29,10 @@ export default function Footer() {
               Men &amp; Women Aiming Greater Initiatives for Change (MAGIC Youth) is a student-led youth organization inspiring leadership, innovation, and community service.
             </p>
             <div className="social-links">
-              <a href="https://www.instagram.com/magicyouth" target="_blank" rel="noopener noreferrer" className="social-link" aria-label="MAGIC Youth Instagram">
+              <a href="https://www.instagram.com/magicyouth.in/" target="_blank" rel="noopener noreferrer" className="social-link" aria-label="MAGIC Youth Instagram">
                 <Instagram className="w-4 h-4" />
               </a>
-              <a href="https://www.instagram.com/yesj.offical" target="_blank" rel="noopener noreferrer" className="social-link" aria-label="YES-J Official Instagram">
+              <a href="https://www.instagram.com/yesj.official/?hl=en" target="_blank" rel="noopener noreferrer" className="social-link" aria-label="YES-J Official Instagram">
                 <Instagram className="w-4 h-4" />
               </a>
               <a href="https://maps.google.com/?q=Youth+Empowering+Center+Jesuits+Vijayawada" target="_blank" rel="noopener noreferrer" className="social-link" aria-label="Location">
