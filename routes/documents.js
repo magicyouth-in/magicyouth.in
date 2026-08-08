@@ -17,15 +17,25 @@ const { logAction } = require('../utils/auditLog');
 const JWT_SECRET = process.env.JWT_SECRET || 'MagicYouth_JWT_FallbackSecret';
 
 const ALLOWED_MIMES = [
+  // PDF
   'application/pdf',
+  // Word
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  // Excel
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+  // PowerPoint
   'application/vnd.ms-powerpoint',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  // Images
+  'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+  // Text
   'text/plain',
+  // Zip / Archive
+  'application/zip',
+  'application/x-zip-compressed',
 ];
 
 const os = require('os');
@@ -36,9 +46,13 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 25 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB for documents
   fileFilter: (req, file, cb) => {
-    if (ALLOWED_MIMES.includes(file.mimetype)) return cb(null, true);
+    // Allow if in ALLOWED_MIMES OR if extension matches common doc types
+    const allowedExts = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|jpg|jpeg|png|gif|webp|svg|zip)$/i;
+    if (ALLOWED_MIMES.includes(file.mimetype) || allowedExts.test(path.extname(file.originalname))) {
+      return cb(null, true);
+    }
     cb(new Error(`File type "${file.mimetype}" is not allowed.`));
   },
 });

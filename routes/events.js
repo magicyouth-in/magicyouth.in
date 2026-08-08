@@ -19,12 +19,13 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => { cb(null, tmpDir); },
   filename:    (req, file, cb) => { cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname).toLowerCase()}`); },
 });
-const imageFilter = (req, file, cb) => {
-  const allowed = /\.(jpeg|jpg|png|gif|webp)$/i;
-  if (!allowed.test(path.extname(file.originalname))) return cb(new Error('Only image files are allowed.'));
-  cb(null, true);
+const fileFilter = (req, file, cb) => {
+  const allowedExts = /\.(jpeg|jpg|png|gif|webp|pdf)$/i;
+  const allowedMimes = ['image/jpeg','image/jpg','image/png','image/gif','image/webp','application/pdf'];
+  if (allowedExts.test(path.extname(file.originalname)) || allowedMimes.includes(file.mimetype)) return cb(null, true);
+  cb(new Error('Only image files (JPEG, PNG, WEBP, GIF) and PDF files are allowed.'));
 };
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: imageFilter });
+const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 }, fileFilter });
 
 /** GET /api/events */
 router.get('/', async (req, res) => {

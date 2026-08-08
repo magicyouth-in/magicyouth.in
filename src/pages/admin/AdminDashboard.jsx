@@ -1057,7 +1057,7 @@ function EventsModule({ toast, admin, currentUnitId, units = [] }) {
 
             <div>
               <label className="admin-label">Event Poster Image</label>
-              <input type="file" accept="image/*" onChange={e => setPosterFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} />
+              <input type="file" accept="image/*,.pdf" onChange={e => setPosterFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} />
             </div>
           </div>
 
@@ -1469,7 +1469,7 @@ function GalleryModule({ toast, admin, currentUnitId, units = [] }) {
 
           <div>
             <label className="admin-label">Select Photo File(s) *</label>
-            <input type="file" accept="image/*" multiple onChange={e => setSelectedFiles(Array.from(e.target.files))} className="admin-input" style={{ padding: '0.375rem' }} required />
+            <input type="file" accept="image/*,.pdf" multiple onChange={e => setSelectedFiles(Array.from(e.target.files))} className="admin-input" style={{ padding: '0.375rem' }} required />
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
@@ -1634,8 +1634,8 @@ function DocumentsModule({ toast, admin, currentUnitId, units = [] }) {
           </div>
 
           <div>
-            <label className="admin-label">Document File (PDF, DOCX, XLSX, TXT) *</label>
-            <input type="file" onChange={e => setDocFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} required />
+            <label className="admin-label">Document File (PDF, DOCX, XLSX, PPTX, JPG, PNG, CSV, ZIP) *</label>
+            <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp,.svg,.zip,image/*,application/pdf" onChange={e => setDocFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} required />
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
