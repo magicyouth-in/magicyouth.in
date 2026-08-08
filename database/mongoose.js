@@ -8,11 +8,17 @@
 
 const mongoose = require('mongoose');
 
+const DEFAULT_MONGODB_URI = 'mongodb://magicyouthin:WQW3B7VvgAvYSblR@ac-4xd7xpn-shard-00-00.5otozzf.mongodb.net:27017,ac-4xd7xpn-shard-00-01.5otozzf.mongodb.net:27017,ac-4xd7xpn-shard-00-02.5otozzf.mongodb.net:27017/magicyouth?tls=true&authSource=admin&retryWrites=true&w=majority&appName=MAGICYOUTH';
+
+let isConnected = false;
+
 async function connectDB() {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) {
-    throw new Error('MONGODB_URI environment variable is not set.');
+  if (isConnected || mongoose.connection.readyState === 1) {
+    isConnected = true;
+    return;
   }
+
+  const uri = process.env.MONGODB_URI || DEFAULT_MONGODB_URI;
 
   await mongoose.connect(uri, {
     serverSelectionTimeoutMS: 10000,
@@ -23,6 +29,7 @@ async function connectDB() {
     w:                        'majority',
   });
 
+  isConnected = true;
   console.log('[DB] Connected to MongoDB Atlas ✓');
 }
 
