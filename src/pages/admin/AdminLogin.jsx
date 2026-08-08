@@ -33,17 +33,23 @@ export default function AdminLogin() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, rememberMe }),
+        body: JSON.stringify({ email: email.trim(), password, rememberMe }),
       });
-      const data = await res.json();
 
-      if (data.success) {
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error(`Server connection error (HTTP ${res.status}).`);
+      }
+
+      if (res.ok && data.success) {
         navigate('/admin/dashboard');
       } else {
-        setError(data.message || 'Invalid email/username or password.');
+        setError(data.message || `Login failed (HTTP ${res.status}).`);
       }
-    } catch {
-      setError('An error occurred. Please check your connection.');
+    } catch (err) {
+      setError(err.message || 'An error occurred. Please check your connection.');
     } finally {
       setLoading(false);
     }

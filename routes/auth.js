@@ -29,10 +29,26 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and password are required.' });
     }
 
-    const admin = await AdminUser.findOne({ email: email.toLowerCase().trim() });
+    // Auto-seed main admin if database has no main admin accounts yet
+    const count = await AdminUser.countDocuments({ role: 'MAIN_ADMIN' });
+    if (count === 0) {
+      const defaultEmail = (process.env.ADMIN_EMAIL || 'admin@magicyouth.in').toLowerCase().trim();
+      const defaultPassword = process.env.ADMIN_PASSWORD || 'MagicYouth@Admin2026';
+      const hash = await bcrypt.hash(defaultPassword, 10);
+      await AdminUser.create({
+        name: process.env.ADMIN_NAME || 'Main Admin',
+        email: defaultEmail,
+        passwordHash: hash,
+        role: 'MAIN_ADMIN',
+        status: 'Active',
+      });
+      console.log(`[AUTO-SEED] Created Main Admin (${defaultEmail})`);
+    }
+
+    let admin = await AdminUser.findOne({ email: email.toLowerCase().trim() });
 
     if (!admin) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
+      return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
     if (admin.status === 'Inactive') {
