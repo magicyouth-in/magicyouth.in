@@ -33,11 +33,14 @@
 }
 
 .navbar-logo {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 9999px;
-  object-fit: cover;
-  border: 2px solid #EDE9FE;
+  height: 2.5rem;
+  width: auto;
+  max-width: 8rem;
+  border-radius: 0.5rem;
+  object-fit: contain;
+  border: 1px solid #EDE9FE;
+  padding: 0.15rem;
+  background-color: #FFFFFF;
 }
 
 .navbar-title {
