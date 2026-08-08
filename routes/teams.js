@@ -14,9 +14,11 @@ const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middle
 const { logAction } = require('../utils/auditLog');
 
 // Temp storage for member photo uploads
-const tmpDir = path.join(__dirname, '..', 'uploads', 'tmp');
+// Use os.tmpdir() so it works on Vercel serverless (read-only fs except /tmp)
+const os = require('os');
+const tmpDir = os.tmpdir();
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => { try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {} cb(null, tmpDir); },
+  destination: (req, file, cb) => { cb(null, tmpDir); },
   filename:    (req, file, cb) => { cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname).toLowerCase()}`); },
 });
 const uploadPhoto = multer({

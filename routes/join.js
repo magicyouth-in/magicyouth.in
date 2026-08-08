@@ -11,9 +11,10 @@ const fs = require('fs');
 const supabase = require('../utils/supabaseClient');
 const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 
-const tmpDir = path.join(__dirname, '..', 'uploads', 'tmp');
+const os = require('os');
+const tmpDir = os.tmpdir();
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => { try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {} cb(null, tmpDir); },
+  destination: (req, file, cb) => { cb(null, tmpDir); },
   filename:    (req, file, cb) => { cb(null, `${Date.now()}-${Math.round(Math.random()*1e9)}${path.extname(file.originalname)}`); },
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
