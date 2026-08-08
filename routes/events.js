@@ -19,7 +19,7 @@ const Unit    = require('../database/models/Unit');
 // Temp upload directory (files are moved to Nextcloud/local after validation)
 const tmpDir = path.join(__dirname, '..', 'uploads', 'tmp');
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => { fs.mkdirSync(tmpDir, { recursive: true }); cb(null, tmpDir); },
+  destination: (req, file, cb) => { try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {} cb(null, tmpDir); },
   filename:    (req, file, cb) => { cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname).toLowerCase()}`); },
 });
 const imageFilter = (req, file, cb) => {

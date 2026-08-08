@@ -30,7 +30,9 @@ app.set('io', io);
 const PORT = process.env.PORT || 3000;
 
 // ─── ENSURE TEMP UPLOAD DIRECTORY ─────────────────────────────────────────────
-fs.mkdirSync(path.join(__dirname, 'uploads', 'tmp'), { recursive: true });
+try {
+  fs.mkdirSync(path.join(__dirname, 'uploads', 'tmp'), { recursive: true });
+} catch {}
 
 // ─── SECURITY & MIDDLEWARE ─────────────────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
