@@ -1487,7 +1487,7 @@ function GalleryModule({ toast, admin, currentUnitId, units = [] }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem' }}>
             {photos.map(p => (
               <div key={p._id} style={{ position: 'relative', borderRadius: '0.75rem', overflow: 'hidden', backgroundColor: '#F8F7FC', aspectRatio: '1/1', border: '1px solid #E5E7EB' }}>
-                <img src={`/api/gallery/file/${p._id}`} alt={p.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                <img src={p.file_path || p.filePath} alt={p.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                 <button onClick={() => del(p._id)} className="admin-btn-danger" style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', padding: '0.375rem' }}>
                   <Trash2 style={{ width: 14, height: 14 }} />
                 </button>

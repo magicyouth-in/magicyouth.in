@@ -142,7 +142,7 @@ export default function Gallery() {
                     onClick={() => setLightbox(photo)}
                   >
                     <img
-                      src={`/api/gallery/file/${photo._id}`}
+                      src={photo.file_path}
                       alt={photo.title || 'Gallery photo'}
                       className="gallery-img"
                       loading="lazy"
@@ -199,7 +199,7 @@ export default function Gallery() {
             </button>
 
             <img
-              src={`/api/gallery/file/${lightbox._id}`}
+              src={lightbox.file_path}
               alt={lightbox.title || 'Gallery photo'}
               style={{ maxWidth: '90%', maxHeight: '85vh', objectFit: 'contain', borderRadius: '0.75rem' }}
               onClick={e => e.stopPropagation()}

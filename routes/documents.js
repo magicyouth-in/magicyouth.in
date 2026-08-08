@@ -55,6 +55,22 @@ async function getAuthAdmin(req) {
   }
 }
 
+/** GET /api/documents/download/:id — redirect to Supabase CDN URL */
+router.get('/download/:id', async (req, res) => {
+  try {
+    const { data: doc } = await supabase.from('documents').select('file_path, title, mime_type, downloads_count').eq('id', req.params.id).single();
+    if (!doc || !doc.file_path) return res.status(404).json({ success: false, message: 'Document not found.' });
+
+    // Increment download count (fire-and-forget)
+    supabase.from('documents').update({ downloads_count: (doc.downloads_count || 0) + 1 }).eq('id', req.params.id).then(() => {});
+
+    // Redirect directly to Supabase Storage CDN URL
+    res.redirect(doc.file_path);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 /** GET /api/documents */
 router.get('/', async (req, res) => {
   try {

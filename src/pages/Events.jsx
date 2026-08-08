@@ -233,7 +233,7 @@ export default function Events() {
             <div className="event-modal-content" onClick={e => e.stopPropagation()}>
               {modal.poster && (
                 <div style={{ aspectRatio: '16/9', backgroundColor: '#F8F7FC', overflow: 'hidden' }}>
-                  <img src={`/uploads/${modal.poster}`} alt={modal.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={modal.poster} alt={modal.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               )}
               <div style={{ padding: '1.75rem' }}>
@@ -294,7 +294,7 @@ function EventCard({ evt, onClick }) {
       <div className="event-poster-box">
         {evt.poster ? (
           <img
-            src={`/uploads/${evt.poster}`}
+            src={evt.poster}
             alt={evt.title}
             className="event-poster"
             loading="lazy"
