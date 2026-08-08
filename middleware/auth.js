@@ -4,8 +4,8 @@
  * Reads the token from httpOnly cookie `magicyouth_token`.
  */
 
-const jwt      = require('jsonwebtoken');
-const AdminUser = require('../database/models/AdminUser');
+const jwt = require('jsonwebtoken');
+const supabase = require('../utils/supabaseClient');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'MagicYouth_JWT_FallbackSecret';
 
@@ -22,7 +22,7 @@ function _verify(token) {
 // ─── Authenticate admin (attaches req.admin) ──────────────────────────────────
 
 /**
- * Verifies JWT and loads the admin document from MongoDB.
+ * Verifies JWT and loads the admin document from Supabase admin_users table.
  * Fails with 401 if token is missing, expired, or admin is Inactive.
  */
 async function authenticateAdmin(req, res, next) {
@@ -33,11 +33,22 @@ async function authenticateAdmin(req, res, next) {
   if (!decoded) return res.status(401).json({ success: false, message: 'Session expired. Please log in again.' });
 
   try {
-    const admin = await AdminUser.findById(decoded.adminId).select('-passwordHash');
-    if (!admin)                    return res.status(401).json({ success: false, message: 'Admin account not found.' });
+    const { data: admin, error } = await supabase
+      .from('admin_users')
+      .select('id, name, email, role, assigned_unit_ids, status')
+      .eq('id', decoded.adminId)
+      .single();
+
+    if (error || !admin) return res.status(401).json({ success: false, message: 'Admin account not found.' });
     if (admin.status === 'Inactive') return res.status(403).json({ success: false, message: 'Your account has been disabled.' });
 
-    req.admin = admin;
+    // Standardize object fields
+    req.admin = {
+      ...admin,
+      _id: admin.id,
+      assignedUnitIds: admin.assigned_unit_ids || [],
+    };
+
     return next();
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Authentication error.' });

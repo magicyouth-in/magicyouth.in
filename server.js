@@ -16,8 +16,8 @@ const helmet       = require('helmet');
 const cors         = require('cors');
 const rateLimit    = require('express-rate-limit');
 
-const { connectDB }  = require('./database/mongoose');
-const { initStorage } = require('./utils/webdav');
+const supabase = require('./utils/supabaseClient');
+const { initStorageBuckets } = require('./utils/supabaseStorage');
 
 const app    = express();
 app.set('trust proxy', 1);
@@ -42,16 +42,6 @@ app.use(cors());
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Ensure DB connection for serverless requests
-app.use('/api', async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Database connection failed.' });
-  }
-});
 
 // Rate Limiter — API routes
 const apiLimiter = rateLimit({
@@ -197,23 +187,19 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 // ─── START ──────────────────────────────────────────────────────────────────────
 async function start() {
   try {
-    // Validate + initialise Nextcloud/local storage
-    initStorage();
+    await initStorageBuckets();
 
-    await connectDB();
-
-    // Developer guidance: check for Main Admin
-    const mainAdminCount = await AdminUser.countDocuments({ role: 'MAIN_ADMIN' });
-    if (mainAdminCount === 0) {
+    const { data: mainAdmins } = await supabase.from('admin_users').select('id').eq('role', 'MAIN_ADMIN');
+    if (!mainAdmins || mainAdmins.length === 0) {
       console.log('');
       console.log('╔═══════════════════════════════════════════════════════════╗');
-      console.log('║  ⚠  No MAIN_ADMIN found in the database.                 ║');
+      console.log('║  ⚠  No MAIN_ADMIN found in Supabase database.            ║');
       console.log('║                                                           ║');
-      console.log('║  Run the following command to create the main admin:      ║');
+      console.log('║  Run the following command to seed the main admin:        ║');
       console.log('║                                                           ║');
       console.log('║    node scripts/seed-admin.js                             ║');
       console.log('║                                                           ║');
-      console.log('║  Set ADMIN_NAME, ADMIN_EMAIL, ADMIN_PASSWORD in .env     ║');
+      console.log('║  Set ADMIN_EMAIL & ADMIN_PASSWORD in .env                 ║');
       console.log('╚═══════════════════════════════════════════════════════════╝');
       console.log('');
     }
@@ -225,8 +211,9 @@ async function start() {
       console.log('╠══════════════════════════════════════════════════╣');
       console.log(`║  Server:    http://localhost:${PORT}               ║`);
       console.log('║  Auth:      JWT + httpOnly Cookies               ║');
+      console.log('║  Database:  Supabase PostgreSQL                 ║');
+      console.log('║  Storage:   Supabase Storage                     ║');
       console.log('║  Socket.IO: Real-time + Unit rooms               ║');
-      console.log('║  Storage:   Nextcloud WebDAV                     ║');
       console.log('╚══════════════════════════════════════════════════╝');
       console.log('');
     });

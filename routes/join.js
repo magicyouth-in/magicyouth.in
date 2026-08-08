@@ -1,28 +1,23 @@
 /**
  * routes/join.js
- * API router for volunteer join requests & application management.
- * Updated for multi-unit platform with unit-level authorization.
+ * API router for volunteer join requests using Supabase PostgreSQL.
  */
 
-const express     = require('express');
-const router      = express.Router();
-const multer      = require('multer');
-const path        = require('path');
-const fs          = require('fs');
-const JoinRequest = require('../database/models/JoinRequest');
-const Notification = require('../database/models/Notification');
-const AdminUser   = require('../database/models/AdminUser');
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const supabase = require('../utils/supabaseClient');
 const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 
-// Temp upload for files (moved to Nextcloud after validation)
 const tmpDir = path.join(__dirname, '..', 'uploads', 'tmp');
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => { fs.mkdirSync(tmpDir, { recursive: true }); cb(null, tmpDir); },
+  destination: (req, file, cb) => { try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {} cb(null, tmpDir); },
   filename:    (req, file, cb) => { cb(null, `${Date.now()}-${Math.round(Math.random()*1e9)}${path.extname(file.originalname)}`); },
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
-// Safe parse helper
 const parseArray = (val) => {
   if (Array.isArray(val)) return val;
   if (!val) return [];
@@ -30,10 +25,7 @@ const parseArray = (val) => {
   return typeof val === 'string' ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
 };
 
-/**
- * POST /api/join
- * Submit multi-step volunteer application.
- */
+/** POST /api/join */
 router.post('/', upload.fields([{ name: 'resume', maxCount: 1 }, { name: 'profileImage', maxCount: 1 }]), async (req, res) => {
   const tmpFiles = [];
   if (req.files?.resume?.[0])       tmpFiles.push(req.files.resume[0].path);
@@ -45,121 +37,114 @@ router.post('/', upload.fields([{ name: 'resume', maxCount: 1 }, { name: 'profil
       return res.status(400).json({ success: false, message: 'Please fill in all required fields.' });
     }
 
-    // TODO: When Nextcloud is active, upload resume and profileImage to Nextcloud using webdav.uploadFile
-    // For now, store the tmp filename as placeholder
-    const resumePath      = req.files?.resume?.[0] ? req.files.resume[0].filename : null;
-    const profileImagePath = req.files?.profileImage?.[0] ? req.files.profileImage[0].filename : null;
+    const { data: application, error } = await supabase
+      .from('join_requests')
+      .insert([{
+        name,
+        email,
+        phone,
+        gender: gender || 'Male',
+        dob: dob || null,
+        college,
+        department,
+        year,
+        city,
+        unit_id: unitId || null,
+        academic_year_id: academicYearId || null,
+        skills: parseArray(skills),
+        interests: parseArray(interests),
+        previous_experience: previousExperience || '',
+        reason,
+        status: 'Pending',
+      }])
+      .select()
+      .single();
 
-    const application = await JoinRequest.create({
-      name, email, phone, gender: gender || 'Male', dob: dob || null,
-      college, department, year, city,
-      unitId: unitId || null,
-      academicYearId: academicYearId || null,
-      skills:    parseArray(skills),
-      interests: parseArray(interests),
-      previousExperience: previousExperience || '',
-      reason, resumePath, profileImagePath, status: 'Pending',
+    if (error) throw error;
+
+    res.status(201).json({
+      success: true,
+      message: 'Application submitted! Our team will review it soon.',
+      data: { ...application, _id: application.id }
     });
-
-    // Create notifications for admins assigned to this unit
-    const io = req.app.get('io');
-    const notifData = {
-      title:      'New Volunteer Application',
-      message:    `${name} from ${college} submitted an application.`,
-      type:       'join_request',
-      entityType: 'JoinRequest',
-      entityId:   application._id.toString(),
-      unitId:     unitId || null,
-      linkUrl:    '/admin',
-    };
-
-    if (unitId) {
-      // Notify admins assigned to this unit
-      const unitAdmins = await AdminUser.find({ assignedUnitIds: unitId, status: 'Active' });
-      for (const a of unitAdmins) {
-        const notif = await Notification.create({ ...notifData, recipientAdminId: a._id });
-        if (io) io.to(`admin-${a._id}`).emit('new_notification', notif);
-      }
-      // Also notify main admin
-      const mainAdmin = await AdminUser.findOne({ role: 'MAIN_ADMIN' });
-      if (mainAdmin) {
-        const notif = await Notification.create({ ...notifData, recipientAdminId: mainAdmin._id });
-        if (io) io.to('main-admin').emit('new_notification', notif);
-      }
-    } else {
-      // No unit selected — notify main admin only
-      const mainAdmin = await AdminUser.findOne({ role: 'MAIN_ADMIN' });
-      if (mainAdmin) {
-        const notif = await Notification.create({ ...notifData, recipientAdminId: mainAdmin._id });
-        if (io) io.to('main-admin').emit('new_notification', notif);
-      }
-    }
-
-    res.status(201).json({ success: true, message: 'Application submitted! Our team will review it soon.', data: application });
   } catch (err) {
     console.error('[JOIN ERROR]', err.message);
     res.status(500).json({ success: false, message: err.message || 'Server error.' });
   } finally {
-    // Clean up tmp files (in production these would have been moved to Nextcloud already)
     tmpFiles.forEach(f => { if (f && fs.existsSync(f)) fs.unlinkSync(f); });
   }
 });
 
-/**
- * GET /api/join  — Admin: list applications, scoped by unit
- */
+/** GET /api/join — Admin: list applications */
 router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    const filter = {};
-    if (req.query.status) filter.status = req.query.status;
-    if (req.query.unitId) filter.unitId = req.query.unitId;
+    let query = supabase
+      .from('join_requests')
+      .select('*, units(name, code)', { count: 'exact' })
+      .order('created_at', { ascending: false });
 
-    // Sub-Admins scoped to their units
-    if (req.admin.role === 'SUB_ADMIN') {
-      filter.unitId = { $in: req.admin.assignedUnitIds };
+    if (req.query.status) query = query.eq('status', req.query.status);
+    if (req.query.unitId) query = query.eq('unit_id', req.query.unitId);
+
+    if (req.admin.role === 'SUB_ADMIN' && req.admin.assigned_unit_ids?.length > 0) {
+      query = query.in('unit_id', req.admin.assigned_unit_ids);
     }
 
     if (req.query.search) {
-      filter.$or = [
-        { name:       new RegExp(req.query.search, 'i') },
-        { email:      new RegExp(req.query.search, 'i') },
-        { college:    new RegExp(req.query.search, 'i') },
-        { department: new RegExp(req.query.search, 'i') },
-      ];
+      query = query.or(`name.ilike.%${req.query.search}%,email.ilike.%${req.query.search}%,college.ilike.%${req.query.search}%,department.ilike.%${req.query.search}%`);
     }
 
-    const page  = parseInt(req.query.page)  || 1;
+    const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const skip  = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    const [data, total] = await Promise.all([
-      JoinRequest.find(filter).populate('unitId', 'name code').sort({ createdAt: -1 }).skip(skip).limit(limit),
-      JoinRequest.countDocuments(filter),
-    ]);
+    query = query.range(skip, skip + limit - 1);
 
-    res.json({ success: true, data, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+    const { data, count, error } = await query;
+    if (error) throw error;
+
+    const formatted = (data || []).map(j => ({
+      ...j,
+      _id: j.id,
+      previousExperience: j.previous_experience,
+      adminNotes: j.admin_notes,
+      unitId: j.unit_id ? { _id: j.unit_id, id: j.unit_id, name: j.units?.name || '', code: j.units?.code || '' } : null,
+    }));
+
+    res.json({ success: true, data: formatted, pagination: { page, limit, total: count || 0, pages: Math.ceil((count || 0) / limit) } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-/**
- * GET /api/join/:id — Admin: get single application
- */
+/** GET /api/join/:id */
 router.get('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    const req_ = await JoinRequest.findById(req.params.id).populate('unitId', 'name code').populate('academicYearId', 'year');
-    if (!req_) return res.status(404).json({ success: false, message: 'Application not found.' });
-    if (req_.unitId && !canAccessUnit(req.admin, req_.unitId)) return res.status(403).json({ success: false, message: 'Forbidden.' });
-    res.json({ success: true, data: req_ });
+    const { data: req_, error } = await supabase
+      .from('join_requests')
+      .select('*, units(name, code), academic_years(year)')
+      .eq('id', req.params.id)
+      .single();
+
+    if (error || !req_) return res.status(404).json({ success: false, message: 'Application not found.' });
+    if (req_.unit_id && !canAccessUnit(req.admin, req_.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+
+    const formatted = {
+      ...req_,
+      _id: req_.id,
+      previousExperience: req_.previous_experience,
+      adminNotes: req_.admin_notes,
+      unitId: req_.unit_id ? { _id: req_.unit_id, id: req_.unit_id, name: req_.units?.name || '', code: req_.units?.code || '' } : null,
+      academicYearId: req_.academic_year_id ? { _id: req_.academic_year_id, id: req_.academic_year_id, year: req_.academic_years?.year || '' } : null,
+    };
+
+    res.json({ success: true, data: formatted });
   } catch (err) {
     res.status(400).json({ success: false, message: 'Invalid ID.' });
   }
 });
 
-/**
- * PATCH /api/join/:id/status — Admin: Approve or Reject
- */
+/** PATCH /api/join/:id/status */
 router.patch('/:id/status', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     const { status, adminNotes } = req.body;
@@ -167,27 +152,26 @@ router.patch('/:id/status', authenticateAdmin, requireAnyAdmin, async (req, res)
       return res.status(400).json({ success: false, message: 'Invalid status value.' });
     }
 
-    const application = await JoinRequest.findById(req.params.id);
+    const { data: application } = await supabase.from('join_requests').select('*').eq('id', req.params.id).single();
     if (!application) return res.status(404).json({ success: false, message: 'Application not found.' });
+    if (application.unit_id && !canAccessUnit(req.admin, application.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    if (application.unitId && !canAccessUnit(req.admin, application.unitId)) {
-      return res.status(403).json({ success: false, message: 'Forbidden.' });
-    }
+    const updates = { status, updated_at: new Date().toISOString() };
+    if (adminNotes !== undefined) updates.admin_notes = adminNotes;
 
-    application.status    = status;
-    if (adminNotes !== undefined) application.adminNotes = adminNotes;
-    await application.save();
+    const { data: updated, error } = await supabase
+      .from('join_requests')
+      .update(updates)
+      .eq('id', application.id)
+      .select()
+      .single();
 
-    res.json({ success: true, message: `Application ${status.toLowerCase()}.`, data: application });
+    if (error) throw error;
+
+    res.json({ success: true, message: `Application ${status.toLowerCase()}.`, data: { ...updated, _id: updated.id } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
-});
-
-// Legacy PUT alias for backward compatibility
-router.put('/:id/status', authenticateAdmin, requireAnyAdmin, async (req, res) => {
-  req.method = 'PATCH';
-  router.handle(req, res, () => {});
 });
 
 module.exports = router;

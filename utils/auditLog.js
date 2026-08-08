@@ -1,32 +1,34 @@
 /**
  * utils/auditLog.js
- * Helper to create AdminActivityLog entries.
+ * Helper to create admin_activity_logs entries in Supabase PostgreSQL.
  */
 
-const AdminActivityLog = require('../database/models/AdminActivityLog');
+const supabase = require('./supabaseClient');
 
 /**
  * Log an admin action.
- * @param {import('express').Request} req
- * @param {string} action        - e.g. 'Create Event'
- * @param {string} resourceType  - e.g. 'Event'
- * @param {string} resourceId    - string ID of the affected resource
- * @param {string|null} unitId   - unit the resource belongs to
  */
 async function logAction(req, action, resourceType, resourceId, unitId) {
   try {
     if (!req.admin) return;
-    await AdminActivityLog.create({
-      adminId:      req.admin._id,
-      role:         req.admin.role,
+
+    let cleanUnitId = unitId;
+    if (cleanUnitId && (cleanUnitId.toString().length !== 36)) {
+      cleanUnitId = null;
+    }
+
+    let cleanAdminId = req.admin.id || req.admin._id;
+
+    await supabase.from('admin_activity_logs').insert([{
+      admin_id: cleanAdminId,
+      role: req.admin.role || 'MAIN_ADMIN',
       action,
-      resourceType,
-      resourceId:   resourceId ? resourceId.toString() : null,
-      unitId:       unitId || null,
-      ipAddress:    req.ip || req.connection?.remoteAddress || '',
-    });
+      resource_type: resourceType,
+      resource_id: resourceId ? resourceId.toString() : null,
+      unit_id: cleanUnitId,
+      ip_address: req.ip || req.connection?.remoteAddress || '',
+    }]);
   } catch (err) {
-    // Never let audit logging crash the main request
     console.error('[AUDIT LOG ERROR]', err.message);
   }
 }

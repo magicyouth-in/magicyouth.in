@@ -1,20 +1,20 @@
 /**
  * routes/documents.js
- * Documentation CRUD. Files stored via Nextcloud/WebDAV, metadata in MongoDB.
- * Public: read + download public docs. Admin: upload/delete with unit auth.
+ * Documentation CRUD using Supabase PostgreSQL & Storage.
  */
 
-const express  = require('express');
-const router   = express.Router();
-const multer   = require('multer');
-const path     = require('path');
-const fs       = require('fs');
-const Document = require('../database/models/Document');
-const AcademicYear = require('../database/models/AcademicYear');
-const Unit     = require('../database/models/Unit');
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const jwt = require('jsonwebtoken');
+const supabase = require('../utils/supabaseClient');
+const { BUCKETS, uploadFile, deleteFile } = require('../utils/supabaseStorage');
 const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
-const webdav   = require('../utils/webdav');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'MagicYouth_JWT_FallbackSecret';
 
 const ALLOWED_MIMES = [
   'application/pdf',
@@ -28,7 +28,7 @@ const ALLOWED_MIMES = [
   'text/plain',
 ];
 
-const tmpDir  = path.join(__dirname, '..', 'uploads', 'tmp');
+const tmpDir = path.join(__dirname, '..', 'uploads', 'tmp');
 const storage = multer.diskStorage({
   destination: (req, file, cb) => { try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {} cb(null, tmpDir); },
   filename:    (req, file, cb) => { cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname).toLowerCase()}`); },
@@ -42,28 +42,19 @@ const upload = multer({
   },
 });
 
-// ─── PUBLIC ───────────────────────────────────────────────────────────────────
-
-// Helper to check authentication from token cookie
-const jwt = require('jsonwebtoken');
-const AdminUser = require('../database/models/AdminUser');
-const JWT_SECRET = process.env.JWT_SECRET || 'MagicYouth_JWT_FallbackSecret';
-
 async function getAuthAdmin(req) {
   const token = req.cookies?.magicyouth_token;
   if (!token) return null;
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const admin = await AdminUser.findById(decoded.adminId);
+    const { data: admin } = await supabase.from('admin_users').select('*').eq('id', decoded.adminId).single();
     return admin && admin.status === 'Active' ? admin : null;
   } catch {
     return null;
   }
 }
 
-// ─── PROTECTED DOCUMENTATION ACCESS ──────────────────────────────────────────
-
-/** GET /api/documents?unitId=&academicYearId=&eventId=&documentType=&search= */
+/** GET /api/documents */
 router.get('/', async (req, res) => {
   try {
     const authAdmin = await getAuthAdmin(req);
@@ -75,107 +66,86 @@ router.get('/', async (req, res) => {
       });
     }
 
-    const filter = {};
+    let query = supabase
+      .from('documents')
+      .select('*, units(name, code), academic_years(year), events(title)', { count: 'exact' })
+      .order('created_at', { ascending: false });
+
     if (authAdmin.role !== 'MAIN_ADMIN') {
-      filter.visibility = { $ne: 'Admin Only' };
-      if (authAdmin.assignedUnitIds?.length > 0) {
-        filter.unitId = { $in: authAdmin.assignedUnitIds };
+      query = query.neq('visibility', 'Admin Only');
+      if (authAdmin.assigned_unit_ids?.length > 0) {
+        query = query.in('unit_id', authAdmin.assigned_unit_ids);
       }
     }
 
-    if (req.query.unitId)         filter.unitId         = req.query.unitId;
-    if (req.query.academicYearId) filter.academicYearId = req.query.academicYearId;
-    if (req.query.eventId)        filter.eventId        = req.query.eventId;
-    if (req.query.documentType)   filter.documentType   = req.query.documentType;
-    if (req.query.search)         filter.title = { $regex: new RegExp(req.query.search, 'i') };
+    if (req.query.unitId) query = query.eq('unit_id', req.query.unitId);
+    if (req.query.academicYearId) query = query.eq('academic_year_id', req.query.academicYearId);
+    if (req.query.eventId) query = query.eq('event_id', req.query.eventId);
+    if (req.query.documentType) query = query.eq('document_type', req.query.documentType);
+    if (req.query.search) query = query.ilike('title', `%${req.query.search}%`);
 
-    const page  = parseInt(req.query.page)  || 1;
+    const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const skip  = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    const [docs, total] = await Promise.all([
-      Document.find(filter)
-        .populate('unitId', 'name code')
-        .populate('academicYearId', 'year')
-        .populate('eventId', 'title')
-        .sort({ createdAt: -1 })
-        .skip(skip).limit(limit),
-      Document.countDocuments(filter),
-    ]);
+    query = query.range(skip, skip + limit - 1);
 
-    res.json({ success: true, authenticated: true, admin: { name: authAdmin.name, email: authAdmin.email, role: authAdmin.role }, data: docs, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+    const { data: docs, count, error } = await query;
+    if (error) throw error;
+
+    const formatted = (docs || []).map(d => ({
+      ...d,
+      _id: d.id,
+      filePath: d.file_path,
+      fileSize: d.file_size,
+      mimeType: d.mime_type,
+      documentType: d.document_type,
+      downloadsCount: d.downloads_count,
+      unitId: d.unit_id ? { _id: d.unit_id, id: d.unit_id, name: d.units?.name || '', code: d.units?.code || '' } : null,
+      academicYearId: d.academic_year_id ? { _id: d.academic_year_id, id: d.academic_year_id, year: d.academic_years?.year || '' } : null,
+      eventId: d.event_id ? { _id: d.event_id, id: d.event_id, title: d.events?.title || '' } : null,
+    }));
+
+    res.json({ success: true, authenticated: true, admin: { name: authAdmin.name, email: authAdmin.email, role: authAdmin.role }, data: formatted, pagination: { page, limit, total: count || 0, pages: Math.ceil((count || 0) / limit) } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-/** GET /api/documents/download/:id — Secure download */
-router.get('/download/:id', async (req, res) => {
-  try {
-    const authAdmin = await getAuthAdmin(req);
-    if (!authAdmin) {
-      return res.status(401).json({ success: false, message: 'Authentication required to download documentation.' });
-    }
-
-    const doc = await Document.findById(req.params.id);
-    if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
-
-    if (authAdmin.role !== 'MAIN_ADMIN') {
-      if (doc.visibility === 'Admin Only') return res.status(403).json({ success: false, message: 'Access denied.' });
-      if (authAdmin.assignedUnitIds?.length > 0 && !authAdmin.assignedUnitIds.map(id => id.toString()).includes(doc.unitId.toString())) {
-        return res.status(403).json({ success: false, message: 'Forbidden. No access to this Unit documentation.' });
-      }
-    }
-
-    const buffer = await webdav.downloadFile(doc.filePath);
-    res.set('Content-Type', doc.mimeType || 'application/octet-stream');
-    res.set('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.title)}${path.extname(doc.filePath)}"`);
-    doc.downloadsCount = (doc.downloadsCount || 0) + 1;
-    doc.save().catch(() => {});
-    res.send(buffer);
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Could not retrieve file.' });
-  }
-});
-
-/** GET /api/documents/:id */
-router.get('/:id', async (req, res) => {
-  try {
-    const doc = await Document.findById(req.params.id)
-      .populate('unitId', 'name code')
-      .populate('academicYearId', 'year')
-      .populate('eventId', 'title');
-    if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
-    if (doc.visibility === 'Admin Only') return res.status(403).json({ success: false, message: 'Access denied.' });
-    res.json({ success: true, data: doc });
-  } catch (err) {
-    res.status(400).json({ success: false, message: 'Invalid ID.' });
-  }
-});
-
-// ─── ADMIN ────────────────────────────────────────────────────────────────────
-
 /** GET /api/documents/admin/all — Admin full list */
 router.get('/admin/all', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    const filter = {};
-    if (req.query.unitId)         filter.unitId         = req.query.unitId;
-    if (req.query.academicYearId) filter.academicYearId = req.query.academicYearId;
-    if (req.query.documentType)   filter.documentType   = req.query.documentType;
-    if (req.query.search)         filter.title = { $regex: new RegExp(req.query.search, 'i') };
+    let query = supabase
+      .from('documents')
+      .select('*, units(name, code), academic_years(year), events(title)')
+      .order('created_at', { ascending: false });
 
-    // Sub-Admins can only see their units
-    if (req.admin.role === 'SUB_ADMIN') {
-      filter.unitId = { $in: req.admin.assignedUnitIds };
+    if (req.query.unitId) query = query.eq('unit_id', req.query.unitId);
+    if (req.query.academicYearId) query = query.eq('academic_year_id', req.query.academicYearId);
+    if (req.query.documentType) query = query.eq('document_type', req.query.documentType);
+    if (req.query.search) query = query.ilike('title', `%${req.query.search}%`);
+
+    if (req.admin.role === 'SUB_ADMIN' && req.admin.assigned_unit_ids?.length > 0) {
+      query = query.in('unit_id', req.admin.assigned_unit_ids);
     }
 
-    const docs = await Document.find(filter)
-      .populate('unitId', 'name code')
-      .populate('academicYearId', 'year')
-      .populate('eventId', 'title')
-      .sort({ createdAt: -1 });
+    const { data: docs, error } = await query;
+    if (error) throw error;
 
-    res.json({ success: true, data: docs });
+    const formatted = (docs || []).map(d => ({
+      ...d,
+      _id: d.id,
+      filePath: d.file_path,
+      fileSize: d.file_size,
+      mimeType: d.mime_type,
+      documentType: d.document_type,
+      downloadsCount: d.downloads_count,
+      unitId: d.unit_id ? { _id: d.unit_id, id: d.unit_id, name: d.units?.name || '', code: d.units?.code || '' } : null,
+      academicYearId: d.academic_year_id ? { _id: d.academic_year_id, id: d.academic_year_id, year: d.academic_years?.year || '' } : null,
+      eventId: d.event_id ? { _id: d.event_id, id: d.event_id, title: d.events?.title || '' } : null,
+    }));
+
+    res.json({ success: true, data: formatted });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -192,24 +162,30 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('file'), asyn
 
     if (!canAccessUnit(req.admin, unitId)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    const [unit, ay] = await Promise.all([Unit.findById(unitId), AcademicYear.findById(academicYearId)]);
-    const filename   = `${Date.now()}-${path.basename(tmpFile)}`;
-    const remotePath = webdav.buildPath({ unitCode: unit.code, year: ay.year, area: 'Documentation', filename });
-    const filePath   = await webdav.uploadFile(tmpFile, remotePath);
+    const destination = `documents/${Date.now()}-${path.basename(tmpFile)}`;
+    const { publicUrl } = await uploadFile(BUCKETS.DOCUMENTS, tmpFile, destination, req.file.mimetype);
 
-    const doc = await Document.create({
-      title, description: description || '',
-      unitId, academicYearId,
-      eventId: eventId || null,
-      documentType: documentType || 'Other Documents',
-      filePath,
-      fileSize:  req.file.size,
-      mimeType:  req.file.mimetype,
-      visibility: visibility || 'Public',
-    });
+    const { data: doc, error } = await supabase
+      .from('documents')
+      .insert([{
+        title,
+        description: description || '',
+        unit_id: unitId,
+        academic_year_id: academicYearId,
+        event_id: eventId || null,
+        document_type: documentType || 'Other Documents',
+        file_path: publicUrl,
+        file_size: req.file.size,
+        mime_type: req.file.mimetype,
+        visibility: visibility || 'Public',
+      }])
+      .select()
+      .single();
 
-    await logAction(req, 'Upload Document', 'Document', doc._id.toString(), unitId);
-    res.status(201).json({ success: true, data: doc, message: 'Document uploaded.' });
+    if (error) throw error;
+
+    await logAction(req, 'Upload Document', 'Document', doc.id, unitId);
+    res.status(201).json({ success: true, data: { ...doc, _id: doc.id, filePath: doc.file_path }, message: 'Document uploaded.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   } finally {
@@ -220,13 +196,15 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('file'), asyn
 /** DELETE /api/documents/:id */
 router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    const doc = await Document.findById(req.params.id);
+    const { data: doc } = await supabase.from('documents').select('*').eq('id', req.params.id).single();
     if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
-    if (!canAccessUnit(req.admin, doc.unitId)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+    if (!canAccessUnit(req.admin, doc.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    try { await webdav.deleteFile(doc.filePath); } catch {}
-    await Document.findByIdAndDelete(doc._id);
-    await logAction(req, 'Delete Document', 'Document', doc._id.toString(), doc.unitId);
+    if (doc.file_path) await deleteFile(BUCKETS.DOCUMENTS, doc.file_path);
+
+    await supabase.from('documents').delete().eq('id', doc.id);
+    await logAction(req, 'Delete Document', 'Document', doc.id, doc.unit_id);
+
     res.json({ success: true, message: 'Document deleted.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -236,13 +214,21 @@ router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
 /** PATCH /api/documents/:id/visibility */
 router.patch('/:id/visibility', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    const doc = await Document.findById(req.params.id);
+    const { data: doc } = await supabase.from('documents').select('*').eq('id', req.params.id).single();
     if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
-    if (!canAccessUnit(req.admin, doc.unitId)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+    if (!canAccessUnit(req.admin, doc.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    doc.visibility = req.body.visibility === 'Admin Only' ? 'Admin Only' : 'Public';
-    await doc.save();
-    res.json({ success: true, data: doc, message: 'Visibility updated.' });
+    const newVisibility = req.body.visibility === 'Admin Only' ? 'Admin Only' : 'Public';
+    const { data: updated, error } = await supabase
+      .from('documents')
+      .update({ visibility: newVisibility, updated_at: new Date().toISOString() })
+      .eq('id', doc.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ success: true, data: { ...updated, _id: updated.id, filePath: updated.file_path }, message: 'Visibility updated.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

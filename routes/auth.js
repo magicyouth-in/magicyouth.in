@@ -1,16 +1,15 @@
 /**
  * routes/auth.js
- * Multi-admin JWT authentication.
+ * Multi-admin JWT authentication using Supabase.
  * MAIN_ADMIN seeded via `node scripts/seed-admin.js`.
- * SUB_ADMINs created via /api/administrators (Main Admin only).
  * NO public registration endpoint.
  */
 
-const express    = require('express');
-const router     = express.Router();
-const bcrypt     = require('bcryptjs');
-const jwt        = require('jsonwebtoken');
-const AdminUser  = require('../database/models/AdminUser');
+const express = require('express');
+const router = express.Router();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const supabase = require('../utils/supabaseClient');
 const { authenticateAdmin } = require('../middleware/auth');
 
 const JWT_SECRET              = process.env.JWT_SECRET || 'MagicYouth_JWT_FallbackSecret';
@@ -19,7 +18,7 @@ const JWT_REMEMBER_EXPIRES_IN = process.env.JWT_REMEMBER_EXPIRES_IN || '30d';
 
 /**
  * POST /api/auth/login
- * Authenticate a MAIN_ADMIN or SUB_ADMIN.
+ * Authenticate a MAIN_ADMIN.
  */
 router.post('/login', async (req, res) => {
   try {
@@ -29,25 +28,16 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and password are required.' });
     }
 
-    // Auto-seed main admin if database has no main admin accounts yet
-    const count = await AdminUser.countDocuments({ role: 'MAIN_ADMIN' });
-    if (count === 0) {
-      const defaultEmail = (process.env.ADMIN_EMAIL || 'admin@magicyouth.in').toLowerCase().trim();
-      const defaultPassword = process.env.ADMIN_PASSWORD || 'MagicYouth@Admin2026';
-      const hash = await bcrypt.hash(defaultPassword, 10);
-      await AdminUser.create({
-        name: process.env.ADMIN_NAME || 'Main Admin',
-        email: defaultEmail,
-        passwordHash: hash,
-        role: 'MAIN_ADMIN',
-        status: 'Active',
-      });
-      console.log(`[AUTO-SEED] Created Main Admin (${defaultEmail})`);
-    }
+    const searchEmail = email.toLowerCase().trim();
 
-    let admin = await AdminUser.findOne({ email: email.toLowerCase().trim() });
+    // Query Supabase admin_users
+    let { data: admin, error } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('email', searchEmail)
+      .single();
 
-    if (!admin) {
+    if (error || !admin) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
@@ -55,19 +45,21 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ success: false, message: 'Your account has been disabled. Contact the administrator.' });
     }
 
-    const match = await bcrypt.compare(password, admin.passwordHash);
+    const match = await bcrypt.compare(password, admin.password_hash);
     if (!match) {
       return res.status(401).json({ success: false, message: 'Invalid credentials.' });
     }
 
-    // Update lastLogin
-    admin.lastLogin = new Date();
-    await admin.save();
+    // Update last_login_at
+    await supabase
+      .from('admin_users')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', admin.id);
 
     const expiresIn = rememberMe ? JWT_REMEMBER_EXPIRES_IN : JWT_EXPIRES_IN;
     const token = jwt.sign(
       {
-        adminId: admin._id.toString(),
+        adminId: admin.id,
         email:   admin.email,
         role:    admin.role,
         name:    admin.name,
@@ -89,7 +81,7 @@ router.post('/login', async (req, res) => {
     return res.json({
       success: true,
       message: 'Login successful.',
-      admin:   { id: admin._id, name: admin.name, email: admin.email, role: admin.role, assignedUnitIds: admin.assignedUnitIds },
+      admin:   { id: admin.id, name: admin.name, email: admin.email, role: admin.role, assignedUnitIds: admin.assigned_unit_ids || [] },
     });
   } catch (err) {
     console.error('[AUTH LOGIN ERROR]', err.message);
@@ -114,13 +106,17 @@ router.get('/status', async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    // Load fresh from DB to get current assignedUnitIds & status
-    const admin = await AdminUser.findById(decoded.adminId).select('-passwordHash');
-    if (!admin || admin.status === 'Inactive') return res.json({ loggedIn: false });
+    const { data: admin, error } = await supabase
+      .from('admin_users')
+      .select('id, name, email, role, assigned_unit_ids, status')
+      .eq('id', decoded.adminId)
+      .single();
+
+    if (error || !admin || admin.status === 'Inactive') return res.json({ loggedIn: false });
 
     return res.json({
       loggedIn: true,
-      admin:    { id: admin._id, name: admin.name, email: admin.email, role: admin.role, assignedUnitIds: admin.assignedUnitIds },
+      admin:    { id: admin.id, name: admin.name, email: admin.email, role: admin.role, assignedUnitIds: admin.assigned_unit_ids || [] },
     });
   } catch {
     return res.json({ loggedIn: false });
@@ -141,14 +137,22 @@ router.post('/change-password', authenticateAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: 'New password must be at least 8 characters.' });
     }
 
-    const admin = await AdminUser.findById(req.admin._id);
-    if (!admin) return res.status(404).json({ success: false, message: 'Admin not found.' });
+    const { data: admin, error } = await supabase
+      .from('admin_users')
+      .select('id, password_hash')
+      .eq('id', req.admin.id)
+      .single();
 
-    const match = await bcrypt.compare(currentPassword, admin.passwordHash);
+    if (error || !admin) return res.status(404).json({ success: false, message: 'Admin not found.' });
+
+    const match = await bcrypt.compare(currentPassword, admin.password_hash);
     if (!match) return res.status(401).json({ success: false, message: 'Current password is incorrect.' });
 
-    admin.passwordHash = await bcrypt.hash(newPassword, 12);
-    await admin.save();
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await supabase
+      .from('admin_users')
+      .update({ password_hash: newHash, updated_at: new Date().toISOString() })
+      .eq('id', admin.id);
 
     return res.json({ success: true, message: 'Password changed successfully.' });
   } catch (err) {

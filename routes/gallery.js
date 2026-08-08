@@ -1,21 +1,17 @@
 /**
  * routes/gallery.js
- * Gallery photo metadata CRUD. Images stored via Nextcloud/WebDAV.
- * Public: read photos + albums. Admin: upload/edit/delete with unit auth.
+ * Gallery photo metadata CRUD using Supabase PostgreSQL & Storage.
  */
 
-const express  = require('express');
-const router   = express.Router();
-const multer   = require('multer');
-const path     = require('path');
-const fs       = require('fs');
-const Gallery  = require('../database/models/Gallery');
-const Event    = require('../database/models/Event');
-const AcademicYear = require('../database/models/AcademicYear');
-const Unit     = require('../database/models/Unit');
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const supabase = require('../utils/supabaseClient');
+const { BUCKETS, uploadFile, deleteFile } = require('../utils/supabaseStorage');
 const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
-const webdav   = require('../utils/webdav');
 
 const tmpDir = path.join(__dirname, '..', 'uploads', 'tmp');
 const storage = multer.diskStorage({
@@ -27,51 +23,68 @@ const upload = multer({ storage, limits: { fileSize: 15 * 1024 * 1024 }, fileFil
   cb(new Error('Only image files allowed.'));
 }});
 
-// ─── PUBLIC ───────────────────────────────────────────────────────────────────
-
-/** GET /api/gallery?unitId=&academicYearId=&eventId=&album=&page= */
+/** GET /api/gallery */
 router.get('/', async (req, res) => {
   try {
-    const filter = {};
-    if (req.query.unitId)         filter.unitId         = req.query.unitId;
-    if (req.query.academicYearId) filter.academicYearId = req.query.academicYearId;
-    if (req.query.eventId)        filter.eventId        = req.query.eventId;
-    if (req.query.album)          filter.album          = req.query.album;
+    let query = supabase
+      .from('gallery')
+      .select('*, units(name, code), academic_years(year), events(title)', { count: 'exact' })
+      .order('created_at', { ascending: false });
 
-    const page  = parseInt(req.query.page)  || 1;
+    if (req.query.unitId) query = query.eq('unit_id', req.query.unitId);
+    if (req.query.academicYearId) query = query.eq('academic_year_id', req.query.academicYearId);
+    if (req.query.eventId) query = query.eq('event_id', req.query.eventId);
+    if (req.query.album) query = query.eq('album', req.query.album);
+
+    const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 30;
-    const skip  = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    const [photos, total] = await Promise.all([
-      Gallery.find(filter)
-        .populate('unitId', 'name code')
-        .populate('academicYearId', 'year')
-        .populate('eventId', 'title')
-        .sort({ createdAt: -1 })
-        .skip(skip).limit(limit),
-      Gallery.countDocuments(filter),
-    ]);
+    query = query.range(skip, skip + limit - 1);
 
-    res.json({ success: true, data: photos, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+    const { data: photos, count, error } = await query;
+    if (error) throw error;
+
+    const formatted = (photos || []).map(p => ({
+      ...p,
+      _id: p.id,
+      filePath: p.file_path,
+      unitId: p.unit_id ? { _id: p.unit_id, id: p.unit_id, name: p.units?.name || '', code: p.units?.code || '' } : null,
+      academicYearId: p.academic_year_id ? { _id: p.academic_year_id, id: p.academic_year_id, year: p.academic_years?.year || '' } : null,
+      eventId: p.event_id ? { _id: p.event_id, id: p.event_id, title: p.events?.title || '' } : null,
+    }));
+
+    res.json({ success: true, data: formatted, pagination: { page, limit, total: count || 0, pages: Math.ceil((count || 0) / limit) } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-/** GET /api/gallery/albums — distinct album names with cover + count */
+/** GET /api/gallery/albums */
 router.get('/albums', async (req, res) => {
   try {
-    const match = {};
-    if (req.query.unitId)         match.unitId         = require('mongoose').Types.ObjectId(req.query.unitId);
-    if (req.query.academicYearId) match.academicYearId = require('mongoose').Types.ObjectId(req.query.academicYearId);
+    let query = supabase.from('gallery').select('album, unit_id, academic_year_id, file_path, created_at');
+    if (req.query.unitId) query = query.eq('unit_id', req.query.unitId);
+    if (req.query.academicYearId) query = query.eq('academic_year_id', req.query.academicYearId);
 
-    const albums = await Gallery.aggregate([
-      { $match: match },
-      { $group: { _id: { album: '$album', unitId: '$unitId', academicYearId: '$academicYearId' }, album: { $first: '$album' }, photoCount: { $sum: 1 }, coverPhoto: { $first: '$filePath' }, lastUpdated: { $max: '$createdAt' } } },
-      { $sort: { lastUpdated: -1 } },
-    ]);
+    const { data: items, error } = await query;
+    if (error) throw error;
 
-    res.json({ success: true, data: albums });
+    const albumsMap = {};
+    (items || []).forEach(item => {
+      const albumName = item.album || 'General';
+      if (!albumsMap[albumName]) {
+        albumsMap[albumName] = {
+          album: albumName,
+          photoCount: 0,
+          coverPhoto: item.file_path,
+          lastUpdated: item.created_at,
+        };
+      }
+      albumsMap[albumName].photoCount++;
+    });
+
+    res.json({ success: true, data: Object.values(albumsMap) });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -80,35 +93,28 @@ router.get('/albums', async (req, res) => {
 /** GET /api/gallery/:id */
 router.get('/:id', async (req, res) => {
   try {
-    const photo = await Gallery.findById(req.params.id)
-      .populate('unitId', 'name code')
-      .populate('academicYearId', 'year')
-      .populate('eventId', 'title');
-    if (!photo) return res.status(404).json({ success: false, message: 'Photo not found.' });
-    res.json({ success: true, data: photo });
+    const { data: photo, error } = await supabase
+      .from('gallery')
+      .select('*, units(name, code), academic_years(year), events(title)')
+      .eq('id', req.params.id)
+      .single();
+
+    if (error || !photo) return res.status(404).json({ success: false, message: 'Photo not found.' });
+
+    const formatted = {
+      ...photo,
+      _id: photo.id,
+      filePath: photo.file_path,
+      unitId: photo.unit_id ? { _id: photo.unit_id, id: photo.unit_id, name: photo.units?.name || '', code: photo.units?.code || '' } : null,
+      academicYearId: photo.academic_year_id ? { _id: photo.academic_year_id, id: photo.academic_year_id, year: photo.academic_years?.year || '' } : null,
+      eventId: photo.event_id ? { _id: photo.event_id, id: photo.event_id, title: photo.events?.title || '' } : null,
+    };
+
+    res.json({ success: true, data: formatted });
   } catch (err) {
     res.status(400).json({ success: false, message: 'Invalid ID.' });
   }
 });
-
-/** GET /api/gallery/file/:id — Serve file through backend */
-router.get('/file/:id', async (req, res) => {
-  try {
-    const photo = await Gallery.findById(req.params.id);
-    if (!photo) return res.status(404).json({ success: false, message: 'Photo not found.' });
-
-    const buffer = await webdav.downloadFile(photo.filePath);
-    const ext    = path.extname(photo.filePath).toLowerCase();
-    const mimeMap = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
-    res.set('Content-Type', mimeMap[ext] || 'application/octet-stream');
-    res.set('Cache-Control', 'public, max-age=86400');
-    res.send(buffer);
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Could not retrieve file.' });
-  }
-});
-
-// ─── ADMIN ────────────────────────────────────────────────────────────────────
 
 /** POST /api/gallery — Upload photo(s) */
 router.post('/', authenticateAdmin, requireAnyAdmin, upload.array('photos', 30), async (req, res) => {
@@ -116,23 +122,33 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.array('photos', 30),
   try {
     const { unitId, academicYearId, eventId, album, category, title, description } = req.body;
     if (!unitId || !academicYearId) return res.status(400).json({ success: false, message: 'unitId and academicYearId are required.' });
-    if (!tmpFiles.length)           return res.status(400).json({ success: false, message: 'At least one photo is required.' });
+    if (!tmpFiles.length) return res.status(400).json({ success: false, message: 'At least one photo is required.' });
     if (!canAccessUnit(req.admin, unitId)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    const [unit, ay] = await Promise.all([Unit.findById(unitId), AcademicYear.findById(academicYearId)]);
     const docs = [];
 
-    for (const tmpFile of tmpFiles) {
-      const filename   = path.basename(tmpFile);
-      const remotePath = webdav.buildPath({ unitCode: unit.code, year: ay.year, area: 'Gallery', filename });
-      const filePath   = await webdav.uploadFile(tmpFile, remotePath);
+    for (let i = 0; i < tmpFiles.length; i++) {
+      const tmpFile = tmpFiles[i];
+      const destination = `gallery/${Date.now()}-${i}-${path.basename(tmpFile)}`;
+      const { publicUrl } = await uploadFile(BUCKETS.GALLERY, tmpFile, destination, req.files[i].mimetype);
 
-      docs.push({ unitId, academicYearId, eventId: eventId || null, album: album || '', category: category || 'General', title: title || '', description: description || '', filePath });
+      docs.push({
+        unit_id: unitId,
+        academic_year_id: academicYearId,
+        event_id: eventId || null,
+        album: album || '',
+        category: category || 'General',
+        title: title || '',
+        description: description || '',
+        file_path: publicUrl,
+      });
     }
 
-    await Gallery.insertMany(docs);
+    const { data: inserted, error } = await supabase.from('gallery').insert(docs).select();
+    if (error) throw error;
+
     await logAction(req, 'Upload Gallery Photos', 'Gallery', null, unitId);
-    res.status(201).json({ success: true, message: `${docs.length} photo(s) uploaded.`, count: docs.length });
+    res.status(201).json({ success: true, message: `${inserted.length} photo(s) uploaded.`, count: inserted.length });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   } finally {
@@ -143,13 +159,15 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.array('photos', 30),
 /** DELETE /api/gallery/:id */
 router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    const photo = await Gallery.findById(req.params.id);
+    const { data: photo } = await supabase.from('gallery').select('*').eq('id', req.params.id).single();
     if (!photo) return res.status(404).json({ success: false, message: 'Photo not found.' });
-    if (!canAccessUnit(req.admin, photo.unitId)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+    if (!canAccessUnit(req.admin, photo.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    try { await webdav.deleteFile(photo.filePath); } catch {}
-    await Gallery.findByIdAndDelete(photo._id);
-    await logAction(req, 'Delete Gallery Photo', 'Gallery', photo._id.toString(), photo.unitId);
+    if (photo.file_path) await deleteFile(BUCKETS.GALLERY, photo.file_path);
+
+    await supabase.from('gallery').delete().eq('id', photo.id);
+    await logAction(req, 'Delete Gallery Photo', 'Gallery', photo.id, photo.unit_id);
+
     res.json({ success: true, message: 'Photo deleted.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

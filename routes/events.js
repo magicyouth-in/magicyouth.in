@@ -1,22 +1,18 @@
 /**
  * routes/events.js
- * CRUD for Events, linked to Unit and Academic Year.
- * Public: filtered listing. Admin: full CRUD with unit authorization.
+ * CRUD for Events linked to Unit and Academic Year using Supabase PostgreSQL & Storage.
  */
 
 const express = require('express');
-const router  = express.Router();
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
-const Event   = require('../database/models/Event');
+const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const supabase = require('../utils/supabaseClient');
+const { BUCKETS, uploadFile, deleteFile } = require('../utils/supabaseStorage');
 const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
-const webdav  = require('../utils/webdav');
-const AcademicYear = require('../database/models/AcademicYear');
-const Unit    = require('../database/models/Unit');
 
-// Temp upload directory (files are moved to Nextcloud/local after validation)
 const tmpDir = path.join(__dirname, '..', 'uploads', 'tmp');
 const storage = multer.diskStorage({
   destination: (req, file, cb) => { try { fs.mkdirSync(tmpDir, { recursive: true }); } catch {} cb(null, tmpDir); },
@@ -29,34 +25,41 @@ const imageFilter = (req, file, cb) => {
 };
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 }, fileFilter: imageFilter });
 
-// ─── PUBLIC ───────────────────────────────────────────────────────────────────
-
 /** GET /api/events */
 router.get('/', async (req, res) => {
   try {
-    const filter = {};
-    if (req.query.unitId)         filter.unitId         = req.query.unitId;
-    if (req.query.academicYearId) filter.academicYearId = req.query.academicYearId;
-    if (req.query.status)         filter.status         = req.query.status;
-    if (req.query.category)       filter.category       = req.query.category;
-    if (req.query.search) {
-      filter.title = { $regex: new RegExp(req.query.search, 'i') };
-    }
+    let query = supabase
+      .from('events')
+      .select('*, units(name, code), academic_years(year)', { count: 'exact' })
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false });
 
-    const page  = parseInt(req.query.page)  || 1;
+    if (req.query.unitId) query = query.eq('unit_id', req.query.unitId);
+    if (req.query.academicYearId) query = query.eq('academic_year_id', req.query.academicYearId);
+    if (req.query.status) query = query.eq('status', req.query.status);
+    if (req.query.category) query = query.eq('category', req.query.category);
+    if (req.query.search) query = query.ilike('title', `%${req.query.search}%`);
+
+    const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const skip  = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    const [events, total] = await Promise.all([
-      Event.find(filter)
-        .populate('unitId', 'name code')
-        .populate('academicYearId', 'year')
-        .sort({ date: -1, createdAt: -1 })
-        .skip(skip).limit(limit),
-      Event.countDocuments(filter),
-    ]);
+    query = query.range(skip, skip + limit - 1);
 
-    res.json({ success: true, data: events, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
+    const { data: events, count, error } = await query;
+    if (error) throw error;
+
+    const formatted = (events || []).map(e => ({
+      ...e,
+      _id: e.id,
+      unitId: e.unit_id ? { _id: e.unit_id, id: e.unit_id, name: e.units?.name || '', code: e.units?.code || '' } : null,
+      academicYearId: e.academic_year_id ? { _id: e.academic_year_id, id: e.academic_year_id, year: e.academic_years?.year || '' } : null,
+      registrationEnabled: e.registration_enabled,
+      startTime: e.start_time,
+      endTime: e.end_time,
+    }));
+
+    res.json({ success: true, data: formatted, pagination: { page, limit, total: count || 0, pages: Math.ceil((count || 0) / limit) } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -65,17 +68,29 @@ router.get('/', async (req, res) => {
 /** GET /api/events/:id */
 router.get('/:id', async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id)
-      .populate('unitId', 'name code')
-      .populate('academicYearId', 'year');
-    if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
-    res.json({ success: true, data: event });
+    const { data: event, error } = await supabase
+      .from('events')
+      .select('*, units(name, code), academic_years(year)')
+      .eq('id', req.params.id)
+      .single();
+
+    if (error || !event) return res.status(404).json({ success: false, message: 'Event not found.' });
+
+    const formatted = {
+      ...event,
+      _id: event.id,
+      unitId: event.unit_id ? { _id: event.unit_id, id: event.unit_id, name: event.units?.name || '', code: event.units?.code || '' } : null,
+      academicYearId: event.academic_year_id ? { _id: event.academic_year_id, id: event.academic_year_id, year: event.academic_years?.year || '' } : null,
+      registrationEnabled: event.registration_enabled,
+      startTime: event.start_time,
+      endTime: event.end_time,
+    };
+
+    res.json({ success: true, data: formatted });
   } catch (err) {
     res.status(400).json({ success: false, message: 'Invalid event ID.' });
   }
 });
-
-// ─── ADMIN ────────────────────────────────────────────────────────────────────
 
 /** POST /api/events */
 router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('poster'), async (req, res) => {
@@ -84,32 +99,42 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('poster'), as
     const { title, description, unitId, academicYearId, category, status, date, startTime, endTime, location, registrationEnabled, organizers } = req.body;
     if (!title || !unitId || !academicYearId) return res.status(400).json({ success: false, message: 'Title, unitId, and academicYearId are required.' });
 
-    if (!canAccessUnit(req.admin, unitId)) return res.status(403).json({ success: false, message: 'Forbidden. No access to this Unit.' });
+    if (!canAccessUnit(req.admin, unitId)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    let posterPath = null;
+    let posterUrl = null;
     if (tmpFile) {
-      const [unit, ay] = await Promise.all([Unit.findById(unitId), AcademicYear.findById(academicYearId)]);
-      const remotePath = webdav.buildPath({ unitCode: unit.code, year: ay.year, area: 'Events', filename: path.basename(tmpFile) });
-      posterPath = await webdav.uploadFile(tmpFile, remotePath);
+      const destination = `events/${Date.now()}-${path.basename(tmpFile)}`;
+      const { publicUrl } = await uploadFile(BUCKETS.EVENTS, tmpFile, destination, req.file.mimetype);
+      posterUrl = publicUrl;
     }
 
-    const event = await Event.create({
-      title, description, unitId, academicYearId,
-      category:            category       || 'Other',
-      status:              status         || 'Upcoming',
-      date:                date           || null,
-      startTime:           startTime      || null,
-      endTime:             endTime        || null,
-      location:            location       || '',
-      poster:              posterPath,
-      registrationEnabled: registrationEnabled === 'true',
-      organizers:          organizers     || '',
-    });
+    const { data: event, error } = await supabase
+      .from('events')
+      .insert([{
+        title,
+        description: description || '',
+        unit_id: unitId,
+        academic_year_id: academicYearId,
+        category: category || 'Other',
+        status: status || 'Upcoming',
+        date: date || null,
+        start_time: startTime || null,
+        end_time: endTime || null,
+        location: location || '',
+        poster: posterUrl,
+        registration_enabled: registrationEnabled === 'true',
+        organizers: organizers || '',
+      }])
+      .select()
+      .single();
 
-    await logAction(req, 'Create Event', 'Event', event._id.toString(), unitId);
+    if (error) throw error;
+
+    await logAction(req, 'Create Event', 'Event', event.id, unitId);
     const io = req.app.get('io');
-    if (io) io.emit('event-updated', { action: 'create', event });
-    res.status(201).json({ success: true, data: event, message: 'Event created.' });
+    if (io) io.emit('event-updated', { action: 'create', event: { ...event, _id: event.id } });
+
+    res.status(201).json({ success: true, data: { ...event, _id: event.id }, message: 'Event created.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   } finally {
@@ -121,26 +146,45 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('poster'), as
 router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), async (req, res) => {
   let tmpFile = req.file ? req.file.path : null;
   try {
-    const event = await Event.findById(req.params.id);
+    const { data: event } = await supabase.from('events').select('*').eq('id', req.params.id).single();
     if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
-    if (!canAccessUnit(req.admin, event.unitId)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+    if (!canAccessUnit(req.admin, event.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
+    let posterUrl = event.poster;
     if (tmpFile) {
-      if (event.poster) { try { await webdav.deleteFile(event.poster); } catch {} }
-      const [unit, ay] = await Promise.all([Unit.findById(event.unitId), AcademicYear.findById(event.academicYearId)]);
-      const remotePath = webdav.buildPath({ unitCode: unit.code, year: ay.year, area: 'Events', filename: path.basename(tmpFile) });
-      event.poster = await webdav.uploadFile(tmpFile, remotePath);
+      if (event.poster) await deleteFile(BUCKETS.EVENTS, event.poster);
+      const destination = `events/${Date.now()}-${path.basename(tmpFile)}`;
+      const { publicUrl } = await uploadFile(BUCKETS.EVENTS, tmpFile, destination, req.file.mimetype);
+      posterUrl = publicUrl;
     }
 
-    const fields = ['title', 'description', 'category', 'status', 'date', 'startTime', 'endTime', 'location', 'organizers'];
-    fields.forEach(f => { if (req.body[f] !== undefined) event[f] = req.body[f]; });
-    if (req.body.registrationEnabled !== undefined) event.registrationEnabled = req.body.registrationEnabled === 'true';
+    const updates = { updated_at: new Date().toISOString() };
+    const fieldsMap = {
+      title: 'title', description: 'description', category: 'category', status: 'status',
+      date: 'date', startTime: 'start_time', endTime: 'end_time', location: 'location', organizers: 'organizers'
+    };
 
-    await event.save();
-    await logAction(req, 'Edit Event', 'Event', event._id.toString(), event.unitId);
+    Object.keys(fieldsMap).forEach(key => {
+      if (req.body[key] !== undefined) updates[fieldsMap[key]] = req.body[key];
+    });
+
+    if (req.body.registrationEnabled !== undefined) updates.registration_enabled = req.body.registrationEnabled === 'true';
+    if (posterUrl) updates.poster = posterUrl;
+
+    const { data: updated, error } = await supabase
+      .from('events')
+      .update(updates)
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await logAction(req, 'Edit Event', 'Event', updated.id, event.unit_id);
     const io = req.app.get('io');
-    if (io) io.emit('event-updated', { action: 'update', event });
-    res.json({ success: true, data: event, message: 'Event updated.' });
+    if (io) io.emit('event-updated', { action: 'update', event: { ...updated, _id: updated.id } });
+
+    res.json({ success: true, data: { ...updated, _id: updated.id }, message: 'Event updated.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   } finally {
@@ -151,16 +195,18 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), 
 /** DELETE /api/events/:id */
 router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    const event = await Event.findById(req.params.id);
+    const { data: event } = await supabase.from('events').select('*').eq('id', req.params.id).single();
     if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
-    if (!canAccessUnit(req.admin, event.unitId)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+    if (!canAccessUnit(req.admin, event.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    if (event.poster) { try { await webdav.deleteFile(event.poster); } catch {} }
+    if (event.poster) await deleteFile(BUCKETS.EVENTS, event.poster);
 
-    await Event.findByIdAndDelete(event._id);
-    await logAction(req, 'Delete Event', 'Event', event._id.toString(), event.unitId);
+    await supabase.from('events').delete().eq('id', event.id);
+    await logAction(req, 'Delete Event', 'Event', event.id, event.unit_id);
+
     const io = req.app.get('io');
-    if (io) io.emit('event-updated', { action: 'delete', eventId: event._id });
+    if (io) io.emit('event-updated', { action: 'delete', eventId: event.id });
+
     res.json({ success: true, message: 'Event deleted.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
