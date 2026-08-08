@@ -1,22 +1,34 @@
 /**
  * database/models/Document.js
- * Mongoose model for uploaded documents / reports.
+ * Mongoose model for document metadata.
+ * Actual files are stored in Nextcloud. MongoDB stores metadata only.
  */
 
 const mongoose = require('mongoose');
 
-const VALID_CATEGORIES = ['Event Reports', 'Annual Reports', 'Magazines', 'Certificates', 'Letters/Documents'];
+const DOCUMENT_TYPES = [
+  'Event Reports', 'Activity Reports', 'Annual Reports', 'Unit Reports',
+  'Event Proposals', 'Meeting Minutes', 'Attendance Sheets', 'Certificates',
+  'Notices', 'Other Documents'
+];
 
 const documentSchema = new mongoose.Schema({
   title:          { type: String, required: true, trim: true },
-  eventName:      { type: String, default: null },
-  eventDate:      { type: String, default: null },
-  filename:       { type: String, required: true },
-  description:    { type: String, default: null },
-  category:       { type: String, enum: VALID_CATEGORIES, default: 'Event Reports' },
-  academicYear:   { type: String, default: null },
-  isDownloadable: { type: Boolean, default: true },
+  description:    { type: String, default: '' },
+  unitId:         { type: mongoose.Schema.Types.ObjectId, ref: 'Unit', required: true },
+  academicYearId: { type: mongoose.Schema.Types.ObjectId, ref: 'AcademicYear', required: true },
+  eventId:        { type: mongoose.Schema.Types.ObjectId, ref: 'Event', default: null },
+  documentType:   { type: String, enum: DOCUMENT_TYPES, default: 'Other Documents' },
+  filePath:       { type: String, required: true }, // Nextcloud path
+  fileSize:       { type: Number, default: 0 },
+  mimeType:       { type: String, default: '' },
+  downloadsCount: { type: Number, default: 0 },
+  visibility:     { type: String, enum: ['Public', 'Admin Only'], default: 'Public' },
 }, { timestamps: true });
 
+documentSchema.index({ unitId: 1, academicYearId: 1 });
+documentSchema.index({ eventId: 1 });
+documentSchema.index({ documentType: 1 });
+
 module.exports = mongoose.model('Document', documentSchema);
-module.exports.VALID_CATEGORIES = VALID_CATEGORIES;
+module.exports.DOCUMENT_TYPES = DOCUMENT_TYPES;

@@ -1,16 +1,31 @@
 import React from 'react';
+import '../styles/about.css';
 
 export default function Privacy() {
   return (
-    <div className="pt-28 pb-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-extrabold text-white mb-6">Privacy Policy</h1>
-      <div className="dark-glass-card p-8 text-purple-200/80 text-xs sm:text-sm space-y-4 leading-relaxed">
-        <p>At MAGIC Youth (Making A Greater Impact in Communities), we value your privacy and are committed to protecting your personal data.</p>
-        <h2 className="text-sm font-bold text-white pt-2">Information We Collect</h2>
-        <p>We collect information you provide directly, such as name, email address, phone number, academic details, and volunteer application submissions when you fill out forms on our website.</p>
-        <h2 className="text-sm font-bold text-white pt-2">How We Use Information</h2>
-        <p>We use your information solely to process volunteer applications, manage event registrations, respond to inquiries, and issue verified participation certificates.</p>
-      </div>
+    <div>
+      <section className="about-hero">
+        <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
+          <span className="about-badge">Legal</span>
+          <h1 className="about-title">Privacy <span className="highlight">Policy</span></h1>
+        </div>
+      </section>
+
+      <section style={{ padding: '3rem 1.5rem 5rem', backgroundColor: '#FFFFFF' }}>
+        <div style={{ maxWidth: '48rem', margin: '0 auto', backgroundColor: '#F8F7FC', border: '1px solid #E5E7EB', borderRadius: '1.25rem', padding: '2.5rem', fontSize: '0.9375rem', color: '#4B5563', lineHeight: 1.7 }}>
+          <p style={{ marginBottom: '1.25rem' }}>
+            At MAGIC Youth (Men &amp; Women Aiming Greater Initiatives for Change), we value your privacy and are committed to protecting your personal data.
+          </p>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.5rem' }}>Information We Collect</h2>
+          <p style={{ marginBottom: '1.25rem' }}>
+            We collect information you provide directly, such as name, email address, phone number, academic details, and volunteer application submissions when you fill out forms on our website.
+          </p>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.5rem' }}>How We Use Information</h2>
+          <p>
+            We use your information solely to process volunteer applications, manage event registrations, respond to contact inquiries, and coordinate campus leadership activities.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }

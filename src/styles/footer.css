@@ -1,0 +1,213 @@
+/* src/styles/footer.css */
+
+/* Deep Purple Footer - high specificity */
+footer.footer,
+.footer,
+div.footer {
+  background-color: #5B21B6 !important;
+  color: #FFFFFF !important;
+  padding-top: 4rem;
+  padding-bottom: 2rem;
+  box-sizing: border-box;
+}
+
+.footer .footer-inner {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.footer .footer-columns {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+  margin-bottom: 3rem;
+}
+
+@media (min-width: 640px) {
+  .footer .footer-columns {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .footer .footer-columns {
+    grid-template-columns: 2fr 1fr 1fr 1.5fr;
+  }
+}
+
+/* Brand Section */
+.footer .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: #FFFFFF !important;
+}
+
+.footer .brand-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF !important;
+}
+
+.footer .brand-text {
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: #FFFFFF !important;
+}
+
+.footer .brand-highlight {
+  color: #EDE9FE !important;
+}
+
+.footer .brand-description {
+  font-size: 0.875rem;
+  color: #EDE9FE !important;
+  margin-top: 0.75rem;
+  line-height: 1.6;
+  opacity: 1 !important;
+}
+
+/* Section Titles */
+.footer h3,
+.footer h3.section-title,
+.footer .section-title {
+  font-size: 0.875rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  margin-bottom: 1rem !important;
+  color: #FFFFFF !important;
+  opacity: 1 !important;
+}
+
+/* Links & Text */
+.footer p,
+.footer span,
+.footer li {
+  color: #EDE9FE;
+  opacity: 1 !important;
+}
+
+.footer a,
+.footer .footer-link,
+.footer .quick-links a,
+.footer .get-involved a {
+  color: #EDE9FE !important;
+  text-decoration: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition: color 0.15s ease;
+  opacity: 1 !important;
+}
+
+.footer a:hover,
+.footer .footer-link:hover,
+.footer .quick-links a:hover,
+.footer .get-involved a:hover {
+  color: #FFFFFF !important;
+  text-decoration: underline;
+}
+
+.footer .quick-links ul,
+.footer .get-involved ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer .quick-links li,
+.footer .get-involved li {
+  margin-bottom: 0.5rem;
+}
+
+/* Social Links */
+.footer .social-links {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.footer .social-link {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: #FFFFFF !important;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+  opacity: 1 !important;
+}
+
+.footer .social-link:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-2px);
+}
+
+/* Address List */
+.footer .info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.875rem;
+  color: #EDE9FE !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.footer .info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: #EDE9FE !important;
+}
+
+/* Bottom Bar */
+.footer .bottom-bar {
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8125rem;
+  color: #EDE9FE !important;
+}
+
+@media (min-width: 640px) {
+  .footer .bottom-bar {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
+.footer .footer-links {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.footer .admin-link {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6) !important;
+  text-decoration: none;
+  transition: color 0.15s ease;
+  opacity: 1 !important;
+}
+
+.footer .admin-link:hover {
+  color: #FFFFFF !important;
+  text-decoration: underline;
+}

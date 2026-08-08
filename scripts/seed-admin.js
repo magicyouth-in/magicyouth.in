@@ -1,62 +1,73 @@
 /**
  * scripts/seed-admin.js
- * One-time admin seeder. Creates the single administrator account.
+ * One-time script to create the MAIN_ADMIN account.
  *
  * Usage:
  *   node scripts/seed-admin.js
  *
- * Reads ADMIN_EMAIL and ADMIN_PASSWORD from .env.
- * If an admin already exists, it updates the existing record.
+ * Requirements:
+ *   ADMIN_NAME    (optional, defaults to 'Main Administrator')
+ *   ADMIN_EMAIL   - Main admin email address
+ *   ADMIN_PASSWORD - Main admin initial password
+ *   JWT_SECRET    - Required for server JWT signing (not used here, but validated)
+ *   MONGODB_URI   - MongoDB connection string
  */
 
-require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
+require('dotenv').config();
+const mongoose  = require('mongoose');
+const bcrypt    = require('bcryptjs');
+const AdminUser = require('../database/models/AdminUser');
 
-const mongoose = require('mongoose');
-const bcrypt   = require('bcryptjs');
+async function seedMainAdmin() {
+  const uri           = process.env.MONGODB_URI;
+  const adminEmail    = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminName     = process.env.ADMIN_NAME || 'Main Administrator';
 
-const MONGODB_URI    = process.env.MONGODB_URI;
-const ADMIN_EMAIL    = process.env.ADMIN_EMAIL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  if (!uri)           { console.error('[SEED] ERROR: MONGODB_URI is not set.'); process.exit(1); }
+  if (!adminEmail)    { console.error('[SEED] ERROR: ADMIN_EMAIL is not set.'); process.exit(1); }
+  if (!adminPassword) { console.error('[SEED] ERROR: ADMIN_PASSWORD is not set.'); process.exit(1); }
 
-if (!MONGODB_URI || !ADMIN_EMAIL || !ADMIN_PASSWORD) {
-  console.error('\n[SEED ERROR] Missing required environment variables.');
-  console.error('  Ensure MONGODB_URI, ADMIN_EMAIL, and ADMIN_PASSWORD are set in .env\n');
-  process.exit(1);
-}
+  await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
+  console.log('[SEED] Connected to MongoDB.');
 
-async function seed() {
-  try {
-    await mongoose.connect(MONGODB_URI);
-    console.log('[SEED] Connected to MongoDB Atlas.');
-
-    const AdminUser = require('../database/models/AdminUser');
-
-    const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
-
-    const result = await AdminUser.findOneAndUpdate(
-      {},  // match any (there should only ever be one)
-      {
-        username:     ADMIN_EMAIL.split('@')[0],
-        email:        ADMIN_EMAIL,
-        passwordHash: passwordHash,
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    console.log('\n╔════════════════════════════════════════════════╗');
-    console.log('║   MAGIC Youth — Administrator Seeded          ║');
-    console.log('╠════════════════════════════════════════════════╣');
-    console.log(`║  Email:    ${ADMIN_EMAIL.padEnd(35)}║`);
-    console.log(`║  Username: ${result.username.padEnd(35)}║`);
-    console.log('║  Password: (from .env ADMIN_PASSWORD)         ║');
-    console.log('╚════════════════════════════════════════════════╝\n');
-
-  } catch (err) {
-    console.error('[SEED ERROR]', err.message);
-    process.exit(1);
-  } finally {
+  // Check if a MAIN_ADMIN already exists
+  const existing = await AdminUser.findOne({ role: 'MAIN_ADMIN' });
+  if (existing) {
+    console.log(`[SEED] MAIN_ADMIN already exists: ${existing.email}`);
+    console.log('[SEED] To change the Main Admin email/password, manually update the database or use change-password.');
     await mongoose.disconnect();
+    return;
   }
+
+  // Check if email is already taken by a sub-admin
+  const emailTaken = await AdminUser.findOne({ email: adminEmail.toLowerCase().trim() });
+  if (emailTaken) {
+    console.error(`[SEED] ERROR: Email "${adminEmail}" is already in use by another account (role: ${emailTaken.role}).`);
+    await mongoose.disconnect();
+    process.exit(1);
+  }
+
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
+  const admin = await AdminUser.create({
+    name:         adminName,
+    email:        adminEmail.toLowerCase().trim(),
+    passwordHash,
+    role:         'MAIN_ADMIN',
+    assignedUnitIds: [],
+    status:       'Active',
+  });
+
+  console.log('[SEED] ✓ MAIN_ADMIN created successfully.');
+  console.log(`[SEED]   Name:  ${admin.name}`);
+  console.log(`[SEED]   Email: ${admin.email}`);
+  console.log('[SEED]   Password: (as set in ADMIN_PASSWORD)');
+  console.log('[SEED] ⚠ Keep your .env credentials secure and never commit them to version control.');
+
+  await mongoose.disconnect();
 }
 
-seed();
+seedMainAdmin().catch(err => {
+  console.error('[SEED] Fatal error:', err.message);
+  process.exit(1);
+});

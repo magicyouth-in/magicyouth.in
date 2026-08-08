@@ -1,404 +1,335 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Search, Users, X, CheckCircle2, Filter } from 'lucide-react';
+import { Calendar, MapPin, Search, X, Clock, ChevronDown, Filter, Building2, CalendarDays, Loader2 } from 'lucide-react';
+import '../styles/about.css';
+import '../styles/events.css';
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 18 },
-  visible: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.5, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] } })
-};
-
-const STATUS_TABS = [
-  { key: 'all',       label: 'All'        },
-  { key: 'upcoming',  label: 'Upcoming'   },
-  { key: 'ongoing',   label: 'Ongoing'    },
-  { key: 'completed', label: 'Completed'  },
+const EVENT_CATEGORIES = [
+  'Program', 'Workshop', 'Seminar', 'Outreach', 'Community Service',
+  'Awareness', 'Leadership', 'Competition', 'Cultural', 'Training', 'Other'
 ];
 
-const CATEGORY_TABS = [
-  'All Categories',
-  'Cultural',
-  'Sports & Chess',
-  'Technical',
-  'Social Outreach',
-  'Leadership',
-  'Programs',
+const STATUS_TABS = [
+  { key: '',          label: 'All Events' },
+  { key: 'Upcoming',  label: 'Upcoming'   },
+  { key: 'Ongoing',   label: 'Ongoing'    },
+  { key: 'Completed', label: 'Completed'  },
 ];
 
 export default function Events() {
-  const [events,     setEvents]     = useState([]);
-  const [status,     setStatus]     = useState('all');
-  const [category,   setCategory]   = useState('All Categories');
-  const [query,      setQuery]       = useState('');
-  const [modal,      setModal]       = useState(null);
-  const [submitted,  setSubmitted]   = useState(false);
-  const [submitting, setSubmitting]  = useState(false);
-  const [regForm,    setRegForm]     = useState({ name: '', email: '', phone: '', rollNo: '' });
+  const [events,  setEvents]  = useState([]);
+  const [units,   setUnits]   = useState([]);
+  const [years,   setYears]   = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modal,   setModal]   = useState(null);
+  const [page,    setPage]    = useState(1);
+  const [total,   setTotal]   = useState(0);
 
-  useEffect(() => {
-    fetch('/api/events')
-      .then(r => r.json())
-      .then(d => { if (d.success) setEvents(d.data || []); })
-      .catch(() => {});
-  }, []);
-
-  const filtered = events.filter(e => {
-    const matchStatus   = status === 'all'              || e.status === status;
-    const matchCategory = category === 'All Categories' || e.category === category;
-    const q             = query.toLowerCase();
-    const matchQ        = !q
-      || e.title?.toLowerCase().includes(q)
-      || e.description?.toLowerCase().includes(q)
-      || e.venue?.toLowerCase().includes(q);
-    return matchStatus && matchCategory && matchQ;
+  const [filters, setFilters] = useState({
+    status: '', unitId: '', academicYearId: '', category: '', search: ''
   });
 
-  const openModal = (evt) => {
-    setModal(evt);
-    setSubmitted(false);
-    setRegForm({ name: '', email: '', phone: '', rollNo: '' });
-  };
+  // Load units on mount
+  useEffect(() => {
+    fetch('/api/units')
+      .then(r => r.json())
+      .then(d => { if (d.success) setUnits(d.data || []); })
+      .catch(() => setUnits([]));
+  }, []);
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await fetch('/api/events/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...regForm, eventId: modal._id, eventName: modal.title }),
+  // Load academic years when unit changes
+  useEffect(() => {
+    if (!filters.unitId) { setYears([]); return; }
+    fetch(`/api/academic-years?unitId=${filters.unitId}`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setYears(d.data || []); })
+      .catch(() => setYears([]));
+  }, [filters.unitId]);
+
+  // Fetch events from backend API on filter/page change
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams({ page, limit: 12 });
+    if (filters.status)         params.set('status',         filters.status);
+    if (filters.unitId)         params.set('unitId',         filters.unitId);
+    if (filters.academicYearId) params.set('academicYearId', filters.academicYearId);
+    if (filters.category)       params.set('category',       filters.category);
+    if (filters.search)         params.set('search',         filters.search);
+
+    fetch(`/api/events?${params}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          setEvents(d.data || []);
+          setTotal(d.pagination?.total || 0);
+        } else {
+          setEvents([]);
+          setTotal(0);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setEvents([]);
+        setTotal(0);
+        setLoading(false);
       });
-      setSubmitted(true);
-    } catch {
-      setSubmitted(true);
-    } finally {
-      setSubmitting(false);
-    }
+  }, [filters, page]);
+
+  const setFilter = (key, val) => {
+    setFilters(f => ({ ...f, [key]: val }));
+    setPage(1);
   };
 
-  const StatusBadge = ({ s }) => (
-    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
-      s === 'upcoming'  ? 'badge-upcoming'  :
-      s === 'ongoing'   ? 'badge-ongoing'   :
-                          'badge-completed'
-    }`}>{s}</span>
-  );
+  const totalPages = Math.ceil(total / 12);
 
   return (
     <div>
-
-      {/* ── PAGE HERO ─────────────────────────────────────────────── */}
-      <div className="page-header px-4">
-        <div className="max-w-4xl mx-auto">
-          <motion.span custom={0} variants={fadeUp} initial="hidden" animate="visible"
-            className="inline-block text-xs font-bold uppercase tracking-widest text-purple-400 bg-purple-950/70 px-3.5 py-1 rounded-full border border-purple-500/25 mb-4"
-          >
-            All Activities & Programs
-          </motion.span>
-          <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate="visible"
-            className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight leading-tight"
-          >
-            MAGIC Youth <span className="gradient-text-purple">Events</span>
-          </motion.h1>
-          <motion.p custom={2} variants={fadeUp} initial="hidden" animate="visible"
-            className="mt-4 text-purple-200/60 text-sm max-w-2xl mx-auto leading-relaxed"
-          >
-            Flagship chess championships, cultural festivals, technical workshops, social impact
-            campaigns, leadership programs — all in one place.
-          </motion.p>
+      {/* ── EVENTS HERO ─────────────────────────────────────────── */}
+      <section className="events-hero">
+        <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
+          <span className="about-badge">Activities &amp; Programs</span>
+          <h1 className="about-title">MAGIC Youth <span className="highlight">Events</span></h1>
+          <p className="about-lead">
+            Explore official MAGIC Youth events, workshops, campaigns, and student activities across units.
+          </p>
         </div>
-      </div>
+      </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* ── FILTERS & LISTINGS ──────────────────────────────────── */}
+      <section className="events-section">
+        <div className="events-container">
 
-        {/* ── SEARCH + STATUS FILTER BAR ─────────────────────────── */}
-        <div className="dark-glass-card p-5 mb-6 space-y-4">
-
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            {/* Status Tabs */}
-            <div className="flex flex-wrap gap-2">
-              {STATUS_TABS.map(t => (
-                <button
-                  key={t.key}
-                  onClick={() => setStatus(t.key)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                    status === t.key
-                      ? 'btn-purple-glow text-white'
-                      : 'bg-purple-950/40 text-purple-300/70 hover:text-white hover:bg-purple-900/30 border border-purple-500/20'
-                  }`}
-                >
-                  {t.label}
-                  {t.key !== 'all' && events.filter(e => e.status === t.key).length > 0 && (
-                    <span className="ml-1.5 text-[9px] bg-purple-800/60 text-purple-200 px-1.5 py-0.5 rounded-full">
-                      {events.filter(e => e.status === t.key).length}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Search */}
-            <div className="relative w-full md:w-72">
-              <Search className="w-4 h-4 text-purple-400/60 absolute left-3.5 top-3" />
-              <input
-                type="text"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Search events & programs…"
-                className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-slate-950/80 border border-purple-500/20 text-white placeholder-purple-300/30"
-              />
-            </div>
-          </div>
-
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-2 pt-2 border-t border-purple-900/30">
-            <span className="text-[10px] font-bold text-purple-400/60 uppercase tracking-wider self-center mr-1 flex items-center gap-1">
-              <Filter className="w-3 h-3" /> Category:
-            </span>
-            {CATEGORY_TABS.map(c => (
+          {/* Status Tab Bar */}
+          <div className="status-tabs">
+            {STATUS_TABS.map(t => (
               <button
-                key={c}
-                onClick={() => setCategory(c)}
-                className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all ${
-                  category === c
-                    ? 'bg-purple-700/70 text-white border border-purple-400/40'
-                    : 'bg-purple-950/40 text-purple-300/60 border border-purple-500/15 hover:border-purple-400/30 hover:text-purple-200'
-                }`}
+                key={t.key}
+                onClick={() => setFilter('status', t.key)}
+                className={`status-tab-btn ${filters.status === t.key ? 'active' : ''}`}
               >
-                {c}
+                {t.label}
               </button>
             ))}
           </div>
 
-        </div>
+          {/* Filters Row */}
+          <div className="events-filter-bar">
+            {/* Search */}
+            <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+              <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                placeholder="Search events…"
+                value={filters.search}
+                onChange={e => setFilter('search', e.target.value)}
+                className="event-search-input"
+              />
+            </div>
 
-        {/* ── RESULTS COUNT ─────────────────────────────────────────── */}
-        <p className="text-xs text-purple-300/40 mb-6 font-medium">
-          Showing {filtered.length} {filtered.length === 1 ? 'result' : 'results'}
-          {status !== 'all' ? ` · ${status}` : ''}
-          {category !== 'All Categories' ? ` · ${category}` : ''}
-          {query ? ` · "${query}"` : ''}
-        </p>
-
-        {/* ── EVENT CARDS ────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
-          <AnimatePresence mode="popLayout">
-            {filtered.length > 0 ? (
-              filtered.map((evt, i) => (
-                <motion.div
-                  key={evt._id}
-                  layout
-                  custom={i % 6}
-                  variants={fadeUp}
-                  initial="hidden"
-                  animate="visible"
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="dark-glass-card overflow-hidden flex flex-col group"
-                >
-                  {/* Cover Image */}
-                  <div className="aspect-video bg-purple-950/40 relative overflow-hidden">
-                    {evt.posterImage ? (
-                      <img
-                        src={`/uploads/events/${evt.posterImage}`}
-                        alt={evt.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="text-center text-purple-500/20">
-                          <Calendar className="w-14 h-14 mx-auto mb-2" />
-                          <span className="text-[10px] font-bold uppercase tracking-widest">
-                            {evt.category || 'MAGIC Youth'}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Status badge overlay */}
-                    <div className="absolute top-3 left-3">
-                      <StatusBadge s={evt.status} />
-                    </div>
-
-                    {/* Academic year / category */}
-                    {(evt.academicYear || evt.category) && (
-                      <span className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-purple-300 text-[9px] font-bold px-2 py-0.5 rounded-md border border-purple-500/20">
-                        {evt.category || evt.academicYear}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Card Body */}
-                  <div className="p-6 flex flex-col flex-1">
-                    <div className="flex items-center gap-3 text-xs font-semibold text-purple-400 mb-2 flex-wrap">
-                      <span className="flex items-center gap-1">
-                        📅 {evt.date
-                          ? new Date(evt.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                          : 'TBA'}
-                      </span>
-                      {evt.participants && (
-                        <span className="flex items-center gap-1 text-purple-300/50">
-                          <Users className="w-3 h-3" /> {evt.participants}
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="text-lg font-bold text-white mb-2 leading-snug">{evt.title}</h3>
-                    <p className="text-xs text-purple-200/55 leading-relaxed line-clamp-3 flex-1">
-                      {evt.description || 'An initiative organized by MAGIC Youth for students and the community.'}
-                    </p>
-
-                    {/* Card Footer */}
-                    <div className="mt-5 pt-4 border-t border-purple-900/30 flex items-center justify-between">
-                      <span className="text-[11px] text-purple-300/45 flex items-center gap-1 truncate max-w-[160px]">
-                        <MapPin className="w-3 h-3 flex-shrink-0 text-purple-400/50" />
-                        {evt.venue || 'ALIET Campus'}
-                      </span>
-                      <button
-                        onClick={() => openModal(evt)}
-                        className={`text-xs font-bold px-4 py-2 rounded-full transition-all ${
-                          evt.status === 'upcoming'
-                            ? 'btn-purple-glow border border-purple-400/20'
-                            : 'btn-ghost'
-                        }`}
-                      >
-                        {evt.status === 'upcoming' ? 'Register Now' : 'View Details'}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))
-            ) : (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="col-span-3 text-center py-28"
+            {/* Unit Filter */}
+            <div style={{ position: 'relative' }}>
+              <Building2 style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
+              <select
+                value={filters.unitId}
+                onChange={e => { setFilter('unitId', e.target.value); setFilter('academicYearId', ''); }}
+                className="event-filter-select"
               >
-                <Calendar className="w-12 h-12 mx-auto mb-4 text-purple-500/20" />
-                <p className="text-purple-300/40 text-sm">No events found matching your search or filter.</p>
-                <button
-                  onClick={() => { setStatus('all'); setCategory('All Categories'); setQuery(''); }}
-                  className="mt-4 text-xs font-bold text-purple-400 hover:text-purple-200 underline underline-offset-2"
-                >
-                  Clear all filters
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                <option value="">All Units</option>
+                {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+              </select>
+              <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#5B21B6', pointerEvents: 'none' }} />
+            </div>
 
-      </div>
-
-      {/* ── REGISTRATION / DETAIL MODAL ──────────────────────────────── */}
-      <AnimatePresence>
-        {modal && (
-          <motion.div
-            key="modal-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto"
-            onClick={e => { if (e.target === e.currentTarget) setModal(null); }}
-          >
-            <motion.div
-              initial={{ scale: 0.94, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.94, opacity: 0 }}
-              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-              className="dark-glass-card max-w-lg w-full p-7 relative shadow-2xl border-purple-500/30 my-8"
-            >
-              <button
-                onClick={() => setModal(null)}
-                className="absolute top-4 right-4 text-purple-400/60 hover:text-white transition-colors"
+            {/* Academic Year Filter */}
+            <div style={{ position: 'relative' }}>
+              <CalendarDays style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
+              <select
+                value={filters.academicYearId}
+                onChange={e => setFilter('academicYearId', e.target.value)}
+                disabled={!filters.unitId}
+                className="event-filter-select"
               >
-                <X className="w-5 h-5" />
-              </button>
+                <option value="">All Years</option>
+                {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+              </select>
+              <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#5B21B6', pointerEvents: 'none' }} />
+            </div>
 
-              {submitted ? (
-                <div className="text-center py-10">
-                  <div className="w-16 h-16 rounded-full bg-purple-900/50 border border-purple-400/30 text-purple-300 flex items-center justify-center mx-auto mb-5 shadow-purple-glow">
-                    <CheckCircle2 className="w-9 h-9" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white">
-                    {modal.status === 'upcoming' ? 'Registration Confirmed!' : 'Details Viewed'}
-                  </h3>
-                  <p className="text-xs text-purple-200/60 mt-2 max-w-xs mx-auto leading-relaxed">
-                    {modal.status === 'upcoming'
-                      ? `You are registered for "${modal.title}". A confirmation will be sent to your email.`
-                      : `Thank you for viewing details for "${modal.title}".`}
-                  </p>
-                  <button onClick={() => setModal(null)} className="mt-7 btn-purple-glow text-xs font-bold px-7 py-2.5 rounded-full">
-                    Close
+            {/* Category Filter */}
+            <div style={{ position: 'relative' }}>
+              <Filter style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
+              <select
+                value={filters.category}
+                onChange={e => setFilter('category', e.target.value)}
+                className="event-filter-select"
+              >
+                <option value="">All Categories</option>
+                {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#5B21B6', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          {/* Loading Indicator */}
+          {loading && (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
+              <Loader2 style={{ width: 36, height: 36, color: '#5B21B6' }} className="animate-spin" />
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && events.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '4rem 1.5rem', backgroundColor: '#F8F7FC', borderRadius: '1.25rem', border: '1px solid #E5E7EB', margin: '1.5rem 0' }}>
+              <Calendar style={{ width: 44, height: 44, color: '#9CA3AF', margin: '0 auto 1rem' }} />
+              <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1F2937' }}>No events found</h3>
+              <p style={{ fontSize: '0.875rem', color: '#6B7280', marginTop: '0.25rem' }}>
+                There are currently no events listed matching your filter criteria.
+              </p>
+            </div>
+          )}
+
+          {/* Events Grid */}
+          {!loading && events.length > 0 && (
+            <div>
+              <div style={{ fontSize: '0.875rem', color: '#6B7280', marginBottom: '1.5rem', fontWeight: 500 }}>
+                Showing {total} event{total !== 1 ? 's' : ''}
+              </div>
+              <div className="events-grid">
+                {events.map((evt, i) => (
+                  <EventCard key={evt._id} evt={evt} i={i} onClick={() => setModal(evt)} />
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginTop: '3rem' }}>
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="status-tab-btn"
+                  >
+                    ← Previous
+                  </button>
+                  <span style={{ fontSize: '0.875rem', color: '#4B5563', fontWeight: 600 }}>Page {page} of {totalPages}</span>
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="status-tab-btn"
+                  >
+                    Next →
                   </button>
                 </div>
-              ) : (
-                <div className="space-y-5">
-                  {/* Event Info */}
-                  <div>
-                    <div className="mb-1">
-                      <StatusBadge s={modal.status} />
-                    </div>
-                    <h3 className="font-bold text-xl text-white mt-2 leading-snug">{modal.title}</h3>
-                    <p className="text-xs text-purple-300/50 mt-1">
-                      📅 {modal.date ? new Date(modal.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'TBA'}
-                      {modal.venue && <span> &nbsp;·&nbsp; 📍 {modal.venue}</span>}
-                    </p>
-                  </div>
+              )}
+            </div>
+          )}
 
-                  {modal.description && (
-                    <p className="text-xs text-purple-200/60 leading-relaxed bg-purple-950/50 rounded-xl p-4 border border-purple-500/15">
-                      {modal.description}
-                    </p>
-                  )}
+        </div>
+      </section>
 
-                  {/* Registration form for upcoming events */}
-                  {modal.status === 'upcoming' ? (
-                    <form onSubmit={handleRegister} className="space-y-3">
-                      <p className="text-xs font-semibold text-purple-300 border-b border-purple-900/40 pb-2">
-                        Fill in your details to reserve your slot:
-                      </p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[10px] font-semibold text-purple-300 mb-1">Full Name *</label>
-                          <input type="text" required value={regForm.name}
-                            onChange={e => setRegForm(f => ({...f, name: e.target.value}))}
-                            className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-purple-500/20 text-white text-xs" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-semibold text-purple-300 mb-1">Email *</label>
-                          <input type="email" required value={regForm.email}
-                            onChange={e => setRegForm(f => ({...f, email: e.target.value}))}
-                            className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-purple-500/20 text-white text-xs" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-semibold text-purple-300 mb-1">Phone *</label>
-                          <input type="tel" required value={regForm.phone}
-                            onChange={e => setRegForm(f => ({...f, phone: e.target.value}))}
-                            className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-purple-500/20 text-white text-xs" />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-semibold text-purple-300 mb-1">Roll No / ID</label>
-                          <input type="text" value={regForm.rollNo}
-                            onChange={e => setRegForm(f => ({...f, rollNo: e.target.value}))}
-                            className="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-purple-500/20 text-white text-xs" />
-                        </div>
-                      </div>
-                      <button type="submit" disabled={submitting}
-                        className="w-full btn-purple-glow font-bold text-sm py-3 rounded-full">
-                        {submitting ? 'Processing…' : '✓ Confirm Registration'}
-                      </button>
-                    </form>
-                  ) : (
-                    <button type="button" onClick={() => setModal(null)}
-                      className="w-full btn-ghost font-bold text-sm py-3 rounded-full">
-                      Close
-                    </button>
-                  )}
+      {/* Event Detail Modal */}
+      <AnimatePresence>
+        {modal && (
+          <div className="event-modal-backdrop" onClick={() => setModal(null)}>
+            <div className="event-modal-content" onClick={e => e.stopPropagation()}>
+              {modal.poster && (
+                <div style={{ aspectRatio: '16/9', backgroundColor: '#F8F7FC', overflow: 'hidden' }}>
+                  <img src={`/uploads/${modal.poster}`} alt={modal.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               )}
-            </motion.div>
-          </motion.div>
+              <div style={{ padding: '1.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: '9999px', display: 'inline-block', marginBottom: '0.5rem', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>
+                      {modal.status}
+                    </span>
+                    <h2 style={{ fontSize: '1.375rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>{modal.title}</h2>
+                  </div>
+                  <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
+                    <X style={{ width: 22, height: 22 }} />
+                  </button>
+                </div>
+
+                {modal.description && (
+                  <p style={{ fontSize: '0.9375rem', color: '#4B5563', lineHeight: 1.65, marginBottom: '1.25rem' }}>{modal.description}</p>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', fontSize: '0.875rem', color: '#4B5563' }}>
+                  {modal.unitId?.name && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Building2 style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>{modal.unitId.name}</span></div>
+                  )}
+                  {modal.academicYearId?.year && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CalendarDays style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>{modal.academicYearId.year}</span></div>
+                  )}
+                  {modal.date && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Calendar style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>{modal.date}</span></div>
+                  )}
+                  {(modal.startTime || modal.endTime) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>{modal.startTime}{modal.endTime ? ` – ${modal.endTime}` : ''}</span></div>
+                  )}
+                  {modal.location && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MapPin style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>{modal.location}</span></div>
+                  )}
+                  {modal.category && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Filter style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>Category: {modal.category}</span></div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
 
+function EventCard({ evt, onClick }) {
+  const getBadgeClass = (status) => {
+    if (status === 'Upcoming') return 'badge-upcoming-light';
+    if (status === 'Ongoing') return 'badge-ongoing-light';
+    return 'badge-completed-light';
+  };
+
+  return (
+    <div className="event-card" onClick={onClick}>
+      <div className="event-poster-box">
+        {evt.poster ? (
+          <img
+            src={`/uploads/${evt.poster}`}
+            alt={evt.title}
+            className="event-poster"
+            loading="lazy"
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF' }}>
+            <Calendar style={{ width: 36, height: 36 }} />
+          </div>
+        )}
+      </div>
+
+      <div className="event-body">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '9999px' }} className={getBadgeClass(evt.status)}>
+            {evt.status}
+          </span>
+          {evt.category && (
+            <span style={{ fontSize: '0.75rem', color: '#6B7280', fontWeight: 600 }}>{evt.category}</span>
+          )}
+        </div>
+
+        <h3 style={{ fontSize: '1.0625rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.5rem', lineHeight: 1.3 }}>{evt.title}</h3>
+        
+        {evt.description && (
+          <p style={{ fontSize: '0.84375rem', color: '#4B5563', lineHeight: 1.5, marginBottom: '0.875rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {evt.description}
+          </p>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.75rem', color: '#6B7280', borderTop: '1px solid #E5E7EB', paddingTop: '0.75rem' }}>
+          {evt.date && <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><Calendar style={{ width: 14, height: 14, color: '#5B21B6' }} />{evt.date}</div>}
+          {evt.location && <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><MapPin style={{ width: 14, height: 14, color: '#5B21B6' }} />{evt.location}</div>}
+          {evt.unitId?.name && <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><Building2 style={{ width: 14, height: 14, color: '#5B21B6' }} />{evt.unitId.name}</div>}
+        </div>
+      </div>
     </div>
   );
 }

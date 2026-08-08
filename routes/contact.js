@@ -1,17 +1,17 @@
 /**
  * routes/contact.js
- * API router for contact message submissions & admin replies.
+ * API router for contact message submissions & admin management.
  */
 
-const express = require('express');
-const router = express.Router();
-
+const express        = require('express');
+const router         = express.Router();
 const ContactMessage = require('../database/models/ContactMessage');
-const Notification = require('../database/models/Notification');
-const { requireAuth } = require('../middleware/auth');
+const Notification   = require('../database/models/Notification');
+const AdminUser      = require('../database/models/AdminUser');
+const { authenticateAdmin, requireAnyAdmin } = require('../middleware/auth');
 
 /**
- * POST /api/contact
+ * POST /api/contact — Public: submit a message
  */
 router.post('/', async (req, res) => {
   try {
@@ -22,91 +22,118 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Name, email, and message are required.' });
     }
 
-    const contactMsg = new ContactMessage({
+    const contactMsg = await ContactMessage.create({
       name,
       email,
-      phone: phone || '',
+      phone:   phone   || '',
       subject: subject || 'General Inquiry',
-      query: finalMessage,
-      status: 'New'
+      query:   finalMessage,
+      status:  'New',
     });
 
-    await contactMsg.save();
-
-    // Create system notification
-    const notification = new Notification({
-      title: 'New Contact Message',
-      message: `Message from ${name} (${subject || 'General Inquiry'}).`,
-      type: 'contact_message',
-      linkUrl: '/admin/contact-messages',
-      isRead: false
-    });
-    await notification.save();
-
-    // Emit Socket.IO real-time alert to admins
-    const io = req.app.get('io');
-    if (io) {
-      io.emit('new_notification', notification);
-      io.emit('new_contact_message', contactMsg);
+    // Notify main admin via Socket.IO room
+    try {
+      const io        = req.app.get('io');
+      const mainAdmin = await AdminUser.findOne({ role: 'MAIN_ADMIN' });
+      if (mainAdmin) {
+        const notification = await Notification.create({
+          title:            'New Contact Message',
+          message:          `Message from ${name} (${subject || 'General Inquiry'}).`,
+          type:             'contact_message',
+          entityType:       'ContactMessage',
+          entityId:         contactMsg._id.toString(),
+          recipientAdminId: mainAdmin._id,
+          linkUrl:          '/admin',
+          isRead:           false,
+        });
+        if (io) {
+          io.to('main-admin').emit('new_notification', notification);
+          io.to('main-admin').emit('new_contact_message', contactMsg);
+        }
+      }
+    } catch (notifErr) {
+      console.error('[CONTACT NOTIF ERROR]', notifErr.message);
     }
 
     res.status(201).json({
       success: true,
-      message: 'Thank you for reaching out! We have received your message and will get back to you shortly.',
-      data: contactMsg
+      message: 'Thank you for reaching out! We will get back to you shortly.',
+      data:    contactMsg,
     });
-
   } catch (err) {
-    console.error('Contact Submission Error:', err);
+    console.error('[CONTACT ERROR]', err.message);
     res.status(500).json({ success: false, message: err.message || 'Server error.' });
   }
 });
 
 /**
- * GET /api/contact (Admin)
+ * GET /api/contact — Admin: list messages
  */
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     const filter = {};
     if (req.query.status) filter.status = req.query.status;
 
-    const messages = await ContactMessage.find(filter).sort({ createdAt: -1 });
-    res.json({ success: true, data: messages });
+    const page  = parseInt(req.query.page)  || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip  = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      ContactMessage.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      ContactMessage.countDocuments(filter),
+    ]);
+
+    res.json({ success: true, data, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
 /**
- * PUT /api/contact/:id (Admin status / reply)
+ * PATCH /api/contact/:id/status — Admin: update status
  */
-router.put('/:id', requireAuth, async (req, res) => {
+router.patch('/:id/status', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     const { status, adminReply } = req.body;
     const msg = await ContactMessage.findById(req.params.id);
     if (!msg) return res.status(404).json({ success: false, message: 'Message not found.' });
 
-    if (status) msg.status = status;
+    if (status)              msg.status     = status;
     if (adminReply !== undefined) {
       msg.adminReply = adminReply;
-      msg.status = 'Replied';
+      msg.status     = 'Replied';
     }
-
     await msg.save();
-    res.json({ success: true, message: 'Contact message updated.', data: msg });
+    res.json({ success: true, data: msg, message: 'Updated.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Legacy PUT alias
+router.put('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
+  req.params.status = req.body.status;
+  const { status, adminReply } = req.body;
+  try {
+    const msg = await ContactMessage.findById(req.params.id);
+    if (!msg) return res.status(404).json({ success: false, message: 'Message not found.' });
+    if (status)                   msg.status     = status;
+    if (adminReply !== undefined) { msg.adminReply = adminReply; msg.status = 'Replied'; }
+    await msg.save();
+    res.json({ success: true, data: msg, message: 'Updated.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
 /**
- * DELETE /api/contact/:id (Admin)
+ * DELETE /api/contact/:id — Admin
  */
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     const msg = await ContactMessage.findByIdAndDelete(req.params.id);
     if (!msg) return res.status(404).json({ success: false, message: 'Message not found.' });
-    res.json({ success: true, message: 'Contact message deleted.' });
+    res.json({ success: true, message: 'Message deleted.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

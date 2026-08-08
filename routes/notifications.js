@@ -1,117 +1,75 @@
 /**
  * routes/notifications.js
- * Visitor-facing popup/banner notifications.
- * Rewritten to use MongoDB / Mongoose.
+ * Admin notifications — unit-scoped, per-admin.
  */
 
-const express = require('express');
-const router = express.Router();
+const express      = require('express');
+const router       = express.Router();
 const Notification = require('../database/models/Notification');
-const { requireAuth } = require('../middleware/auth');
+const { authenticateAdmin, requireAnyAdmin } = require('../middleware/auth');
 
 /**
- * GET /api/notifications  — public: active, non-expired
+ * GET /api/notifications — Admin: list notifications for the logged-in admin.
  */
-router.get('/', async (req, res) => {
+router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const rows = await Notification.find({
-      isActive:  true,
-      $or: [
-        { expiresAt: null },
-        { expiresAt: { $gte: today } },
-      ],
-    }).sort({ createdAt: -1 });
-    res.json({ success: true, data: rows });
+    const filter = { recipientAdminId: req.admin._id };
+    if (req.query.unread === 'true') filter.isRead = false;
+
+    const page  = parseInt(req.query.page)  || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip  = (page - 1) * limit;
+
+    const [data, total, unread] = await Promise.all([
+      Notification.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      Notification.countDocuments(filter),
+      Notification.countDocuments({ recipientAdminId: req.admin._id, isRead: false }),
+    ]);
+
+    res.json({ success: true, data, unread, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
 /**
- * GET /api/notifications/all  — admin
+ * PATCH /api/notifications/:id/read — Mark as read
  */
-router.get('/all', requireAuth, async (req, res) => {
+router.patch('/:id/read', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    const rows = await Notification.find().sort({ createdAt: -1 });
-    res.json({ success: true, data: rows });
+    const notif = await Notification.findOneAndUpdate(
+      { _id: req.params.id, recipientAdminId: req.admin._id },
+      { isRead: true },
+      { new: true }
+    );
+    if (!notif) return res.status(404).json({ success: false, message: 'Notification not found.' });
+    res.json({ success: true, data: notif });
+  } catch (err) {
+    res.status(400).json({ success: false, message: 'Invalid ID.' });
+  }
+});
+
+/**
+ * PATCH /api/notifications/mark-all-read
+ */
+router.patch('/mark-all-read', authenticateAdmin, requireAnyAdmin, async (req, res) => {
+  try {
+    await Notification.updateMany({ recipientAdminId: req.admin._id, isRead: false }, { isRead: true });
+    res.json({ success: true, message: 'All notifications marked as read.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
 /**
- * GET /api/notifications/:id  — admin
+ * DELETE /api/notifications/:id
  */
-router.get('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    const row = await Notification.findById(req.params.id);
-    if (!row) return res.status(404).json({ success: false, message: 'Notification not found.' });
-    res.json({ success: true, data: row });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-/**
- * POST /api/notifications  — admin
- */
-router.post('/', requireAuth, async (req, res) => {
-  try {
-    const { title, message, type, link_text, link_url, show_popup, is_active, expires_at } = req.body;
-    if (!title) return res.status(400).json({ success: false, message: 'Title is required.' });
-
-    const row = await Notification.create({
-      title,
-      message:   message    || '',
-      type:      type       || 'info',
-      linkText:  link_text  || '',
-      linkUrl:   link_url   || '',
-      showPopup: !!show_popup,
-      isActive:  is_active !== false && is_active !== '0',
-      expiresAt: expires_at || null,
-    });
-    res.status(201).json({ success: true, data: row, message: 'Notification created.' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-/**
- * PUT /api/notifications/:id  — admin
- */
-router.put('/:id', requireAuth, async (req, res) => {
-  try {
-    const row = await Notification.findById(req.params.id);
-    if (!row) return res.status(404).json({ success: false, message: 'Notification not found.' });
-
-    const { title, message, type, link_text, link_url, show_popup, is_active, expires_at } = req.body;
-    if (title !== undefined)      row.title     = title;
-    if (message !== undefined)    row.message   = message;
-    if (type !== undefined)       row.type      = type;
-    if (link_text !== undefined)  row.linkText  = link_text;
-    if (link_url !== undefined)   row.linkUrl   = link_url;
-    if (show_popup !== undefined) row.showPopup = !!show_popup;
-    if (is_active !== undefined)  row.isActive  = is_active === true || is_active === '1' || is_active === 1;
-    if (expires_at !== undefined) row.expiresAt = expires_at || null;
-
-    await row.save();
-    res.json({ success: true, data: row, message: 'Notification updated.' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-/**
- * DELETE /api/notifications/:id  — admin
- */
-router.delete('/:id', requireAuth, async (req, res) => {
-  try {
-    const row = await Notification.findByIdAndDelete(req.params.id);
-    if (!row) return res.status(404).json({ success: false, message: 'Notification not found.' });
+    await Notification.findOneAndDelete({ _id: req.params.id, recipientAdminId: req.admin._id });
     res.json({ success: true, message: 'Notification deleted.' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(400).json({ success: false, message: 'Invalid ID.' });
   }
 });
 

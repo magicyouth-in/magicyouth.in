@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, Mail, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
+import '../../styles/admin.css';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -40,7 +41,7 @@ export default function AdminLogin() {
       } else {
         setError(data.message || 'Invalid email/username or password.');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please check your connection.');
     } finally {
       setLoading(false);
@@ -48,112 +49,92 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070114] flex flex-col justify-center items-center px-4 relative overflow-hidden">
-      {/* Background glow */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-        <div className="w-[600px] h-[600px] rounded-full bg-purple-700/10 blur-[120px]" />
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
+    <div className="admin-login-wrapper">
+      <div className="admin-login-card">
         {/* Brand logo & header */}
-        <div className="text-center mb-8">
+        <div className="admin-login-header">
           <img
             src="/assets/magic-logo.png"
             alt="MAGIC Youth Logo"
-            className="w-20 h-20 mx-auto rounded-full border-2 border-purple-500/30 object-cover drop-shadow-[0_0_30px_rgba(124,58,237,0.3)] mb-4"
+            className="admin-logo-img"
           />
-          <h1 className="text-2xl font-extrabold tracking-tight text-white">
-            MAGIC YOUTH
-          </h1>
-          <p className="text-xs text-purple-400 font-semibold uppercase tracking-wider mt-1">
-            Administrator Portal
-          </p>
+          <h1 className="admin-login-title">MAGIC YOUTH</h1>
+          <p className="admin-login-subtitle">Admin Portal</p>
         </div>
 
         {/* Login form card */}
-        <div className="dark-glass-card p-8 border border-purple-500/20 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="p-3 rounded-xl bg-red-950/60 border border-red-800/60 text-red-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{error}</span>
-              </div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {error && (
+            <div style={{ padding: '0.75rem 1rem', borderRadius: '0.75rem', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertCircle style={{ width: 16, height: 16, flexShrink: 0 }} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="admin-input-group">
+            <label className="admin-label">Email Address</label>
+            <div style={{ position: 'relative' }}>
+              <Mail style={{ width: 16, height: 16, color: '#6B7280', position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@magicyouth.in"
+                className="admin-input"
+                style={{ paddingLeft: '2.25rem' }}
+              />
+            </div>
+          </div>
+
+          <div className="admin-input-group">
+            <label className="admin-label">Password</label>
+            <div style={{ position: 'relative' }}>
+              <Lock style={{ width: 16, height: 16, color: '#6B7280', position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="admin-input"
+                style={{ paddingLeft: '2.25rem' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#4B5563', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ borderRadius: '0.25rem', borderColor: '#D1D5DB', width: 16, height: 16, accentColor: '#5B21B6' }}
+              />
+              <span>Remember Me</span>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="admin-btn-primary"
+          >
+            {loading ? (
+              <>
+                <Loader2 style={{ width: 18, height: 18 }} className="animate-spin" />
+                <span>Signing in...</span>
+              </>
+            ) : (
+              <span>Sign In to Admin Portal</span>
             )}
+          </button>
+        </form>
 
-            <div>
-              <label className="block text-[11px] font-semibold text-purple-300 mb-1.5 uppercase tracking-wider">
-                Email / Username
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-purple-400/60 absolute left-3.5 top-3.5" />
-                <input
-                  type="text"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@magicyouth.in"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950/80 border border-purple-500/25 text-white text-xs placeholder-purple-300/30 focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none transition"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-purple-300 mb-1.5 uppercase tracking-wider">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-purple-400/60 absolute left-3.5 top-3.5" />
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950/80 border border-purple-500/25 text-white text-xs placeholder-purple-300/30 focus:border-purple-400 focus:ring-1 focus:ring-purple-400 outline-none transition"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-xs">
-              <label className="flex items-center gap-2 cursor-pointer text-purple-200/70 select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-purple-500/30 bg-slate-950/80 text-purple-600 focus:ring-purple-500 h-4 w-4"
-                />
-                <span>Remember Me</span>
-              </label>
-
-              <button
-                type="button"
-                onClick={() => alert('Forgot Password placeholder. Please contact the database administrator or update using the seed script.')}
-                className="text-purple-400 hover:text-purple-300 font-medium transition"
-              >
-                Forgot Password?
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-purple-glow font-bold text-sm py-3.5 rounded-full flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Logging in...</span>
-                </>
-              ) : (
-                <span>Login</span>
-              )}
-            </button>
-          </form>
-        </div>
-
-        <div className="text-center mt-6">
-          <a href="/" className="text-xs text-purple-400/70 hover:text-purple-300 transition">
-            ← Back to Public Website
+        <div style={{ textAlign: 'center', marginTop: '1.75rem' }}>
+          <a href="/" style={{ fontSize: '0.8125rem', color: '#5B21B6', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+            <ArrowLeft style={{ width: 14, height: 14 }} />
+            <span>Back to Public Website</span>
           </a>
         </div>
       </div>

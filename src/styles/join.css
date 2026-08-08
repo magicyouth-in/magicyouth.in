@@ -1,0 +1,94 @@
+/* src/styles/join.css */
+
+.join-hero {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8F7FC 60%, #EDE9FE 100%);
+  padding: 5rem 1.5rem 3rem;
+  border-bottom: 1px solid #E5E7EB;
+  text-align: center;
+}
+
+.join-section {
+  padding: 3rem 1.5rem 5rem;
+  background-color: #FFFFFF;
+}
+
+.join-container {
+  max-width: 56rem;
+  margin: 0 auto;
+}
+
+.join-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.stepper-bar {
+  background-color: #F8F7FC;
+  border-bottom: 1px solid #E5E7EB;
+  padding: 1.25rem 1.5rem;
+}
+
+.stepper-step {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.stepper-step.active {
+  background-color: #5B21B6;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(91, 33, 182, 0.3);
+}
+
+.stepper-step.completed {
+  background-color: #EDE9FE;
+  color: #5B21B6;
+}
+
+.stepper-step.inactive {
+  background-color: #E5E7EB;
+  color: #9CA3AF;
+}
+
+.join-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  color: #1F2937;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.join-input:focus {
+  border-color: #5B21B6;
+  box-shadow: 0 0 0 3px rgba(91, 33, 182, 0.15);
+}
+
+.join-option-chip {
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid #E5E7EB;
+  background-color: #FFFFFF;
+  color: #4B5563;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.join-option-chip.selected {
+  background-color: #5B21B6;
+  color: #FFFFFF;
+  border-color: #5B21B6;
+}

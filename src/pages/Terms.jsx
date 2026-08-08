@@ -1,14 +1,27 @@
 import React from 'react';
+import '../styles/about.css';
 
 export default function Terms() {
   return (
-    <div className="pt-28 pb-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-extrabold text-neutral-heading mb-6">Terms & Conditions</h1>
-      <div className="prose prose-slate max-w-none text-neutral-subtext text-sm space-y-4 leading-relaxed">
-        <p>Welcome to MAGIC Youth Digital Platform. By accessing or using our website and services, you agree to comply with these terms.</p>
-        <h2 className="text-base font-bold text-neutral-heading pt-2">Code of Conduct</h2>
-        <p>All student members and event attendees are expected to demonstrate respect, integrity, and ethical conduct during all MAGIC Youth programs.</p>
-      </div>
+    <div>
+      <section className="about-hero">
+        <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
+          <span className="about-badge">Legal</span>
+          <h1 className="about-title">Terms &amp; <span className="highlight">Conditions</span></h1>
+        </div>
+      </section>
+
+      <section style={{ padding: '3rem 1.5rem 5rem', backgroundColor: '#FFFFFF' }}>
+        <div style={{ maxWidth: '48rem', margin: '0 auto', backgroundColor: '#F8F7FC', border: '1px solid #E5E7EB', borderRadius: '1.25rem', padding: '2.5rem', fontSize: '0.9375rem', color: '#4B5563', lineHeight: 1.7 }}>
+          <p style={{ marginBottom: '1.25rem' }}>
+            Welcome to the MAGIC Youth Digital Platform. By accessing or using our website and services, you agree to comply with these terms.
+          </p>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.5rem' }}>Code of Conduct</h2>
+          <p>
+            All student members, volunteers, and event attendees are expected to demonstrate respect, integrity, and ethical conduct during all MAGIC Youth initiatives and activities.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }

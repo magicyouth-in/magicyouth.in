@@ -1,1313 +1,1628 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
 import {
-  Users, Calendar, FileText, HeartHandshake, MessageSquare, Bell,
-  CheckCircle2, XCircle, Search, Filter, RefreshCw, LogOut, Sparkles,
-  ChevronRight, Trash2, Edit3, Plus, Image as ImageIcon, Eye, FileUp,
-  Settings as SettingsIcon, MessageCircle, ExternalLink, Activity, Info, UploadCloud
+  LayoutDashboard, Building2, Calendar, CalendarDays, Image, FileText,
+  Settings, LogOut,
+  ChevronDown, Menu, X, Loader2, Plus, Check, AlertCircle, Edit, Trash2,
+  ShieldCheck, ToggleLeft, ToggleRight, KeyRound, Download, HeartHandshake, MessageSquare,
 } from 'lucide-react';
 
+// ─── API helper ───────────────────────────────────────────────────────────────
+async function api(url, opts = {}) {
+  const res = await fetch(url, {
+    headers: { 'Content-Type': 'application/json', ...opts.headers },
+    credentials: 'include',
+    ...opts,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Request failed');
+  return data;
+}
+
+async function apiForm(url, formData) {
+  const res = await fetch(url, {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Request failed');
+  return data;
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function Toast({ toasts }) {
+  return (
+    <div className="fixed bottom-6 right-6 z-[100] space-y-2 pointer-events-none">
+      {toasts.map(t => (
+        <div key={t.id} className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold shadow-xl border pointer-events-auto ${
+          t.type === 'error' ? 'bg-red-950 border-red-700 text-red-200' : 'bg-emerald-950 border-emerald-700 text-emerald-200'
+        }`}>
+          {t.type === 'error' ? <AlertCircle className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+          {t.message}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [admin, setAdmin] = useState(null);
-  const [stats, setStats] = useState(null);
+  const [admin,   setAdmin]   = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, join_requests, contact_messages, events, gallery, documents, testimonials, settings
+  const [module,  setModule]  = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [toasts,  setToasts]  = useState([]);
+  const [units,   setUnits]   = useState([]);
+  const [currentUnitId, setCurrentUnitId] = useState('all');
 
-  // Database collections lists
-  const [joinRequests, setJoinRequests] = useState([]);
-  const [contactMessages, setContactMessages] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [gallery, setGallery] = useState([]);
-  const [documents, setDocuments] = useState([]);
-  const [testimonials, setTestimonials] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const toast = (message, type = 'success') => {
+    const id = Date.now();
+    setToasts(t => [...t, { id, message, type }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4000);
+  };
 
-  // Filters & Searches
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-
-  // Modal / Create States
-  const [selectedRequest, setSelectedRequest] = useState(null);
-  const [selectedMessage, setSelectedMessage] = useState(null);
-  const [replyText, setReplyText] = useState('');
-  const [eventForm, setEventForm] = useState({ title: '', description: '', date: '', venue: '', category: 'Cultural', status: 'upcoming', academicYear: '2025-2026' });
-  const [editingEventId, setEditingEventId] = useState(null);
-  const [eventRegistrations, setEventRegistrations] = useState([]);
-  const [viewingRegistrationsEvent, setViewingRegistrationsEvent] = useState(null);
-  const [galleryForm, setGalleryForm] = useState({ eventName: '', caption: '', academicYear: '2025-2026' });
-  const [documentForm, setDocumentForm] = useState({ title: '', category: 'Report', visibility: 'Public' });
-  const [testimonialForm, setTestimonialForm] = useState({ name: '', role: '', quote: '', isFeatured: false });
-  const [settingsForm, setSettingsForm] = useState({ currentPassword: '', newPassword: '', siteTitle: 'MAGIC Youth Platform' });
-
-  // Files
-  const [eventPoster, setEventPoster] = useState(null);
-  const [galleryFile, setGalleryFile] = useState(null);
-  const [docFile, setDocFile] = useState(null);
-
-  // Success / Error messages in forms
-  const [formError, setFormError] = useState('');
-  const [formSuccess, setFormSuccess] = useState('');
-
-  // 1. Auth check
+  // Verify auth on mount
   useEffect(() => {
-    fetch('/api/auth/status')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.loggedIn) {
-          navigate('/admin/login');
-        } else {
-          setAdmin(data.admin);
-          fetchDashboardData();
-        }
+    api('/api/auth/status')
+      .then(d => {
+        if (!d.loggedIn) { navigate('/admin/login'); return; }
+        setAdmin(d.admin);
+        setLoading(false);
       })
       .catch(() => navigate('/admin/login'));
   }, [navigate]);
 
-  // Real-time notifications via Socket.IO
-  useEffect(() => {
-    const socket = io();
-    socket.on('new_notification', (notif) => {
-      setNotifications(prev => [notif, ...prev]);
-      setUnreadCount(prev => prev + 1);
-    });
-    socket.on('new_join_request', (app) => {
-      setJoinRequests(prev => [app, ...prev]);
-    });
-    socket.on('new_contact_message', (msg) => {
-      setContactMessages(prev => [msg, ...prev]);
-    });
-    return () => socket.disconnect();
-  }, []);
-
-  const fetchDashboardData = () => {
-    setLoading(true);
-    Promise.all([
-      fetch('/api/stats').then(res => res.json()),
-      fetch('/api/join').then(res => res.json()),
-      fetch('/api/contact').then(res => res.json()),
-      fetch('/api/events').then(res => res.json()),
-      fetch('/api/gallery').then(res => res.json()),
-      fetch('/api/documents').then(res => res.json()),
-      fetch('/api/testimonials').then(res => res.json()),
-      fetch('/api/notifications').then(res => res.json())
-    ]).then(([statsRes, joinRes, contactRes, eventsRes, galleryRes, docsRes, testimonialsRes, notifRes]) => {
-      if (statsRes.success) setStats(statsRes.data);
-      if (joinRes.success) setJoinRequests(joinRes.data);
-      if (contactRes.success) setContactMessages(contactRes.data);
-      if (eventsRes.success) setEvents(eventsRes.data);
-      if (galleryRes.success) setGallery(galleryRes.data);
-      if (docsRes.success) setDocuments(docsRes.data);
-      if (testimonialsRes.success) setTestimonials(testimonialsRes.data);
-      if (notifRes.success) {
-        setNotifications(notifRes.data);
-        setUnreadCount(notifRes.data.filter(n => !n.isRead).length);
+  // Load units
+  const fetchUnits = useCallback(() => {
+    if (!admin) return;
+    const url = admin.role === 'MAIN_ADMIN'
+      ? '/api/units?includeInactive=true'
+      : `/api/units?includeInactive=false`;
+    api(url).then(d => {
+      if (d.success) {
+        const allUnits = d.data || [];
+        const filtered = admin.role === 'MAIN_ADMIN'
+          ? allUnits
+          : allUnits.filter(u => admin.assignedUnitIds?.includes(u._id));
+        setUnits(filtered);
+        if (filtered.length > 0 && admin.role === 'SUB_ADMIN' && currentUnitId === 'all') {
+          setCurrentUnitId(filtered[0]._id);
+        }
       }
-    }).finally(() => setLoading(false));
-  };
+    }).catch(() => {});
+  }, [admin, currentUnitId]);
 
-  // Actions
+  useEffect(() => {
+    fetchUnits();
+  }, [fetchUnits]);
+
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     navigate('/admin/login');
   };
 
-  const handleUpdateJoinStatus = async (id, status) => {
-    try {
-      const res = await fetch(`/api/join/${id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setJoinRequests(prev => prev.map(item => item._id === id ? { ...item, status } : item));
-        setSelectedRequest(null);
-      }
-    } catch {}
-  };
+  // Navigation modules based on role
+  const modules = [
+    { key: 'dashboard', label: 'Dashboard',     icon: LayoutDashboard },
+    { key: 'units',     label: 'Units & Teams', icon: Building2 },
+    { key: 'events',    label: 'Events',        icon: Calendar },
+    { key: 'gallery',   label: 'Gallery',       icon: Image },
+    { key: 'documents', label: 'Documentation', icon: FileText },
+    { key: 'join',      label: 'Join Requests', icon: HeartHandshake },
+    { key: 'messages',  label: 'Messages',      icon: MessageSquare },
+    { key: 'settings',  label: 'Settings',      icon: Settings },
+  ];
 
-  const handleDeleteJoin = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this volunteer application?')) return;
-    try {
-      // Keep in local list minus deleted
-      setJoinRequests(prev => prev.filter(item => item._id !== id));
-    } catch {}
-  };
-
-  const handleUpdateContactStatus = async (id, status, reply = '') => {
-    try {
-      const res = await fetch(`/api/contact/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, adminReply: reply })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setContactMessages(prev => prev.map(item => item._id === id ? { ...item, status, adminReply: reply } : item));
-        setSelectedMessage(null);
-        setReplyText('');
-      }
-    } catch {}
-  };
-
-  const handleDeleteContact = async (id) => {
-    if (!window.confirm('Delete this message?')) return;
-    try {
-      await fetch(`/api/contact/${id}`, { method: 'DELETE' });
-      setContactMessages(prev => prev.filter(item => item._id !== id));
-    } catch {}
-  };
-
-  const handleSaveEvent = async (e) => {
-    e.preventDefault();
-    setFormError('');
-    setFormSuccess('');
-    try {
-      const formData = new FormData();
-      Object.keys(eventForm).forEach(k => formData.append(k, eventForm[k]));
-      if (eventPoster) formData.append('posterImage', eventPoster);
-
-      const url = editingEventId ? `/api/events/${editingEventId}` : '/api/events';
-      const method = editingEventId ? 'PUT' : 'POST';
-
-      const res = await fetch(url, { method, body: formData });
-      const data = await res.json();
-      if (data.success) {
-        setFormSuccess(editingEventId ? 'Event updated successfully!' : 'Event created successfully!');
-        setEventForm({ title: '', description: '', date: '', venue: '', category: 'Cultural', status: 'upcoming', academicYear: '2025-2026' });
-        setEventPoster(null);
-        setEditingEventId(null);
-        fetchDashboardData();
-      } else {
-        setFormError(data.message || 'Error saving event.');
-      }
-    } catch (err) {
-      setFormError('Network error saving event.');
-    }
-  };
-
-  const handleEditEvent = (evt) => {
-    setEditingEventId(evt._id);
-    setEventForm({
-      title: evt.title || '',
-      description: evt.description || '',
-      date: evt.date ? evt.date.split('T')[0] : '',
-      venue: evt.venue || '',
-      category: evt.category || 'Cultural',
-      status: evt.status || 'upcoming',
-      academicYear: evt.academicYear || '2025-2026'
-    });
-  };
-
-  const handleDeleteEvent = async (id) => {
-    if (!window.confirm('Delete this event?')) return;
-    try {
-      const res = await fetch(`/api/events/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) fetchDashboardData();
-    } catch {}
-  };
-
-  const handleViewRegistrations = async (evt) => {
-    setViewingRegistrationsEvent(evt);
-    try {
-      const res = await fetch(`/api/events/${evt._id}/registrations`);
-      const data = await res.json();
-      if (data.success) setEventRegistrations(data.data || []);
-    } catch {}
-  };
-
-  const handleUploadGallery = async (e) => {
-    e.preventDefault();
-    setFormError('');
-    setFormSuccess('');
-    if (!galleryFile) {
-      setFormError('Please select an image file to upload.');
-      return;
-    }
-    try {
-      const fData = new FormData();
-      fData.append('eventName', galleryForm.eventName);
-      fData.append('caption', galleryForm.caption);
-      fData.append('academicYear', galleryForm.academicYear);
-      fData.append('photo', galleryFile);
-
-      const res = await fetch('/api/gallery', { method: 'POST', body: fData });
-      const data = await res.json();
-      if (data.success) {
-        setFormSuccess('Gallery image uploaded!');
-        setGalleryForm({ eventName: '', caption: '', academicYear: '2025-2026' });
-        setGalleryFile(null);
-        fetchDashboardData();
-      } else {
-        setFormError(data.message || 'Error uploading image.');
-      }
-    } catch {
-      setFormError('Network error uploading image.');
-    }
-  };
-
-  const handleDeleteGallery = async (id) => {
-    if (!window.confirm('Delete this image?')) return;
-    try {
-      const res = await fetch(`/api/gallery/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) fetchDashboardData();
-    } catch {}
-  };
-
-  const handleUploadDocument = async (e) => {
-    e.preventDefault();
-    setFormError('');
-    setFormSuccess('');
-    if (!docFile) {
-      setFormError('Please select a document file.');
-      return;
-    }
-    try {
-      const fData = new FormData();
-      fData.append('title', documentForm.title);
-      fData.append('category', documentForm.category);
-      fData.append('visibility', documentForm.visibility);
-      fData.append('document', docFile);
-
-      const res = await fetch('/api/documents', { method: 'POST', body: fData });
-      const data = await res.json();
-      if (data.success) {
-        setFormSuccess('Document uploaded!');
-        setDocumentForm({ title: '', category: 'Report', visibility: 'Public' });
-        setDocFile(null);
-        fetchDashboardData();
-      } else {
-        setFormError(data.message || 'Error uploading document.');
-      }
-    } catch {
-      setFormError('Network error uploading document.');
-    }
-  };
-
-  const handleDeleteDocument = async (id) => {
-    if (!window.confirm('Delete this document?')) return;
-    try {
-      const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) fetchDashboardData();
-    } catch {}
-  };
-
-  const handleSaveTestimonial = async (e) => {
-    e.preventDefault();
-    setFormError('');
-    setFormSuccess('');
-    try {
-      const res = await fetch('/api/testimonials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(testimonialForm)
-      });
-      const data = await res.json();
-      if (data.success) {
-        setFormSuccess('Testimonial added successfully!');
-        setTestimonialForm({ name: '', role: '', quote: '', isFeatured: false });
-        fetchDashboardData();
-      } else {
-        setFormError(data.message);
-      }
-    } catch {
-      setFormError('Network error saving testimonial.');
-    }
-  };
-
-  const handleDeleteTestimonial = async (id) => {
-    if (!window.confirm('Delete this testimonial?')) return;
-    try {
-      await fetch(`/api/testimonials/${id}`, { method: 'DELETE' });
-      fetchDashboardData();
-    } catch {}
-  };
-
-  const handleUpdatePassword = async (e) => {
-    e.preventDefault();
-    setFormError('');
-    setFormSuccess('');
-    try {
-      const res = await fetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword: settingsForm.currentPassword,
-          newPassword: settingsForm.newPassword
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setFormSuccess('Admin password updated successfully!');
-        setSettingsForm(prev => ({ ...prev, currentPassword: '', newPassword: '' }));
-      } else {
-        setFormError(data.message || 'Failed to update password.');
-      }
-    } catch {
-      setFormError('Network error updating password.');
-    }
-  };
-
-  // CSV Export for Volunteer applications
-  const exportToCSV = () => {
-    const headers = ['Name,Email,Phone,Gender,College,Department,Year,City,Status\n'];
-    const rows = joinRequests.map(r => 
-      `"${r.name}","${r.email}","${r.phone}","${r.gender}","${r.college}","${r.department}","${r.year}","${r.city}","${r.status}"\n`
+  if (loading) {
+    return (
+      <div className="admin-layout" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 style={{ width: 36, height: 36, color: '#5B21B6' }} className="animate-spin" />
+      </div>
     );
-    const blob = new Blob([...headers, ...rows], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `volunteers_export_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Filter application files helper
-  const getFilteredRequests = () => {
-    return joinRequests.filter(r => {
-      const matchStatus = statusFilter === 'All' || r.status === statusFilter;
-      const matchSearch = !searchQuery || r.name.toLowerCase().includes(searchQuery.toLowerCase()) || r.college.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchStatus && matchSearch;
-    });
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-[#070114] text-slate-100 flex flex-col md:flex-row">
-      {/* ── SIDEBAR NAVIGATION ── */}
-      <aside className="w-full md:w-64 bg-[#0a021b]/95 border-b md:border-b-0 md:border-r border-purple-500/20 p-6 flex flex-col justify-between flex-shrink-0 relative z-30">
-        <div className="space-y-8">
-          {/* Admin title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-900/60 border border-purple-400/30 flex items-center justify-center text-white shadow-purple-glow">
-              <Sparkles className="w-5 h-5 text-purple-300" />
+    <div className="admin-layout">
+      <Toast toasts={toasts} />
+
+      {/* Clean Top Header */}
+      <header className="admin-header">
+        <div className="admin-header-container">
+          <a href="/" className="admin-brand">
+            <div className="admin-brand-icon">
+              <ShieldCheck style={{ width: 20, height: 20 }} />
             </div>
             <div>
-              <h2 className="font-extrabold text-sm tracking-wider uppercase text-white">MAGIC YOUTH</h2>
-              <p className="text-[10px] text-purple-400 font-semibold tracking-widest uppercase">Admin Portal</p>
+              <span className="admin-brand-title">MAGIC YOUTH</span>
+              <span className="admin-badge">Admin Portal</span>
             </div>
-          </div>
+          </a>
 
-          {/* Navigation Links */}
-          <nav className="space-y-1.5">
-            {[
-              { id: 'dashboard', label: 'Dashboard', icon: Activity },
-              { id: 'join_requests', label: 'Join Requests', icon: HeartHandshake },
-              { id: 'contact_messages', label: 'Contact Messages', icon: MessageSquare },
-              { id: 'events', label: 'Events Manager', icon: Calendar },
-              { id: 'gallery', label: 'Gallery Manager', icon: ImageIcon },
-              { id: 'documents', label: 'Document Center', icon: FileText },
-              { id: 'testimonials', label: 'Testimonials', icon: MessageCircle },
-              { id: 'settings', label: 'Settings', icon: SettingsIcon }
-            ].map(tab => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => { setActiveTab(tab.id); setFormSuccess(''); setFormError(''); }}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-purple-600 text-white shadow-purple-glow border border-purple-400/30'
-                      : 'text-slate-400 hover:text-purple-200 hover:bg-purple-950/20'
-                  }`}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {units.length > 0 && (
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={currentUnitId}
+                  onChange={e => setCurrentUnitId(e.target.value)}
+                  className="event-filter-select"
+                  style={{ paddingRight: '2rem' }}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Logout action */}
-        <div className="mt-8 pt-4 border-t border-purple-900/30">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold text-red-400 hover:bg-red-950/20 transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* ── MAIN WORKSPACE ── */}
-      <main className="flex-1 p-6 sm:p-10 overflow-y-auto max-w-full relative z-10">
-        {/* Header toolbar */}
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-4 border-b border-purple-900/30">
-          <div>
-            <h1 className="text-2xl font-extrabold text-white capitalize">{activeTab.replace('_', ' ')}</h1>
-            <p className="text-xs text-purple-300/50 mt-1">Logged in as {admin?.email || 'Administrator'}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={fetchDashboardData}
-              className="p-2 rounded-xl bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/20 text-purple-300 transition"
-              title="Sync Data"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <a
-              href="/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 rounded-xl border border-purple-500/20 bg-purple-950/20 hover:bg-purple-900/30 text-xs font-bold text-purple-300 flex items-center gap-1.5 transition"
-            >
-              <span>Public Site</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        </header>
-
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-24 text-purple-300/50">
-            <RefreshCw className="w-8 h-8 animate-spin mb-3 text-purple-500" />
-            <p className="text-xs">Fetching latest data from MongoDB...</p>
-          </div>
-        )}
-
-        {!loading && (
-          <div className="space-y-6">
-            {/* MODULE 1: DASHBOARD OVERVIEW */}
-            {activeTab === 'dashboard' && (
-              <div className="space-y-8">
-                {/* Stats grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-                  {[
-                    { label: 'Pending Volunteers', val: joinRequests.filter(r => r.status === 'Pending').length, icon: HeartHandshake, color: 'text-amber-400' },
-                    { label: 'Unread Inquiries', val: contactMessages.filter(c => c.status === 'New').length, icon: MessageSquare, color: 'text-blue-400' },
-                    { label: 'Total Events', val: events.length, icon: Calendar, color: 'text-purple-400' },
-                    { label: 'Public Documents', val: documents.length, icon: FileText, color: 'text-emerald-400' }
-                  ].map((stat, i) => (
-                    <div key={i} className="dark-glass-card p-5">
-                      <div className="flex justify-between items-center mb-3">
-                        <span className="text-[11px] font-semibold text-purple-300/60 uppercase tracking-wider">{stat.label}</span>
-                        <stat.icon className={`w-4 h-4 ${stat.color}`} />
-                      </div>
-                      <div className="text-3xl font-extrabold text-white">{stat.val}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Main panel layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                  {/* Recent join requests */}
-                  <div className="lg:col-span-6 dark-glass-card p-6">
-                    <h3 className="font-bold text-sm text-white mb-4 flex items-center gap-2">
-                      <HeartHandshake className="w-4 h-4 text-purple-400" /> Recent Applications
-                    </h3>
-                    <div className="space-y-3">
-                      {joinRequests.slice(0, 4).map(req => (
-                        <div key={req._id} className="p-3 rounded-xl bg-slate-950/60 border border-purple-500/10 flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-bold text-white">{req.name}</p>
-                            <p className="text-[10px] text-purple-300/50 mt-0.5">{req.college}</p>
-                          </div>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            req.status === 'Approved' ? 'bg-emerald-950 text-emerald-300' :
-                            req.status === 'Rejected' ? 'bg-red-950 text-red-300' :
-                            'bg-amber-950 text-amber-300'
-                          }`}>{req.status}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Recent messages */}
-                  <div className="lg:col-span-6 dark-glass-card p-6">
-                    <h3 className="font-bold text-sm text-white mb-4 flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4 text-purple-400" /> Recent Messages
-                    </h3>
-                    <div className="space-y-3">
-                      {contactMessages.slice(0, 4).map(msg => (
-                        <div key={msg._id} className="p-3 rounded-xl bg-slate-950/60 border border-purple-500/10 flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-bold text-white">{msg.name}</p>
-                            <p className="text-[10px] text-purple-300/50 mt-0.5 truncate max-w-xs">{msg.query}</p>
-                          </div>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            msg.status === 'Read' ? 'bg-slate-900 text-slate-400' : 'bg-blue-950 text-blue-300'
-                          }`}>{msg.status}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* System health and info */}
-                  <div className="lg:col-span-12 dark-glass-card p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex gap-4 items-start">
-                      <div className="p-3 rounded-2xl bg-purple-900/30 text-purple-400 border border-purple-500/25">
-                        <Info className="w-6 h-6 animate-pulse" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm text-white">System Diagnostics</h4>
-                        <p className="text-xs text-purple-300/55 mt-0.5 leading-relaxed">
-                          Connected to cluster: <strong>magicyouth-atlas</strong>. File uploads directed to <code>/uploads/</code> local storage. Real-time updates active via Socket.IO.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs font-semibold text-purple-300">
-                      <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> MDB Atlas Live</span>
-                    </div>
-                  </div>
-                </div>
+                  {admin?.role === 'MAIN_ADMIN' && <option value="all">All Units</option>}
+                  {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                </select>
               </div>
             )}
 
-            {/* MODULE 2: JOIN REQUESTS */}
-            {activeTab === 'join_requests' && (
-              <div className="space-y-6">
-                <div className="dark-glass-card p-5 flex flex-col sm:flex-row justify-between gap-4">
-                  <div className="flex items-center gap-2 flex-1">
-                    <div className="relative flex-1 max-w-md">
-                      <Search className="w-4 h-4 text-purple-400 absolute left-3.5 top-3" />
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        placeholder="Search applicant name or college..."
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/80 border border-purple-500/20 text-white text-xs outline-none"
-                      />
-                    </div>
-                    <select
-                      value={statusFilter}
-                      onChange={e => setStatusFilter(e.target.value)}
-                      className="px-4 py-2.5 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                    >
-                      <option value="All">All Statuses</option>
-                      <option value="Pending">Pending</option>
-                      <option value="Approved">Approved</option>
-                      <option value="Rejected">Rejected</option>
-                    </select>
-                  </div>
-                  <button
-                    onClick={exportToCSV}
-                    className="px-5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-650 text-xs font-bold text-white transition flex items-center justify-center gap-1.5"
-                  >
-                    Export CSV
+            <div style={{ fontSize: '0.8125rem', textAlign: 'right' }}>
+              <div style={{ fontWeight: 700, color: '#1F2937' }}>{admin?.name}</div>
+              <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{admin?.role === 'MAIN_ADMIN' ? '★ Main Admin' : 'Sub-Admin'}</div>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="admin-btn-action"
+              style={{ color: '#991B1B', borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }}
+            >
+              <LogOut style={{ width: 14, height: 14 }} />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Horizontal Clean Navigation Bar */}
+      <nav className="admin-nav-bar">
+        <div className="admin-nav-container">
+          {modules.map(m => {
+            const Icon = m.icon;
+            return (
+              <button
+                key={m.key}
+                onClick={() => setModule(m.key)}
+                className={`admin-nav-item ${module === m.key ? 'active' : ''}`}
+              >
+                <Icon style={{ width: 16, height: 16 }} />
+                <span>{m.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* Main content container */}
+      <main className="admin-main-container">
+        <div className="admin-module-title" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>
+            {modules.find(m => m.key === module)?.label || 'Dashboard'}
+          </h1>
+        </div>
+
+        {/* Module content */}
+        <div>
+          {module === 'dashboard' && <DashboardModule admin={admin} currentUnitId={currentUnitId} />}
+          {module === 'units'     && <UnitsModule toast={toast} refreshUnits={fetchUnits} />}
+          {module === 'events'    && <EventsModule toast={toast} admin={admin} currentUnitId={currentUnitId} units={units} />}
+          {module === 'gallery'   && <GalleryModule toast={toast} admin={admin} currentUnitId={currentUnitId} units={units} />}
+          {module === 'documents' && <DocumentsModule toast={toast} admin={admin} currentUnitId={currentUnitId} units={units} />}
+          {module === 'join'      && <JoinRequestsModule toast={toast} admin={admin} />}
+          {module === 'messages'  && <ContactModule toast={toast} admin={admin} />}
+          {module === 'settings'  && <SettingsModule toast={toast} admin={admin} />}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ─── Dashboard Stats ──────────────────────────────────────────────────────────
+function DashboardModule({ admin, currentUnitId }) {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('/api/stats').then(d => { if (d.success) setStats(d.data); setLoading(false); }).catch(() => setLoading(false));
+  }, [currentUnitId]);
+
+  if (loading) return <div className="flex items-center justify-center h-40"><Loader2 className="animate-spin w-6 h-6 text-purple-400" /></div>;
+
+  const cards = [
+    { label: 'Units',        value: stats?.totalUnits     ?? 0, color: 'from-purple-600 to-violet-600' },
+    { label: 'Events',       value: stats?.totalEvents    ?? 0, color: 'from-blue-600 to-indigo-600' },
+    { label: 'Gallery',      value: stats?.totalPhotos    ?? 0, color: 'from-pink-600 to-rose-600' },
+    { label: 'Documents',    value: stats?.totalDocuments ?? 0, color: 'from-emerald-600 to-teal-600' },
+    { label: 'Applications', value: stats?.totalJoinRequests ?? 0, color: 'from-amber-600 to-orange-600' },
+    { label: 'Messages',     value: stats?.totalMessages  ?? 0, color: 'from-cyan-600 to-sky-600' },
+    ...(admin?.role === 'MAIN_ADMIN' ? [{ label: 'Sub-Admins', value: stats?.totalSubAdmins ?? 0, color: 'from-fuchsia-600 to-purple-600' }] : []),
+    ...(stats?.pendingJoinRequests > 0 ? [{ label: 'Pending Apps', value: stats.pendingJoinRequests, color: 'from-red-600 to-pink-600', alert: true }] : []),
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className="admin-card">
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.375rem' }}>
+          Welcome back, {admin?.name?.split(' ')[0]} 👋
+        </h2>
+        <p style={{ fontSize: '0.875rem', color: '#6B7280', margin: 0 }}>
+          {admin?.role === 'MAIN_ADMIN' ? 'You have full platform access.' : 'Manage your assigned units.'}
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        {cards.map(c => (
+          <div key={c.label} className="admin-card" style={{ padding: '1.25rem', borderLeft: c.alert ? '4px solid #EF4444' : '4px solid #5B21B6' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 800, color: c.alert ? '#DC2626' : '#5B21B6', marginBottom: '0.25rem' }}>{c.value}</div>
+            <p style={{ fontSize: '0.8125rem', color: '#6B7280', fontWeight: 600, margin: 0 }}>{c.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent Activity */}
+      {stats?.recentEvents?.length > 0 && (
+        <div className="admin-card">
+          <h3 className="admin-card-title" style={{ marginBottom: '1rem' }}>Recent Events</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {stats.recentEvents.map(e => (
+              <div key={e._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.625rem 0', borderBottom: '1px solid #F3F4F6' }}>
+                <span style={{ fontSize: '0.875rem', color: '#1F2937', fontWeight: 600 }}>{e.title}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '9999px', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>{e.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Unit Hierarchy Sub-Component ──────────────────────────────────────────────
+function UnitHierarchyTree({ unit, toast, onUpdate }) {
+  const [years, setYears] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [members, setMembers] = useState({}); // teamId -> member list
+  const [loading, setLoading] = useState(true);
+
+  // Quick Add states
+  const [showAddYear, setShowAddYear] = useState(false);
+  const [newYearStr, setNewYearStr] = useState('');
+
+  const [activeYearForTeam, setActiveYearForTeam] = useState(null);
+  const [newTeamName, setNewTeamName] = useState('Executive Board');
+
+  const [activeTeamForMember, setActiveTeamForMember] = useState(null);
+  const [memberForm, setMemberForm] = useState({ name: '', position: 'Lead', biography: '', department: '' });
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [yRes, tRes] = await Promise.all([
+        api(`/api/academic-years?unitId=${unit._id}`),
+        api(`/api/teams?unitId=${unit._id}`)
+      ]);
+      const loadedYears = yRes.data || [];
+      const loadedTeams = tRes.data || [];
+      setYears(loadedYears);
+      setTeams(loadedTeams);
+
+      const memPromises = loadedTeams.map(t =>
+        api(`/api/teams/${t._id}/members`).then(m => ({ teamId: t._id, list: m.data || [] }))
+      );
+      const memResults = await Promise.all(memPromises);
+      const map = {};
+      memResults.forEach(r => { map[r.teamId] = r.list; });
+      setMembers(map);
+    } catch (e) { toast(e.message, 'error'); }
+    setLoading(false);
+  }, [unit._id, toast]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const addYear = async () => {
+    if (!newYearStr.trim()) { toast('Please enter a Year (e.g. 2025-2026)', 'error'); return; }
+    try {
+      await api('/api/academic-years', { method: 'POST', body: JSON.stringify({ unitId: unit._id, year: newYearStr }) });
+      toast(`Academic year ${newYearStr} created.`);
+      setNewYearStr(''); setShowAddYear(false); loadData(); onUpdate?.();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const addTeam = async (academicYearId) => {
+    if (!newTeamName.trim()) { toast('Please enter a Team Name', 'error'); return; }
+    try {
+      await api('/api/teams', { method: 'POST', body: JSON.stringify({ unitId: unit._id, academicYearId, name: newTeamName }) });
+      toast(`Team ${newTeamName} created.`);
+      setNewTeamName('Executive Board'); setActiveYearForTeam(null); loadData(); onUpdate?.();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const addMember = async (teamId) => {
+    if (!memberForm.name.trim() || !memberForm.position.trim()) {
+      toast('Please enter Member Name and Position (e.g. Lead, President)', 'error'); return;
+    }
+    try {
+      await api(`/api/teams/${teamId}/members`, { method: 'POST', body: JSON.stringify(memberForm) });
+      toast(`Lead/Member ${memberForm.name} added.`);
+      setMemberForm({ name: '', position: 'Lead', biography: '', department: '' }); setActiveTeamForMember(null); loadData();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const deleteMember = async (memberId) => {
+    if (!confirm('Remove this lead/member?')) return;
+    try {
+      await api(`/api/teams/members/${memberId}`, { method: 'DELETE' });
+      toast('Lead/Member removed.'); loadData();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const editTeam = async (team) => {
+    const newName = prompt('Enter new team name:', team.name);
+    if (!newName) return;
+    try {
+      await api(`/api/teams/${team._id}`, { method: 'PATCH', body: JSON.stringify({ name: newName }) });
+      toast('Team name updated.');
+      loadData(); onUpdate?.();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const archiveTeam = async (teamId) => {
+    if (!confirm('Archive this team?')) return;
+    try {
+      await api(`/api/teams/${teamId}/archive`, { method: 'PATCH' });
+      toast('Team archived.'); loadData(); onUpdate?.();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const unarchiveTeam = async (teamId) => {
+    if (!confirm('Unarchive this team?')) return;
+    try {
+      await api(`/api/teams/${teamId}/unarchive`, { method: 'PATCH' });
+      toast('Team unarchived.'); loadData(); onUpdate?.();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const deleteTeam = async (teamId) => {
+    if (!confirm('Delete this team?')) return;
+    try {
+      await api(`/api/teams/${teamId}`, { method: 'DELETE' });
+      toast('Team deleted.'); loadData(); onUpdate?.();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+  return (
+    <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+          <CalendarDays style={{ width: 16, height: 16, color: '#5B21B6' }} /> Academic Years &amp; Leads ({years.length})
+        </h4>
+        <button onClick={() => setShowAddYear(!showAddYear)} className="admin-btn-action">
+          <Plus style={{ width: 14, height: 14 }} /> Add Year
+        </button>
+      </div>
+
+      {showAddYear && (
+        <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: '#F8F7FC', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #E5E7EB' }}>
+          <input placeholder="Year (e.g. 2025-2026)" value={newYearStr} onChange={e => setNewYearStr(e.target.value)}
+            className="admin-input" style={{ flex: 1, padding: '0.5rem 0.75rem' }} />
+          <button onClick={addYear} className="admin-btn-primary" style={{ width: 'auto', padding: '0.5rem 1rem' }}>Save</button>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}><Loader2 style={{ width: 20, height: 20, color: '#5B21B6' }} className="animate-spin" /></div>
+      ) : years.length === 0 ? (
+        <p style={{ fontSize: '0.8125rem', color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', margin: 0 }}>No Academic Years created yet for this unit.</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {years.map(y => {
+            const yearTeams = teams.filter(t => (t.academicYearId?._id || t.academicYearId) === y._id);
+            return (
+              <div key={y._id} style={{ backgroundColor: '#F8F7FC', border: '1px solid #E5E7EB', borderRadius: '0.875rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#5B21B6', backgroundColor: '#EDE9FE', padding: '0.25rem 0.625rem', borderRadius: '9999px' }}>
+                    Academic Year: {y.year}
+                  </span>
+                  <button onClick={() => setActiveYearForTeam(activeYearForTeam === y._id ? null : y._id)} className="admin-btn-action">
+                    <Plus style={{ width: 12, height: 12 }} /> Add Team
                   </button>
                 </div>
 
-                <div className="dark-glass-card overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs text-purple-100/80">
-                      <thead>
-                        <tr className="bg-slate-950/90 border-b border-purple-900/30 text-purple-300 text-[10px] uppercase font-bold">
-                          <th className="p-4">Applicant</th>
-                          <th className="p-4">College</th>
-                          <th className="p-4">Skills</th>
-                          <th className="p-4">Status</th>
-                          <th className="p-4 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-purple-900/20">
-                        {getFilteredRequests().map(req => (
-                          <tr key={req._id} className="hover:bg-purple-950/10 transition-colors">
-                            <td className="p-4">
-                              <div className="font-bold text-white">{req.name}</div>
-                              <div className="text-[10px] text-purple-300/50 mt-0.5">{req.email} · {req.phone}</div>
-                            </td>
-                            <td className="p-4">
-                              <div className="font-semibold text-white/80">{req.college}</div>
-                              <div className="text-[10px] text-purple-300/40 mt-0.5">{req.department} · {req.year}</div>
-                            </td>
-                            <td className="p-4">
-                              <div className="flex flex-wrap gap-1">
-                                {req.skills.map(s => <span key={s} className="bg-purple-950/60 border border-purple-500/20 px-2 py-0.5 rounded text-[9px] text-purple-300 font-semibold">{s}</span>)}
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
-                                req.status === 'Approved' ? 'badge-ongoing' :
-                                req.status === 'Rejected' ? 'bg-red-950 text-red-300 border border-red-500/25' :
-                                'badge-upcoming'
-                              }`}>{req.status}</span>
-                            </td>
-                            <td className="p-4 text-right space-x-2">
-                              <button
-                                onClick={() => setSelectedRequest(req)}
-                                className="p-1.5 rounded-lg bg-purple-950 hover:bg-purple-900 text-purple-300 border border-purple-500/20 transition"
-                                title="View Details"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteJoin(req._id)}
-                                className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900 text-red-400 border border-red-500/20 transition"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                {activeYearForTeam === y._id && (
+                  <div style={{ display: 'flex', gap: '0.5rem', padding: '0.625rem', backgroundColor: '#FFFFFF', borderRadius: '0.625rem', border: '1px solid #E5E7EB' }}>
+                    <input placeholder="Team Name (e.g. Executive Board)" value={newTeamName} onChange={e => setNewTeamName(e.target.value)}
+                      className="admin-input" style={{ flex: 1, padding: '0.375rem 0.625rem' }} />
+                    <button onClick={() => addTeam(y._id)} className="admin-btn-primary" style={{ width: 'auto', padding: '0.375rem 0.875rem' }}>Create Team</button>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* MODULE 3: CONTACT MESSAGES */}
-            {activeTab === 'contact_messages' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-1 dark-glass-card p-5 space-y-3 max-h-[70vh] overflow-y-auto">
-                    <h3 className="font-bold text-xs text-purple-300 uppercase tracking-widest pb-2 border-b border-purple-900/30">Inbox</h3>
-                    {contactMessages.map(msg => (
-                      <div
-                        key={msg._id}
-                        onClick={() => { setSelectedMessage(msg); setReplyText(msg.adminReply || ''); }}
-                        className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                          selectedMessage?._id === msg._id
-                            ? 'bg-purple-900/30 border-purple-500/50'
-                            : 'bg-slate-950/60 border-purple-500/10 hover:border-purple-500/30'
-                        }`}
-                      >
-                        <div className="flex justify-between items-center mb-1.5">
-                          <span className="font-bold text-xs text-white truncate max-w-[120px]">{msg.name}</span>
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                            msg.status === 'New' ? 'bg-blue-950 text-blue-300 border border-blue-800/40' : 'bg-slate-900 text-slate-400'
-                          }`}>{msg.status}</span>
-                        </div>
-                        <p className="text-[10px] text-purple-300/70 truncate">{msg.subject}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="lg:col-span-2">
-                    {selectedMessage ? (
-                      <div className="dark-glass-card p-6 space-y-6">
-                        <div className="flex justify-between items-start border-b border-purple-900/30 pb-4">
-                          <div>
-                            <h3 className="font-bold text-base text-white">{selectedMessage.name}</h3>
-                            <p className="text-xs text-purple-300/50 mt-0.5">{selectedMessage.email} · {selectedMessage.phone || 'No phone'}</p>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteContact(selectedMessage._id)}
-                            className="p-2 rounded-xl bg-red-950/40 hover:bg-red-900 text-red-400 border border-red-500/25 transition"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <div>
-                          <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-1.5">Subject</p>
-                          <p className="text-xs font-bold text-white">{selectedMessage.subject}</p>
-                        </div>
-
-                        <div className="p-4 rounded-xl bg-slate-950/80 border border-purple-500/15">
-                          <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-1.5">Message Inquiry</p>
-                          <p className="text-xs text-purple-200/85 leading-relaxed italic">"{selectedMessage.query}"</p>
-                        </div>
-
-                        {selectedMessage.adminReply && (
-                          <div className="p-4 rounded-xl bg-purple-950/40 border border-purple-500/15">
-                            <p className="text-[10px] font-bold text-purple-400 uppercase tracking-widest mb-1.5">Saved Reply / Action Notes</p>
-                            <p className="text-xs text-purple-200/70 leading-relaxed font-semibold">{selectedMessage.adminReply}</p>
-                          </div>
-                        )}
-
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            handleUpdateContactStatus(selectedMessage._id, 'Replied', replyText);
-                          }}
-                          className="space-y-4 pt-4 border-t border-purple-900/30"
-                        >
-                          <label className="block text-[11px] font-semibold text-purple-300">Reply Note / Change Status</label>
-                          <textarea
-                            value={replyText}
-                            onChange={e => setReplyText(e.target.value)}
-                            rows="3"
-                            placeholder="Add reply history or response notes..."
-                            className="w-full p-3 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none resize-none"
-                          />
-                          <div className="flex gap-2">
-                            <button type="submit" className="btn-purple-glow px-6 py-2 rounded-full text-xs font-bold">
-                              Save Reply / Mark Replied
-                            </button>
-                            {selectedMessage.status === 'New' && (
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateContactStatus(selectedMessage._id, 'Read')}
-                                className="btn-ghost px-5 py-2 rounded-full text-xs font-bold"
-                              >
-                                Mark Read Only
-                              </button>
-                            )}
-                          </div>
-                        </form>
-                      </div>
-                    ) : (
-                      <div className="dark-glass-card p-12 text-center text-purple-300/30 text-xs">
-                        Select an inquiry from the inbox list to view details or record responses.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* MODULE 4: EVENTS MANAGER */}
-            {activeTab === 'events' && (
-              <div className="space-y-8">
-                {/* Event Creation Form */}
-                <div className="dark-glass-card p-6">
-                  <h3 className="font-bold text-sm text-white border-b border-purple-900/30 pb-3 mb-5 flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-purple-400" />
-                    <span>{editingEventId ? 'Edit Event Details' : 'Publish / Create New Activity'}</span>
-                  </h3>
-
-                  {formSuccess && <p className="mb-4 text-xs text-emerald-400 font-semibold">✓ {formSuccess}</p>}
-                  {formError && <p className="mb-4 text-xs text-red-400 font-semibold">⚠ {formError}</p>}
-
-                  <form onSubmit={handleSaveEvent} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Event Title *</label>
-                        <input
-                          type="text"
-                          required
-                          value={eventForm.title}
-                          onChange={e => setEventForm(f => ({ ...f, title: e.target.value }))}
-                          placeholder="State level Chess Championship..."
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Venue / Location *</label>
-                        <input
-                          type="text"
-                          required
-                          value={eventForm.venue}
-                          onChange={e => setEventForm(f => ({ ...f, venue: e.target.value }))}
-                          placeholder="ALIET Seminar Hall..."
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Date *</label>
-                        <input
-                          type="date"
-                          required
-                          value={eventForm.date}
-                          onChange={e => setEventForm(f => ({ ...f, date: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Category</label>
-                        <select
-                          value={eventForm.category}
-                          onChange={e => setEventForm(f => ({ ...f, category: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        >
-                          <option value="Cultural">Cultural</option>
-                          <option value="Sports & Chess">Sports & Chess</option>
-                          <option value="Technical">Technical</option>
-                          <option value="Social Outreach">Social Outreach</option>
-                          <option value="Leadership">Leadership</option>
-                          <option value="Programs">Programs (Flagships)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Status</label>
-                        <select
-                          value={eventForm.status}
-                          onChange={e => setEventForm(f => ({ ...f, status: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        >
-                          <option value="upcoming">Upcoming</option>
-                          <option value="ongoing">Ongoing</option>
-                          <option value="completed">Completed</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Academic Year</label>
-                        <select
-                          value={eventForm.academicYear}
-                          onChange={e => setEventForm(f => ({ ...f, academicYear: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        >
-                          <option value="2025-2026">2025-2026</option>
-                          <option value="2024-2025">2024-2025</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] font-semibold text-purple-300 mb-1">Description *</label>
-                      <textarea
-                        required
-                        value={eventForm.description}
-                        onChange={e => setEventForm(f => ({ ...f, description: e.target.value }))}
-                        rows="3"
-                        placeholder="Write detailed event highlights, guidelines, participants details..."
-                        className="w-full p-3 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none resize-none"
-                      />
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center gap-4 justify-between pt-2">
-                      <div className="flex items-center gap-2">
-                        <ImageIcon className="w-5 h-5 text-purple-400" />
-                        <label className="cursor-pointer bg-purple-950 hover:bg-purple-900 border border-purple-500/20 px-4 py-2 rounded-xl text-xs font-bold text-purple-300 transition">
-                          Upload Poster Image
-                          <input type="file" accept="image/*" onChange={e => setEventPoster(e.target.files[0])} className="hidden" />
-                        </label>
-                        {eventPoster && <span className="text-[10px] text-purple-200">✓ {eventPoster.name}</span>}
-                      </div>
-                      <div className="flex gap-2">
-                        <button type="submit" className="btn-purple-glow px-6 py-2 rounded-full text-xs font-bold">
-                          {editingEventId ? '✓ Save Changes' : '✨ Publish Activity'}
-                        </button>
-                        {editingEventId && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingEventId(null);
-                              setEventForm({ title: '', description: '', date: '', venue: '', category: 'Cultural', status: 'upcoming', academicYear: '2025-2026' });
-                            }}
-                            className="btn-ghost px-5 py-2 rounded-full text-xs font-bold"
-                          >
-                            Cancel Edit
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </form>
-                </div>
-
-                {/* Events list */}
-                <div className="dark-glass-card p-6">
-                  <h3 className="font-bold text-sm text-white mb-4">Published Activities</h3>
-                  <div className="space-y-4">
-                    {events.map(evt => (
-                      <div key={evt._id} className="p-4 rounded-xl bg-slate-950/60 border border-purple-500/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-white text-sm">{evt.title}</h4>
-                            <span className="text-[9px] bg-purple-900/60 text-purple-200 px-2 py-0.5 rounded font-bold uppercase tracking-wider">{evt.status}</span>
-                          </div>
-                          <p className="text-[10px] text-purple-300/50 mt-1">📅 {evt.date?.split('T')[0]} · 📍 {evt.venue} · 🏷️ {evt.category}</p>
-                        </div>
-                        <div className="flex gap-2 self-end sm:self-center">
-                          <button
-                            onClick={() => handleViewRegistrations(evt)}
-                            className="px-3 py-1.5 rounded-lg bg-purple-950 border border-purple-500/20 text-[10px] font-bold text-purple-300 hover:bg-purple-900 transition flex items-center gap-1"
-                          >
-                            <Users className="w-3.5 h-3.5" /> Registrations
-                          </button>
-                          <button
-                            onClick={() => handleEditEvent(evt)}
-                            className="p-1.5 rounded-lg bg-purple-950 hover:bg-purple-900 text-purple-300 border border-purple-500/20 transition"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteEvent(evt._id)}
-                            className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900 text-red-400 border border-red-500/20 transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* MODULE 5: GALLERY */}
-            {activeTab === 'gallery' && (
-              <div className="space-y-6">
-                <div className="dark-glass-card p-6">
-                  <h3 className="font-bold text-sm text-white border-b border-purple-900/30 pb-3 mb-5 flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4 text-purple-400" />
-                    <span>Upload Gallery Photos (Bulk & Album wise)</span>
-                  </h3>
-                  {formSuccess && <p className="mb-4 text-xs text-emerald-400 font-semibold">✓ {formSuccess}</p>}
-                  {formError && <p className="mb-4 text-xs text-red-400 font-semibold">⚠ {formError}</p>}
-
-                  <form onSubmit={handleUploadGallery} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Album / Event Name *</label>
-                        <input
-                          type="text"
-                          required
-                          value={galleryForm.eventName}
-                          onChange={e => setGalleryForm(f => ({ ...f, eventName: e.target.value }))}
-                          placeholder="e.g. Chess Tournament 2025"
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Academic Year</label>
-                        <select
-                          value={galleryForm.academicYear}
-                          onChange={e => setGalleryForm(f => ({ ...f, academicYear: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        >
-                          <option value="2025-2026">2025-2026</option>
-                          <option value="2024-2025">2024-2025</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Select Photo File *</label>
-                        <label className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 cursor-pointer text-xs font-semibold text-purple-300 hover:border-purple-400 transition">
-                          <UploadCloud className="w-4 h-4" />
-                          <span>{galleryFile ? galleryFile.name : 'Choose Image'}</span>
-                          <input type="file" accept="image/*" onChange={e => setGalleryFile(e.target.files[0])} className="hidden" />
-                        </label>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-purple-300 mb-1">Image Caption</label>
-                      <input
-                        type="text"
-                        value={galleryForm.caption}
-                        onChange={e => setGalleryForm(f => ({ ...f, caption: e.target.value }))}
-                        placeholder="e.g. Final round highlight match..."
-                        className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                      />
-                    </div>
-                    <button type="submit" className="btn-purple-glow px-6 py-2 rounded-full text-xs font-bold">
-                      Upload Image to Gallery
-                    </button>
-                  </form>
-                </div>
-
-                {/* Images grid */}
-                <div className="dark-glass-card p-6">
-                  <h3 className="font-bold text-sm text-white mb-4">Gallery Images ({gallery.length})</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                    {gallery.map(img => (
-                      <div key={img._id} className="relative aspect-square rounded-xl overflow-hidden border border-purple-500/10 group">
-                        <img src={`/uploads/gallery/${img.filename}`} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col justify-between p-2.5 transition-opacity duration-300 text-left">
-                          <span className="text-[9px] font-bold text-purple-300 truncate">{img.eventName}</span>
-                          <button
-                            onClick={() => handleDeleteGallery(img._id)}
-                            className="p-1 rounded bg-red-950/80 text-red-400 hover:bg-red-900 border border-red-500/30 transition self-end"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* MODULE 6: DOCUMENTS */}
-            {activeTab === 'documents' && (
-              <div className="space-y-6">
-                <div className="dark-glass-card p-6">
-                  <h3 className="font-bold text-sm text-white border-b border-purple-900/30 pb-3 mb-5 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-purple-400" />
-                    <span>Upload Reports / Document visibility</span>
-                  </h3>
-                  {formSuccess && <p className="mb-4 text-xs text-emerald-400 font-semibold">✓ {formSuccess}</p>}
-                  {formError && <p className="mb-4 text-xs text-red-400 font-semibold">⚠ {formError}</p>}
-
-                  <form onSubmit={handleUploadDocument} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Document Title *</label>
-                        <input
-                          type="text"
-                          required
-                          value={documentForm.title}
-                          onChange={e => setDocumentForm(f => ({ ...f, title: e.target.value }))}
-                          placeholder="e.g. Annual Audit Report 2025"
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Category</label>
-                        <select
-                          value={documentForm.category}
-                          onChange={e => setDocumentForm(f => ({ ...f, category: e.target.value }))}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        >
-                          <option value="Report">Audit Report</option>
-                          <option value="Newsletter">Newsletter</option>
-                          <option value="Syllabus">Guidelines / Handbooks</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Select File *</label>
-                        <label className="w-full flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 cursor-pointer text-xs font-semibold text-purple-300 hover:border-purple-400 transition">
-                          <UploadCloud className="w-4 h-4" />
-                          <span>{docFile ? docFile.name : 'Choose File (PDF/Docs)'}</span>
-                          <input type="file" onChange={e => setDocFile(e.target.files[0])} className="hidden" />
-                        </label>
-                      </div>
-                    </div>
-                    <button type="submit" className="btn-purple-glow px-6 py-2 rounded-full text-xs font-bold">
-                      Upload Document
-                    </button>
-                  </form>
-                </div>
-
-                {/* Documents list */}
-                <div className="dark-glass-card p-6">
-                  <h3 className="font-bold text-sm text-white mb-4">Uploaded Documents ({documents.length})</h3>
-                  <div className="space-y-4">
-                    {documents.map(doc => (
-                      <div key={doc._id} className="p-4 rounded-xl bg-slate-950/60 border border-purple-500/10 flex justify-between items-center text-xs">
-                        <div>
-                          <h4 className="font-bold text-white">{doc.title}</h4>
-                          <p className="text-[10px] text-purple-300/50 mt-1">📁 {doc.category} · 👁️ {doc.visibility} · Download count: {doc.downloadsCount || 0}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleDeleteDocument(doc._id)}
-                            className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900 text-red-400 border border-red-500/20 transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* MODULE 7: TESTIMONIALS */}
-            {activeTab === 'testimonials' && (
-              <div className="space-y-6">
-                <div className="dark-glass-card p-6">
-                  <h3 className="font-bold text-sm text-white border-b border-purple-900/30 pb-3 mb-5">Add Quote/Testimonial</h3>
-                  {formSuccess && <p className="mb-4 text-xs text-emerald-400 font-semibold">✓ {formSuccess}</p>}
-                  {formError && <p className="mb-4 text-xs text-red-400 font-semibold">⚠ {formError}</p>}
-
-                  <form onSubmit={handleSaveTestimonial} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Author Name *</label>
-                        <input
-                          type="text"
-                          required
-                          value={testimonialForm.name}
-                          onChange={e => setTestimonialForm(f => ({ ...f, name: e.target.value }))}
-                          placeholder="e.g. Dr. K Srinivas"
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold text-purple-300 mb-1">Role / Position *</label>
-                        <input
-                          type="text"
-                          required
-                          value={testimonialForm.role}
-                          onChange={e => setTestimonialForm(f => ({ ...f, role: e.target.value }))}
-                          placeholder="e.g. Student Volunteer Coordinator"
-                          className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-purple-300 mb-1">Testimonial Quote *</label>
-                      <textarea
-                        required
-                        value={testimonialForm.quote}
-                        onChange={e => setTestimonialForm(f => ({ ...f, quote: e.target.value }))}
-                        rows="3"
-                        placeholder="Write quote text..."
-                        className="w-full p-3 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none resize-none"
-                      />
-                    </div>
-                    <button type="submit" className="btn-purple-glow px-6 py-2 rounded-full text-xs font-bold">
-                      Add Testimonial Quote
-                    </button>
-                  </form>
-                </div>
-
-                <div className="dark-glass-card p-6">
-                  <h3 className="font-bold text-sm text-white mb-4">Testimonials List</h3>
-                  <div className="space-y-4">
-                    {testimonials.map(item => (
-                      <div key={item._id} className="p-4 rounded-xl bg-slate-950/60 border border-purple-500/10 flex justify-between items-center text-xs">
-                        <div className="max-w-xl">
-                          <p className="italic text-purple-200/80">"{item.quote}"</p>
-                          <p className="font-bold text-white mt-1">
-                            — {item.name} <span className="text-[10px] text-purple-400 font-semibold">({item.role})</span>
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteTestimonial(item._id)}
-                          className="p-1.5 rounded-lg bg-red-950/40 hover:bg-red-900 text-red-400 border border-red-500/20 transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* MODULE 8: SETTINGS */}
-            {activeTab === 'settings' && (
-              <div className="space-y-6">
-                <div className="dark-glass-card p-6">
-                  <h3 className="font-bold text-sm text-white border-b border-purple-900/30 pb-3 mb-5 flex items-center gap-2">
-                    <SettingsIcon className="w-4 h-4 text-purple-400" />
-                    <span>Change Portal Administrator Password</span>
-                  </h3>
-                  {formSuccess && <p className="mb-4 text-xs text-emerald-400 font-semibold">✓ {formSuccess}</p>}
-                  {formError && <p className="mb-4 text-xs text-red-400 font-semibold">⚠ {formError}</p>}
-
-                  <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md">
-                    <div>
-                      <label className="block text-[10px] font-semibold text-purple-300 mb-1">Current Password *</label>
-                      <input
-                        type="password"
-                        required
-                        value={settingsForm.currentPassword}
-                        onChange={e => setSettingsForm(f => ({ ...f, currentPassword: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-semibold text-purple-300 mb-1">New Password *</label>
-                      <input
-                        type="password"
-                        required
-                        value={settingsForm.newPassword}
-                        onChange={e => setSettingsForm(f => ({ ...f, newPassword: e.target.value }))}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-purple-500/20 text-white text-xs outline-none"
-                      />
-                    </div>
-                    <button type="submit" className="btn-purple-glow px-6 py-2 rounded-full text-xs font-bold">
-                      Update Admin Password
-                    </button>
-                  </form>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-
-      {/* ── DETAIL MODALS ── */}
-      {selectedRequest && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="dark-glass-card max-w-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto relative border-purple-500/30 shadow-2xl text-xs">
-            <button onClick={() => setSelectedRequest(null)} className="absolute top-4 right-4 text-purple-400 hover:text-white">✕</button>
-            <div className="border-b border-purple-900/30 pb-3 flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-purple-950 border border-purple-500/20 flex items-center justify-center font-bold text-white text-base">
-                {selectedRequest.profileImage ? (
-                  <img src={`/uploads/join/${selectedRequest.profileImage}`} alt="" className="w-full h-full rounded-full object-cover" />
-                ) : selectedRequest.name[0]}
-              </div>
-              <div>
-                <h3 className="font-extrabold text-sm text-white">{selectedRequest.name}</h3>
-                <p className="text-[10px] text-purple-300/60 mt-0.5">{selectedRequest.email} · {selectedRequest.phone}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-slate-950/60 border border-purple-500/10 rounded-xl space-y-1">
-                <p className="font-bold text-[9px] uppercase text-purple-300">College & Location</p>
-                <p className="text-white/80">{selectedRequest.college}</p>
-                <p className="text-[10px] text-purple-300/50">{selectedRequest.city}</p>
-              </div>
-              <div className="p-3 bg-slate-950/60 border border-purple-500/10 rounded-xl space-y-1">
-                <p className="font-bold text-[9px] uppercase text-purple-300">Academic Major</p>
-                <p className="text-white/80">{selectedRequest.department} ({selectedRequest.year})</p>
-              </div>
-            </div>
-
-            <div className="p-3 bg-slate-950/60 border border-purple-500/10 rounded-xl space-y-1">
-              <p className="font-bold text-[9px] uppercase text-purple-300">Motivation / Statement</p>
-              <p className="leading-relaxed italic text-purple-200/80">"{selectedRequest.reason}"</p>
-            </div>
-
-            {selectedRequest.previousExperience && (
-              <div className="p-3 bg-slate-950/60 border border-purple-500/10 rounded-xl space-y-1">
-                <p className="font-bold text-[9px] uppercase text-purple-300">Volunteering History</p>
-                <p className="leading-relaxed">{selectedRequest.previousExperience}</p>
-              </div>
-            )}
-
-            <div className="flex justify-between items-center border-t border-purple-900/30 pt-4">
-              <div className="flex gap-2">
-                {selectedRequest.resumeUrl ? (
-                  <a
-                    href={`/uploads/join/${selectedRequest.resumeUrl}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 bg-purple-900/40 hover:bg-purple-900/60 border border-purple-500/20 text-purple-300 font-bold rounded-full text-[10px] transition"
-                  >
-                    View Resume / CV
-                  </a>
+                {yearTeams.length === 0 ? (
+                  <p style={{ fontSize: '0.75rem', color: '#9CA3AF', fontStyle: 'italic', margin: 0 }}>No teams in this academic year.</p>
                 ) : (
-                  <span className="text-[10px] text-purple-300/40">No resume uploaded</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', paddingLeft: '0.5rem', borderLeft: '2px solid #EDE9FE' }}>
+                    {yearTeams.map(t => {
+                      const teamMems = members[t._id] || [];
+                      return (
+                        <div key={t._id} style={{ backgroundColor: '#FFFFFF', padding: '0.875rem', borderRadius: '0.75rem', border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: t.status === 'Active' ? '#D1FAE5' : '#F3F4F6', color: t.status === 'Active' ? '#065F46' : '#4B5563' }}>{t.status}</span>
+                              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937' }}>{t.name}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <button onClick={() => setActiveTeamForMember(activeTeamForMember === t._id ? null : t._id)} className="admin-btn-action">
+                                <Plus style={{ width: 12, height: 12 }} /> Add Lead
+                              </button>
+                              <button onClick={() => deleteTeam(t._id)} className="admin-btn-danger">
+                                <Trash2 style={{ width: 12, height: 12 }} />
+                              </button>
+                              {t.status === 'Archived' ? (
+                                <button onClick={() => unarchiveTeam(t._id)} className="admin-btn-action">Unarchive</button>
+                              ) : (
+                                <button onClick={() => archiveTeam(t._id)} className="admin-btn-action">Archive</button>
+                              )}
+                            </div>
+                          </div>
+
+                          {activeTeamForMember === t._id && (
+                            <div style={{ backgroundColor: '#F8F7FC', padding: '0.75rem', borderRadius: '0.625rem', border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              <input placeholder="Full Name *" value={memberForm.name} onChange={e => setMemberForm(m => ({ ...m, name: e.target.value }))} className="admin-input" style={{ padding: '0.375rem 0.625rem' }} />
+                              <input placeholder="Position / Role (e.g. Lead, President) *" value={memberForm.position} onChange={e => setMemberForm(m => ({ ...m, position: e.target.value }))} className="admin-input" style={{ padding: '0.375rem 0.625rem' }} />
+                              <input placeholder="Department (e.g. CSE)" value={memberForm.department} onChange={e => setMemberForm(m => ({ ...m, department: e.target.value }))} className="admin-input" style={{ padding: '0.375rem 0.625rem' }} />
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button onClick={() => addMember(t._id)} className="admin-btn-primary" style={{ width: 'auto', padding: '0.375rem 0.875rem' }}>Add Lead</button>
+                                <button onClick={() => setActiveTeamForMember(null)} className="admin-btn-action">Cancel</button>
+                              </div>
+                            </div>
+                          )}
+
+                          {teamMems.length === 0 ? (
+                            <p style={{ fontSize: '0.75rem', color: '#9CA3AF', fontStyle: 'italic', margin: 0 }}>No leads/members added yet.</p>
+                          ) : (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
+                              {teamMems.map(m => (
+                                <div key={m._id} style={{ backgroundColor: '#F8F7FC', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <div>
+                                    <p style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>{m.name}</p>
+                                    <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>{m.position} {m.department ? `(${m.department})` : ''}</p>
+                                  </div>
+                                  <button onClick={() => deleteMember(m._id)} className="admin-btn-danger" style={{ padding: '0.2rem 0.4rem' }}>
+                                    <Trash2 style={{ width: 12, height: 12 }} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
-              <div className="flex gap-2">
-                {selectedRequest.status === 'Pending' && (
-                  <>
-                    <button
-                      onClick={() => handleUpdateJoinStatus(selectedRequest._id, 'Approved')}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full text-[10px]"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleUpdateJoinStatus(selectedRequest._id, 'Rejected')}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-full text-[10px]"
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Units Module (Main Admin only) ──────────────────────────────────────────
+function UnitsModule({ toast, refreshUnits }) {
+  const [units,   setUnits]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form,    setForm]    = useState({ name: '', code: '', institution: '', location: '', description: '' });
+  const [editing, setEditing] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [saving,  setSaving]  = useState(false);
+  const [expandedUnitId, setExpandedUnitId] = useState(null);
+
+  const load = () => api('/api/units?includeInactive=true').then(d => { setUnits(d.data || []); setLoading(false); refreshUnits?.(); });
+  useEffect(() => { load(); }, []);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      if (editing) {
+        await api(`/api/units/${editing._id}`, { method: 'PUT', body: JSON.stringify(form) });
+        toast('Unit updated.');
+      } else {
+        await api('/api/units', { method: 'POST', body: JSON.stringify(form) });
+        toast('Unit created.');
+      }
+      setShowForm(false); setEditing(null); setForm({ name: '', code: '', institution: '', location: '', description: '' });
+      load();
+    } catch (e) { toast(e.message, 'error'); }
+    setSaving(false);
+  };
+
+  const archive = async (id) => {
+    if (!confirm('Archive this unit?')) return;
+    try { await api(`/api/units/${id}/archive`, { method: 'PATCH' }); toast('Unit archived.'); load(); }
+    catch (e) { toast(e.message, 'error'); }
+  };
+
+  const unarchive = async (id) => {
+    if (!confirm('Unarchive and activate this unit?')) return;
+    try { await api(`/api/units/${id}/unarchive`, { method: 'PATCH' }); toast('Unit unarchived and activated.'); load(); }
+    catch (e) { toast(e.message, 'error'); }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Units &amp; Teams</h2>
+          <p style={{ fontSize: '0.84375rem', color: '#6B7280', margin: '0.25rem 0 0' }}>Manage Units, Academic Years, Teams, and Leads in one unified view.</p>
+        </div>
+        <button onClick={() => { setShowForm(true); setEditing(null); setForm({ name: '', code: '', institution: '', location: '', description: '' }); }}
+          className="admin-btn-primary" style={{ width: 'auto' }}>
+          <Plus style={{ width: 16, height: 16 }} /> New Unit
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>{editing ? 'Edit Unit' : 'Create Unit'}</h3>
+          {[['name', 'Unit Name *'], ['code', 'Unit Code *'], ['institution', 'Institution'], ['location', 'Location']].map(([k, l]) => (
+            <input key={k} placeholder={l} value={form[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
+              className="admin-input" />
+          ))}
+          <textarea placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3}
+            className="admin-input" style={{ resize: 'none' }} />
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button onClick={save} disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
+              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />}
+              {editing ? 'Update Unit' : 'Create Unit'}
+            </button>
+            <button onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
           </div>
         </div>
       )}
 
-      {/* REGISTRATION LIST MODAL */}
-      {viewingRegistrationsEvent && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="dark-glass-card max-w-2xl w-full p-6 space-y-4 max-h-[85vh] overflow-y-auto relative border-purple-500/30 shadow-2xl text-xs">
-            <button onClick={() => setViewingRegistrationsEvent(null)} className="absolute top-4 right-4 text-purple-400 hover:text-white">✕</button>
-            <h3 className="font-extrabold text-sm text-white border-b border-purple-900/30 pb-3">
-              Registrations for: {viewingRegistrationsEvent.title}
-            </h3>
-            {eventRegistrations.length === 0 ? (
-              <p className="text-center text-purple-300/30 py-8">No students registered yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {eventRegistrations.map((reg, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-slate-950/60 border border-purple-500/10 flex justify-between items-center text-[11px]">
-                    <div>
-                      <p className="font-bold text-white">{reg.name}</p>
-                      <p className="text-purple-300/60 mt-0.5">{reg.email} · {reg.phone}</p>
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {units.map(u => {
+            const isExpanded = expandedUnitId === u._id;
+            return (
+              <div key={u._id} className="admin-card">
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>{u.name}</h3>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: u.status === 'Active' ? '#D1FAE5' : '#F3F4F6', color: u.status === 'Active' ? '#065F46' : '#4B5563' }}>{u.status}</span>
                     </div>
-                    {reg.rollNo && (
-                      <span className="bg-purple-950 border border-purple-500/20 px-2 py-0.5 rounded text-[10px] text-purple-300 font-mono font-bold">
-                        {reg.rollNo}
-                      </span>
-                    )}
+                    <p style={{ fontSize: '0.75rem', color: '#6B7280', fontFamily: 'monospace', margin: '0.25rem 0 0' }}>Code: {u.code}</p>
+                    {u.institution && <p style={{ fontSize: '0.8125rem', color: '#4B5563', margin: '0.25rem 0 0' }}>{u.institution} {u.location ? `— ${u.location}` : ''}</p>}
                   </div>
-                ))}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <button onClick={() => { setEditing(u); setForm({ name: u.name, code: u.code, institution: u.institution||'', location: u.location||'', description: u.description||'' }); setShowForm(true); }}
+                      className="admin-btn-action">Edit</button>
+
+                    {u.status === 'Archived' ? (
+                      <button onClick={() => unarchive(u._id)} className="admin-btn-action">Unarchive</button>
+                    ) : (
+                      <button onClick={() => archive(u._id)} className="admin-btn-action">Archive</button>
+                    )}
+
+                    <button onClick={() => setExpandedUnitId(isExpanded ? null : u._id)} className="admin-btn-action" style={{ backgroundColor: isExpanded ? '#EDE9FE' : '#FFFFFF', color: isExpanded ? '#5B21B6' : '#374151' }}>
+                      Hierarchy &amp; Leads <ChevronDown style={{ width: 14, height: 14, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    </button>
+                  </div>
+                </div>
+
+                {isExpanded && <UnitHierarchyTree unit={u} toast={toast} onUpdate={load} />}
               </div>
-            )}
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Academic Years Module ─────────────────────────────────────────────────────
+function AcademicYearsModule({ toast, units, currentUnitId }) {
+  const [years,   setYears]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [form,    setForm]    = useState({ unitId: currentUnitId !== 'all' ? currentUnitId : '', year: '' });
+  const [showForm, setShowForm] = useState(false);
+  const [saving,  setSaving]  = useState(false);
+
+  const load = useCallback(() => {
+    const url = currentUnitId && currentUnitId !== 'all' ? `/api/academic-years?unitId=${currentUnitId}` : '/api/academic-years';
+    api(url).then(d => { setYears(d.data || []); setLoading(false); });
+  }, [currentUnitId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api('/api/academic-years', { method: 'POST', body: JSON.stringify(form) });
+      toast('Academic year created.');
+      setShowForm(false); setForm({ unitId: '', year: '' }); load();
+    } catch (e) { toast(e.message, 'error'); }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Academic Years</h2>
+        <button onClick={() => setShowForm(true)} className="admin-btn-primary" style={{ width: 'auto' }}>
+          <Plus style={{ width: 16, height: 16 }} /> New Year
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Add Academic Year</h3>
+          <select value={form.unitId} onChange={e => setForm(f => ({ ...f, unitId: e.target.value }))}
+            className="admin-input">
+            <option value="">Select Unit *</option>
+            {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+          </select>
+          <input placeholder="Year (e.g. 2025-2026) *" value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))}
+            className="admin-input" />
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button onClick={save} disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
+              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Create
+            </button>
+            <button onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
           </div>
+        </div>
+      )}
+
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+        <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Unit</th>
+                <th>Year</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {years.map(y => (
+                <tr key={y._id}>
+                  <td style={{ fontWeight: 600 }}>{y.unitId?.name || '—'}</td>
+                  <td style={{ fontWeight: 700, color: '#5B21B6' }}>{y.year}</td>
+                  <td>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: y.status === 'Active' ? '#D1FAE5' : '#F3F4F6', color: y.status === 'Active' ? '#065F46' : '#4B5563' }}>{y.status}</span>
+                  </td>
+                </tr>
+              ))}
+              {!years.length && <tr><td colSpan={3} style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No academic years yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Teams Module ─────────────────────────────────────────────────────────────
+function TeamsModule({ toast, admin, currentUnitId, units: propUnits = [], refreshUnits }) {
+  const [teams, setTeams] = useState([]);
+  const [localUnits, setLocalUnits] = useState(propUnits);
+  const [years, setYears] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ unitId: '', academicYearId: '', name: 'Executive Board' });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (propUnits && propUnits.length > 0) {
+      setLocalUnits(propUnits);
+    } else {
+      api('/api/units?includeInactive=true').then(d => { if (d.success) setLocalUnits(d.data || []); });
+    }
+  }, [propUnits]);
+
+  const load = useCallback(() => {
+    const u = currentUnitId !== 'all' ? `&unitId=${currentUnitId}` : '';
+    api(`/api/teams?${u}`).then(d => { setTeams(d.data || []); setLoading(false); });
+  }, [currentUnitId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!form.unitId) {
+      setYears([]);
+      return;
+    }
+    api(`/api/academic-years?unitId=${form.unitId}`).then(d => setYears(d.data || []));
+  }, [form.unitId]);
+
+  const save = async () => {
+    if (!form.unitId) { toast('Please select a Unit', 'error'); return; }
+    if (!form.academicYearId) { toast('Please select an Academic Year', 'error'); return; }
+    if (!form.name.trim()) { toast('Please enter a Team Name', 'error'); return; }
+
+    setSaving(true);
+    try {
+      await api('/api/teams', { method: 'POST', body: JSON.stringify(form) });
+      toast('Team created successfully.');
+      setShowForm(false);
+      setForm({ unitId: '', academicYearId: '', name: 'Executive Board' });
+      load();
+    } catch (e) { toast(e.message, 'error'); }
+    setSaving(false);
+  };
+
+  const del = async (id) => {
+    if (!confirm('Delete team and all members?')) return;
+    try { await api(`/api/teams/${id}`, { method: 'DELETE' }); toast('Team deleted.'); load(); }
+    catch (e) { toast(e.message, 'error'); }
+  };
+
+  const activeUnits = localUnits.filter(u => u.status !== 'Archived');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ display: 'flex', items: 'center', justifyContent: 'space-between' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Teams</h2>
+        <button onClick={() => { setShowForm(true); refreshUnits?.(); }} className="admin-btn-primary" style={{ width: 'auto' }}>
+          <Plus style={{ width: 16, height: 16 }} /> New Team
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Create Team</h3>
+
+          <div>
+            <label className="admin-label">Unit *</label>
+            <select value={form.unitId} onChange={e => setForm(f => ({ ...f, unitId: e.target.value, academicYearId: '' }))}
+              className="admin-input">
+              <option value="">Select Unit *</option>
+              {activeUnits.map(u => <option key={u._id} value={u._id}>{u.name}{u.institution ? ` (${u.institution})` : ''}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="admin-label">Academic Year *</label>
+            <select value={form.academicYearId} onChange={e => setForm(f => ({ ...f, academicYearId: e.target.value }))} disabled={!form.unitId}
+              className="admin-input">
+              <option value="">Select Academic Year *</option>
+              {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="admin-label">Team Name *</label>
+            <input placeholder="Team Name (e.g. Executive Board, Core Team)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              className="admin-input" />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button onClick={save} disabled={saving || (!!form.unitId && years.length === 0)} className="admin-btn-primary" style={{ width: 'auto' }}>
+              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Create Team
+            </button>
+            <button onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+        <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>Unit</th>
+                <th>Year</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {teams.map(t => (
+                <tr key={t._id}>
+                  <td style={{ fontWeight: 700, color: '#1F2937' }}>{t.name}</td>
+                  <td>{t.unitId?.name || '—'}</td>
+                  <td>{t.academicYearId?.year || '—'}</td>
+                  <td>
+                    <button onClick={() => del(t._id)} className="admin-btn-danger">
+                      <Trash2 style={{ width: 12, height: 12 }} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {!teams.length && <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No teams yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Events Module ─────────────────────────────────────────────────────────────
+function EventsModule({ toast, admin, currentUnitId, units = [] }) {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [years, setYears] = useState([]);
+  const [posterFile, setPosterFile] = useState(null);
+
+  const [form, setForm] = useState({
+    unitId: currentUnitId !== 'all' ? currentUnitId : '',
+    academicYearId: '',
+    title: '',
+    description: '',
+    category: 'Community Service',
+    status: 'Upcoming',
+    date: '',
+    startTime: '',
+    endTime: '',
+    location: '',
+    organizers: '',
+  });
+
+  const load = useCallback(() => {
+    const u = currentUnitId !== 'all' ? `&unitId=${currentUnitId}` : '';
+    api(`/api/events?limit=50${u}`).then(d => { setEvents(d.data || []); setLoading(false); });
+  }, [currentUnitId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!form.unitId) { setYears([]); return; }
+    api(`/api/academic-years?unitId=${form.unitId}`).then(d => setYears(d.data || []));
+  }, [form.unitId]);
+
+  const save = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim()) { toast('Please enter Event Title', 'error'); return; }
+    if (!form.unitId) { toast('Please select a Unit', 'error'); return; }
+    if (!form.academicYearId) { toast('Please select an Academic Year', 'error'); return; }
+
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      Object.keys(form).forEach(k => {
+        if (form[k]) fd.append(k, form[k]);
+      });
+      if (posterFile) {
+        fd.append('poster', posterFile);
+      }
+
+      await apiForm('/api/events', fd);
+      toast('Event created successfully!');
+      setShowForm(false);
+      setPosterFile(null);
+      setForm({
+        unitId: currentUnitId !== 'all' ? currentUnitId : '',
+        academicYearId: '',
+        title: '',
+        description: '',
+        category: 'Community Service',
+        status: 'Upcoming',
+        date: '',
+        startTime: '',
+        endTime: '',
+        location: '',
+        organizers: '',
+      });
+      load();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+    setSaving(false);
+  };
+
+  const del = async (id) => {
+    if (!confirm('Delete this event?')) return;
+    try { await api(`/api/events/${id}`, { method: 'DELETE' }); toast('Event deleted.'); load(); }
+    catch (e) { toast(e.message, 'error'); }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Events</h2>
+        <button onClick={() => setShowForm(!showForm)} className="admin-btn-primary" style={{ width: 'auto' }}>
+          <Plus style={{ width: 16, height: 16 }} /> New Event
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={save} className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Add New Event</h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            <div>
+              <label className="admin-label">Unit *</label>
+              <select value={form.unitId} onChange={e => setForm(f => ({ ...f, unitId: e.target.value, academicYearId: '' }))} className="admin-input" required>
+                <option value="">Select Unit *</option>
+                {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="admin-label">Academic Year *</label>
+              <select value={form.academicYearId} onChange={e => setForm(f => ({ ...f, academicYearId: e.target.value }))} disabled={!form.unitId} className="admin-input" required>
+                <option value="">Select Academic Year *</option>
+                {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="admin-label">Event Title *</label>
+            <input placeholder="Event Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="admin-input" required />
+          </div>
+
+          <div>
+            <label className="admin-label">Description</label>
+            <textarea placeholder="Event Description..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} className="admin-input" style={{ resize: 'none' }} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+            <div>
+              <label className="admin-label">Category</label>
+              <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="admin-input">
+                <option value="Program">Program</option>
+                <option value="Workshop">Workshop</option>
+                <option value="Seminar">Seminar</option>
+                <option value="Outreach">Outreach</option>
+                <option value="Community Service">Community Service</option>
+                <option value="Awareness">Awareness</option>
+                <option value="Leadership">Leadership</option>
+                <option value="Competition">Competition</option>
+                <option value="Cultural">Cultural</option>
+                <option value="Training">Training</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="admin-label">Status</label>
+              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="admin-input">
+                <option value="Upcoming">Upcoming</option>
+                <option value="Ongoing">Ongoing</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="admin-label">Event Date</label>
+              <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="admin-input" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+            <div>
+              <label className="admin-label">Location</label>
+              <input placeholder="Campus / Hall / City" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} className="admin-input" />
+            </div>
+
+            <div>
+              <label className="admin-label">Organizers</label>
+              <input placeholder="e.g. YES-J Leadership Team" value={form.organizers} onChange={e => setForm(f => ({ ...f, organizers: e.target.value }))} className="admin-input" />
+            </div>
+
+            <div>
+              <label className="admin-label">Event Poster Image</label>
+              <input type="file" accept="image/*" onChange={e => setPosterFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button type="submit" disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
+              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Create Event
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
+          </div>
+        </form>
+      )}
+
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+        <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Unit</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map(e => (
+                <tr key={e._id}>
+                  <td style={{ fontWeight: 700, color: '#1F2937' }}>{e.title}</td>
+                  <td>{e.unitId?.name || '—'}</td>
+                  <td>{e.category}</td>
+                  <td>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>{e.status}</span>
+                  </td>
+                  <td>
+                    <button onClick={() => del(e._id)} className="admin-btn-danger">
+                      <Trash2 style={{ width: 12, height: 12 }} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {!events.length && <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No events yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Administrators Module ─────────────────────────────────────────────────────
+function AdministratorsModule({ toast, units }) {
+  const [admins,  setAdmins]  = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ name: '', email: '', password: '', assignedUnitIds: [] });
+
+  const load = () => api('/api/administrators').then(d => { setAdmins(d.data || []); setLoading(false); });
+  useEffect(() => { load(); }, []);
+
+  const toggleUnit = (unitId) => {
+    setForm(f => ({
+      ...f,
+      assignedUnitIds: f.assignedUnitIds.includes(unitId)
+        ? f.assignedUnitIds.filter(id => id !== unitId)
+        : [...f.assignedUnitIds, unitId],
+    }));
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api('/api/administrators', { method: 'POST', body: JSON.stringify(form) });
+      toast('Sub-Admin created.'); setShowForm(false); setForm({ name: '', email: '', password: '', assignedUnitIds: [] }); load();
+    } catch (e) { toast(e.message, 'error'); }
+    setSaving(false);
+  };
+
+  const toggleStatus = async (admin) => {
+    try {
+      await api(`/api/administrators/${admin._id}/status`, { method: 'PATCH', body: JSON.stringify({ status: admin.status === 'Active' ? 'Inactive' : 'Active' }) });
+      toast(`Admin ${admin.status === 'Active' ? 'disabled' : 'enabled'}.`); load();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const del = async (id) => {
+    if (!confirm('Permanently delete this sub-admin?')) return;
+    try { await api(`/api/administrators/${id}`, { method: 'DELETE' }); toast('Sub-Admin deleted.'); load(); }
+    catch (e) { toast(e.message, 'error'); }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Administrators</h2>
+        <button onClick={() => setShowForm(true)} className="admin-btn-primary" style={{ width: 'auto' }}>
+          <Plus style={{ width: 16, height: 16 }} /> New Sub-Admin
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Create Sub-Admin</h3>
+          {[['name','Full Name *'], ['email','Email *'], ['password','Password *']].map(([k, l]) => (
+            <input key={k} type={k === 'password' ? 'password' : 'text'} placeholder={l} value={form[k]}
+              onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
+              className="admin-input" />
+          ))}
+          <div>
+            <p style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937', marginBottom: '0.5rem' }}>Assign Units</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.5rem' }}>
+              {units.map(u => (
+                <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #E5E7EB', backgroundColor: form.assignedUnitIds.includes(u._id) ? '#EDE9FE' : '#FFFFFF', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={form.assignedUnitIds.includes(u._id)} onChange={() => toggleUnit(u._id)} style={{ accentColor: '#5B21B6' }} />
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1F2937' }}>{u.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button onClick={save} disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
+              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Create
+            </button>
+            <button onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {admins.map(a => (
+            <div key={a._id} className="admin-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>{a.name}</p>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: a.status === 'Active' ? '#D1FAE5' : '#F3F4F6', color: a.status === 'Active' ? '#065F46' : '#4B5563' }}>{a.status}</span>
+                </div>
+                <p style={{ fontSize: '0.8125rem', color: '#6B7280', margin: '0.2rem 0 0' }}>{a.email}</p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button onClick={() => toggleStatus(a)} className="admin-btn-action">
+                  {a.status === 'Active' ? <ToggleLeft style={{ width: 16, height: 16 }} /> : <ToggleRight style={{ width: 16, height: 16 }} />}
+                </button>
+                <button onClick={() => del(a._id)} className="admin-btn-danger">
+                  <Trash2 style={{ width: 14, height: 14 }} />
+                </button>
+              </div>
+            </div>
+          ))}
+          {!admins.length && (
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No sub-admins yet. Create one above.</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Join Requests Module ──────────────────────────────────────────────────────
+function JoinRequestsModule({ toast, admin, currentUnitId }) {
+  const [reqs, setReqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
+
+  const load = useCallback(() => {
+    const u = currentUnitId !== 'all' ? `&unitId=${currentUnitId}` : '';
+    const s = filter ? `&status=${filter}` : '';
+    api(`/api/join?limit=50${u}${s}`).then(d => { setReqs(d.data || []); setLoading(false); }).catch(() => setLoading(false));
+  }, [currentUnitId, filter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const updateStatus = async (id, status) => {
+    try { await api(`/api/join/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }); toast(`Application ${status.toLowerCase()}.`); load(); }
+    catch (e) { toast(e.message, 'error'); }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Join Requests</h2>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {['', 'Pending', 'Approved', 'Rejected'].map(s => (
+            <button key={s} onClick={() => { setFilter(s); setLoading(true); }}
+              className="admin-btn-action" style={{ backgroundColor: filter === s ? '#5B21B6' : '#FFFFFF', color: filter === s ? '#FFFFFF' : '#374151', borderRadius: '9999px', padding: '0.375rem 0.875rem' }}>
+              {s || 'All'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {reqs.map(r => (
+            <div key={r._id} className="admin-card">
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div>
+                  <p style={{ fontSize: '1rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>{r.name}</p>
+                  <p style={{ fontSize: '0.8125rem', color: '#6B7280', margin: '0.2rem 0 0' }}>{r.email} · {r.college}</p>
+                  <p style={{ fontSize: '0.75rem', color: '#9CA3AF', margin: '0.1rem 0 0' }}>{r.department} · Year {r.year}</p>
+                </div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: r.status === 'Approved' ? '#D1FAE5' : r.status === 'Pending' ? '#FEF3C7' : '#FEE2E2', color: r.status === 'Approved' ? '#065F46' : r.status === 'Pending' ? '#92400E' : '#991B1B' }}>{r.status}</span>
+              </div>
+              {r.status === 'Pending' && (
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid #F3F4F6' }}>
+                  <button onClick={() => updateStatus(r._id, 'Approved')} className="admin-btn-action" style={{ backgroundColor: '#10B981', color: '#FFFFFF', borderColor: '#10B981' }}>Approve</button>
+                  <button onClick={() => updateStatus(r._id, 'Rejected')} className="admin-btn-danger">Reject</button>
+                </div>
+              )}
+            </div>
+          ))}
+          {!reqs.length && <div style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No applications found.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Contact Messages Module ───────────────────────────────────────────────────
+function ContactModule({ toast }) {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('/api/contact?limit=50').then(d => { setMessages(d.data || []); setLoading(false); }).catch(() => setLoading(false));
+  }, []);
+
+  const markRead = async (id) => {
+    try { await api(`/api/contact/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'Read' }) }); setMessages(m => m.map(x => x._id === id ? { ...x, status: 'Read' } : x)); }
+    catch {}
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Contact Messages</h2>
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {messages.map(m => (
+            <div key={m._id} className="admin-card">
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <div>
+                  <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>{m.name}</p>
+                  <p style={{ fontSize: '0.8125rem', color: '#6B7280', margin: '0.1rem 0 0' }}>{m.email} {m.phone ? `· ${m.phone}` : ''}</p>
+                </div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: m.status === 'New' ? '#EDE9FE' : '#F3F4F6', color: m.status === 'New' ? '#5B21B6' : '#4B5563' }}>{m.status}</span>
+              </div>
+              {m.subject && <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', margin: '0 0 0.25rem' }}>{m.subject}</p>}
+              <p style={{ fontSize: '0.8125rem', color: '#4B5563', lineHeight: 1.5, margin: 0 }}>{m.message}</p>
+              {m.status === 'New' && (
+                <button onClick={() => markRead(m._id)} className="admin-btn-action" style={{ marginTop: '0.75rem' }}>Mark as Read</button>
+              )}
+            </div>
+          ))}
+          {!messages.length && <div style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No messages yet.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Settings Module ───────────────────────────────────────────────────────────
+function SettingsModule({ toast, admin }) {
+  const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [saving, setSaving] = useState(false);
+
+  const changePassword = async () => {
+    if (form.newPassword !== form.confirmPassword) { toast('Passwords do not match.', 'error'); return; }
+    if (form.newPassword.length < 8) { toast('Password must be at least 8 characters.', 'error'); return; }
+    setSaving(true);
+    try {
+      await api('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword: form.currentPassword, newPassword: form.newPassword }) });
+      toast('Password changed successfully.');
+      setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (e) { toast(e.message, 'error'); }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '480px' }}>
+      <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Settings</h2>
+
+      <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <h3 style={{ fontSize: '0.875rem', fontWeight: 800, color: '#1F2937', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Change Password</h3>
+        {[['currentPassword','Current Password'], ['newPassword','New Password'], ['confirmPassword','Confirm New Password']].map(([k, l]) => (
+          <input key={k} type="password" placeholder={l} value={form[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
+            className="admin-input" />
+        ))}
+        <button onClick={changePassword} disabled={saving} className="admin-btn-primary">
+          {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <KeyRound style={{ width: 16, height: 16 }} />} Update Password
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Gallery Module ────────────────────────────────────────────────────────────
+function GalleryModule({ toast, admin, currentUnitId, units = [] }) {
+  const [photos, setPhotos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [years, setYears] = useState([]);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+
+  const [form, setForm] = useState({
+    unitId: currentUnitId !== 'all' ? currentUnitId : '',
+    academicYearId: '',
+    album: '',
+    category: 'General',
+    title: '',
+    description: '',
+  });
+
+  const load = useCallback(() => {
+    const u = currentUnitId !== 'all' ? `&unitId=${currentUnitId}` : '';
+    api(`/api/gallery?limit=30${u}`).then(d => { setPhotos(d.data || []); setLoading(false); }).catch(() => setLoading(false));
+  }, [currentUnitId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!form.unitId) { setYears([]); return; }
+    api(`/api/academic-years?unitId=${form.unitId}`).then(d => setYears(d.data || []));
+  }, [form.unitId]);
+
+  const save = async (e) => {
+    e.preventDefault();
+    if (!form.unitId) { toast('Please select a Unit', 'error'); return; }
+    if (!form.academicYearId) { toast('Please select an Academic Year', 'error'); return; }
+    if (!selectedFiles || selectedFiles.length === 0) { toast('Please select at least one photo file', 'error'); return; }
+
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      Object.keys(form).forEach(k => {
+        if (form[k]) fd.append(k, form[k]);
+      });
+      for (let i = 0; i < selectedFiles.length; i++) {
+        fd.append('photos', selectedFiles[i]);
+      }
+
+      await apiForm('/api/gallery', fd);
+      toast('Photo(s) uploaded successfully!');
+      setShowForm(false);
+      setSelectedFiles([]);
+      setForm({
+        unitId: currentUnitId !== 'all' ? currentUnitId : '',
+        academicYearId: '',
+        album: '',
+        category: 'General',
+        title: '',
+        description: '',
+      });
+      load();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+    setSaving(false);
+  };
+
+  const del = async (id) => {
+    if (!confirm('Delete this photo?')) return;
+    try { await api(`/api/gallery/${id}`, { method: 'DELETE' }); toast('Photo deleted.'); load(); }
+    catch (e) { toast(e.message, 'error'); }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Gallery</h2>
+        <button onClick={() => setShowForm(!showForm)} className="admin-btn-primary" style={{ width: 'auto' }}>
+          <Plus style={{ width: 16, height: 16 }} /> Add Photos
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={save} className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Upload Photos to Gallery</h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            <div>
+              <label className="admin-label">Unit *</label>
+              <select value={form.unitId} onChange={e => setForm(f => ({ ...f, unitId: e.target.value, academicYearId: '' }))} className="admin-input" required>
+                <option value="">Select Unit *</option>
+                {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="admin-label">Academic Year *</label>
+              <select value={form.academicYearId} onChange={e => setForm(f => ({ ...f, academicYearId: e.target.value }))} disabled={!form.unitId} className="admin-input" required>
+                <option value="">Select Academic Year *</option>
+                {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+            <div>
+              <label className="admin-label">Album Name</label>
+              <input placeholder="e.g. Annual Convention 2026" value={form.album} onChange={e => setForm(f => ({ ...f, album: e.target.value }))} className="admin-input" />
+            </div>
+
+            <div>
+              <label className="admin-label">Photo Title</label>
+              <input placeholder="Caption / Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="admin-input" />
+            </div>
+          </div>
+
+          <div>
+            <label className="admin-label">Select Photo File(s) *</label>
+            <input type="file" accept="image/*" multiple onChange={e => setSelectedFiles(Array.from(e.target.files))} className="admin-input" style={{ padding: '0.375rem' }} required />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button type="submit" disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
+              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Upload Photos
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
+          </div>
+        </form>
+      )}
+
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+        <>
+          {!photos.length && <div style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No photos yet. Click "+ Add Photos" above to upload images.</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem' }}>
+            {photos.map(p => (
+              <div key={p._id} style={{ position: 'relative', borderRadius: '0.75rem', overflow: 'hidden', backgroundColor: '#F8F7FC', aspectRatio: '1/1', border: '1px solid #E5E7EB' }}>
+                <img src={`/api/gallery/file/${p._id}`} alt={p.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                <button onClick={() => del(p._id)} className="admin-btn-danger" style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', padding: '0.375rem' }}>
+                  <Trash2 style={{ width: 14, height: 14 }} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Documents Module ──────────────────────────────────────────────────────────
+function DocumentsModule({ toast, admin, currentUnitId, units = [] }) {
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [years, setYears] = useState([]);
+  const [docFile, setDocFile] = useState(null);
+
+  const [form, setForm] = useState({
+    unitId: currentUnitId !== 'all' ? currentUnitId : '',
+    academicYearId: '',
+    title: '',
+    description: '',
+    documentType: 'Event Reports',
+    visibility: 'Public',
+  });
+
+  const load = useCallback(() => {
+    const u = currentUnitId !== 'all' ? `&unitId=${currentUnitId}` : '';
+    api(`/api/documents/admin/all?limit=50${u}`).then(d => { setDocs(d.data || []); setLoading(false); }).catch(() => setLoading(false));
+  }, [currentUnitId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!form.unitId) { setYears([]); return; }
+    api(`/api/academic-years?unitId=${form.unitId}`).then(d => setYears(d.data || []));
+  }, [form.unitId]);
+
+  const save = async (e) => {
+    e.preventDefault();
+    if (!form.title.trim()) { toast('Please enter Document Title', 'error'); return; }
+    if (!form.unitId) { toast('Please select a Unit', 'error'); return; }
+    if (!form.academicYearId) { toast('Please select an Academic Year', 'error'); return; }
+    if (!docFile) { toast('Please select a document file to upload', 'error'); return; }
+
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      Object.keys(form).forEach(k => {
+        if (form[k]) fd.append(k, form[k]);
+      });
+      fd.append('file', docFile);
+
+      await apiForm('/api/documents', fd);
+      toast('Document uploaded successfully!');
+      setShowForm(false);
+      setDocFile(null);
+      setForm({
+        unitId: currentUnitId !== 'all' ? currentUnitId : '',
+        academicYearId: '',
+        title: '',
+        description: '',
+        documentType: 'Event Reports',
+        visibility: 'Public',
+      });
+      load();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+    setSaving(false);
+  };
+
+  const del = async (id) => {
+    if (!confirm('Delete this document?')) return;
+    try { await api(`/api/documents/${id}`, { method: 'DELETE' }); toast('Document deleted.'); load(); }
+    catch (e) { toast(e.message, 'error'); }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Documentation</h2>
+        <button onClick={() => setShowForm(!showForm)} className="admin-btn-primary" style={{ width: 'auto' }}>
+          <Plus style={{ width: 16, height: 16 }} /> Add Document
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={save} className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Upload New Document</h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+            <div>
+              <label className="admin-label">Unit *</label>
+              <select value={form.unitId} onChange={e => setForm(f => ({ ...f, unitId: e.target.value, academicYearId: '' }))} className="admin-input" required>
+                <option value="">Select Unit *</option>
+                {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="admin-label">Academic Year *</label>
+              <select value={form.academicYearId} onChange={e => setForm(f => ({ ...f, academicYearId: e.target.value }))} disabled={!form.unitId} className="admin-input" required>
+                <option value="">Select Academic Year *</option>
+                {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="admin-label">Document Title *</label>
+            <input placeholder="Document Title (e.g. Annual Activity Report 2026)" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="admin-input" required />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+            <div>
+              <label className="admin-label">Document Type</label>
+              <select value={form.documentType} onChange={e => setForm(f => ({ ...f, documentType: e.target.value }))} className="admin-input">
+                <option value="Event Reports">Event Reports</option>
+                <option value="Activity Reports">Activity Reports</option>
+                <option value="Annual Reports">Annual Reports</option>
+                <option value="Unit Reports">Unit Reports</option>
+                <option value="Event Proposals">Event Proposals</option>
+                <option value="Meeting Minutes">Meeting Minutes</option>
+                <option value="Attendance Sheets">Attendance Sheets</option>
+                <option value="Certificates">Certificates</option>
+                <option value="Notices">Notices</option>
+                <option value="Other Documents">Other Documents</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="admin-label">Visibility</label>
+              <select value={form.visibility} onChange={e => setForm(f => ({ ...f, visibility: e.target.value }))} className="admin-input">
+                <option value="Public">Public</option>
+                <option value="Unit Only">Unit Leads Only</option>
+                <option value="Admin Only">Main Admin Only</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="admin-label">Document File (PDF, DOCX, XLSX, TXT) *</label>
+            <input type="file" onChange={e => setDocFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} required />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button type="submit" disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
+              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Upload Document
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
+          </div>
+        </form>
+      )}
+
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+        <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Visibility</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {docs.map(d => (
+                <tr key={d._id}>
+                  <td style={{ fontWeight: 600 }}>{d.title}</td>
+                  <td>{d.documentType}</td>
+                  <td>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: d.visibility === 'Public' ? '#D1FAE5' : '#F3F4F6', color: d.visibility === 'Public' ? '#065F46' : '#4B5563' }}>{d.visibility}</span>
+                  </td>
+                  <td style={{ display: 'flex', gap: '0.5rem' }}>
+                    <a href={`/api/documents/download/${d._id}`} target="_blank" rel="noopener noreferrer" className="admin-btn-action" style={{ padding: '0.25rem 0.5rem' }}><Download style={{ width: 14, height: 14 }} /></a>
+                    <button onClick={() => del(d._id)} className="admin-btn-danger" style={{ padding: '0.25rem 0.5rem' }}><Trash2 style={{ width: 14, height: 14 }} /></button>
+                  </td>
+                </tr>
+              ))}
+              {!docs.length && <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No documents yet.</td></tr>}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
