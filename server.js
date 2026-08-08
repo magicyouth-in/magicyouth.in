@@ -39,6 +39,16 @@ app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Ensure DB connection for serverless requests
+app.use('/api', async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Database connection failed.' });
+  }
+});
+
 // Rate Limiter — API routes
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -222,4 +232,8 @@ async function start() {
   }
 }
 
-start();
+module.exports = app;
+
+if (require.main === module) {
+  start();
+}
