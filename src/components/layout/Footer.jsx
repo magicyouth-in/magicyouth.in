@@ -1,49 +1,40 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Mail, Phone, MapPin, Instagram } from 'lucide-react';
+import { MapPin, Mail, Instagram } from 'lucide-react';
 import '../../styles/footer.css';
 
 export default function Footer() {
   const quickLinks = [
-    { name: 'Teams',   to: '/teams' },
-    { name: 'Gallery', to: '/gallery' },
-    { name: 'Events',  to: '/events' },
-    { name: 'Contact', to: '/contact' },
+    { name: 'Home',          to: '/' },
+    { name: 'About',         to: '/about' },
+    { name: 'Mission',       to: '/mission' },
+    { name: 'Events',        to: '/events' },
+    { name: 'Gallery',       to: '/gallery' },
+    { name: 'Teams',         to: '/teams' },
+    { name: 'Documentation', to: '/documentation' },
+    { name: 'Join',          to: '/join' },
+    { name: 'Contact',       to: '/contact' },
   ];
 
   return (
     <footer className="footer">
-      <div className="footer-inner">
-        <div className="footer-columns">
-          {/* Brand */}
-          <div className="brand-section">
-            <Link to="/" className="brand">
-              <div className="brand-icon">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <span className="brand-text">
-                MAGIC <span className="brand-highlight">YOUTH</span>
-              </span>
-            </Link>
-            <p className="brand-description">
-              Men &amp; Women Aiming Greater Initiatives for Change (MAGIC Youth) is a student-led youth organization inspiring leadership, innovation, and community service.
+      <div className="container-default footer-container">
+        <div className="footer-grid">
+          {/* Brand Info */}
+          <div className="footer-brand">
+            <h2 className="footer-logo">MAGIC YOUTH</h2>
+            <p className="footer-tagline">
+              Men and Women Aiming Greater Initiative for Change
             </p>
-            <div className="social-links-container">
-              <a href="https://www.instagram.com/magicyouth.in/" target="_blank" rel="noopener noreferrer" className="social-pill-link">
-                <Instagram className="w-4 h-4" />
-                <span>MAGIC Youth (@magicyouth.in)</span>
-              </a>
-              <a href="https://www.instagram.com/yesj.official/?hl=en" target="_blank" rel="noopener noreferrer" className="social-pill-link">
-                <Instagram className="w-4 h-4" />
-                <span>YES-J Official (@yesj.official)</span>
-              </a>
-            </div>
+            <p className="footer-subtext">
+              A student-led youth organization under YES-J inspiring leadership, innovation, and community service.
+            </p>
           </div>
 
           {/* Quick Links */}
-          <div className="quick-links">
-            <h3 className="section-title">Quick Links</h3>
-            <ul>
+          <div className="footer-links-group">
+            <h3 className="footer-heading">Quick Links</h3>
+            <ul className="footer-list">
               {quickLinks.map(l => (
                 <li key={l.to}>
                   <Link to={l.to} className="footer-link">{l.name}</Link>
@@ -52,37 +43,39 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Get Involved */}
-          <div className="get-involved">
-            <h3 className="section-title">Get Involved</h3>
-            <ul>
-              <li><Link to="/join" className="footer-link">✨ Join MAGIC Youth</Link></li>
-              <li><Link to="/contact" className="footer-link">Contact Us</Link></li>
-              <li><Link to="/privacy" className="footer-link">Privacy Policy</Link></li>
-              <li><Link to="/terms" className="footer-link">Terms &amp; Conditions</Link></li>
+          {/* Contact Info */}
+          <div className="footer-contact">
+            <h3 className="footer-heading">Contact</h3>
+            <ul className="footer-list">
+              <li className="footer-contact-item">
+                <MapPin size={18} />
+                <span>YOUTH EMPOWERING CENTER - JESUITS (YES - J)<br/>Vijayawada</span>
+              </li>
+              <li className="footer-contact-item">
+                <Mail size={18} />
+                <a href="mailto:magicyouth.loyola@gmail.com" className="footer-link">magicyouth.loyola@gmail.com</a>
+              </li>
             </ul>
-          </div>
-
-          {/* Campus Address */}
-          <div className="address-section">
-            <h3 className="section-title">Campus Address</h3>
-            <ul className="info-list">
-              <li className="info-item"><MapPin className="w-4 h-4" />Youth Empowering Center – Jesuits (YES-J), Vijayawada</li>
-              <li className="info-item"><Mail className="w-4 h-4" />magicyouth.loyola@gmail.com</li>
-              <li className="info-item"><Phone className="w-4 h-4" />+91 ----------</li>
-            </ul>
+            <div className="footer-socials">
+              <a href="https://instagram.com/yesj.official" target="_blank" rel="noopener noreferrer" className="footer-social-link">
+                <Instagram size={20} /> @yesj.official
+              </a>
+              <a href="https://instagram.com/magicyouth.in" target="_blank" rel="noopener noreferrer" className="footer-social-link">
+                <Instagram size={20} /> @magicyouth.in
+              </a>
+            </div>
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="bottom-bar">
-          <p>© {new Date().getFullYear()} MAGIC Youth Organization. All rights reserved.</p>
-          <div className="footer-links">
-            <Link to="/privacy" className="footer-link">Privacy Policy</Link>
-            <Link to="/terms" className="footer-link">Terms of Service</Link>
-            <Link to="/documentation" className="footer-link">Documentation</Link>
-            <span style={{ opacity: 0.5 }}>|</span>
-            <Link to="/admin/login" className="admin-link">Admin Portal</Link>
+        {/* Bottom Bar */}
+        <div className="footer-bottom">
+          <p className="footer-copyright">
+            © {new Date().getFullYear()} MAGIC Youth. All rights reserved.
+          </p>
+          <div className="footer-legal">
+            <Link to="/privacy" className="footer-bottom-link">Privacy Policy</Link>
+            <Link to="/terms" className="footer-bottom-link">Terms of Service</Link>
+            <Link to="/admin/login" className="footer-admin-link">Admin Portal</Link>
           </div>
         </div>
       </div>

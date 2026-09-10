@@ -206,7 +206,7 @@ export default function JoinUs() {
                   });
                   setFiles({ resume: null, profileImage: null });
                 }}
-                className="btn-primary-purple"
+                className="btn-primary"
               >
                 Submit Another Application
               </button>
@@ -408,7 +408,7 @@ export default function JoinUs() {
                           <ImageIcon style={{ width: 32, height: 32, color: '#5B21B6', margin: '0 auto 0.5rem' }} />
                           <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937' }}>Profile Photo</div>
                           <div style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0.25rem 0 1rem' }}>JPG or PNG format</div>
-                          <label className="btn-secondary-outline" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.75rem' }}>
+                          <label className="btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.75rem' }}>
                             Choose File
                             <input type="file" name="profileImage" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
                           </label>
@@ -421,7 +421,7 @@ export default function JoinUs() {
                           <FileUp style={{ width: 32, height: 32, color: '#5B21B6', margin: '0 auto 0.5rem' }} />
                           <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937' }}>Resume / CV</div>
                           <div style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0.25rem 0 1rem' }}>PDF format only</div>
-                          <label className="btn-secondary-outline" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.75rem' }}>
+                          <label className="btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.75rem' }}>
                             Choose File
                             <input type="file" name="resume" accept=".pdf" onChange={handleFileChange} style={{ display: 'none' }} />
                           </label>
@@ -457,17 +457,17 @@ export default function JoinUs() {
                 {/* Form Buttons */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2rem', paddingTop: '1.25rem', borderTop: '1px solid #E5E7EB' }}>
                   {currentStep > 1 ? (
-                    <button type="button" onClick={prevStep} className="btn-secondary-outline" style={{ padding: '0.625rem 1.25rem', fontSize: '0.8125rem' }}>
+                    <button type="button" onClick={prevStep} className="btn-secondary" style={{ padding: '0.625rem 1.25rem', fontSize: '0.8125rem' }}>
                       ← Back
                     </button>
                   ) : <div />}
 
                   {currentStep < 7 ? (
-                    <button type="button" onClick={nextStep} className="btn-primary-purple" style={{ padding: '0.625rem 1.5rem', fontSize: '0.8125rem' }}>
+                    <button type="button" onClick={nextStep} className="btn-primary" style={{ padding: '0.625rem 1.5rem', fontSize: '0.8125rem' }}>
                       Next Step →
                     </button>
                   ) : (
-                    <button type="submit" disabled={isSubmitting} className="btn-primary-purple" style={{ padding: '0.75rem 2rem', fontSize: '0.875rem' }}>
+                    <button type="submit" disabled={isSubmitting} className="btn-primary" style={{ padding: '0.75rem 2rem', fontSize: '0.875rem' }}>
                       {isSubmitting ? 'Submitting...' : 'Submit Application'}
                     </button>
                   )}

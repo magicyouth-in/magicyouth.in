@@ -38,7 +38,7 @@ function NotFound() {
         <p style={{ fontSize: '0.9375rem', color: '#6B7280', marginBottom: '2rem', maxWidth: '24rem' }}>
           The page you are looking for does not exist or has been removed.
         </p>
-        <a href="/" className="btn-primary-purple" style={{ padding: '0.75rem 2rem', textDecoration: 'none' }}>
+        <a href="/" className="btn-primary" style={{ padding: '0.75rem 2rem', textDecoration: 'none' }}>
           ← Back to Home
         </a>
       </div>

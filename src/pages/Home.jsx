@@ -1,230 +1,290 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ShieldCheck, Award, HeartHandshake, Sparkles, Globe, Target,
-  Compass, Star, ArrowRight, ChevronRight
-} from 'lucide-react';
-import '../styles/hero.css';
+import { ArrowRight, Users, Target, BookOpen, Globe, Quote, Image as ImageIcon, Calendar } from 'lucide-react';
 import '../styles/home.css';
 
-const values = [
-  { title: 'Integrity & Transparency', desc: 'Honesty and accountability in every initiative we lead.', icon: ShieldCheck },
-  { title: 'Youth Leadership',         desc: 'Nurturing student decision-making and self-organizing capacity.', icon: Award },
-  { title: 'Compassionate Service',    desc: 'Dedicated to uplifting communities through collective volunteering.', icon: HeartHandshake },
-  { title: 'Continuous Innovation',    desc: 'Fostering creative approaches to student engagement.', icon: Sparkles },
-  { title: 'Community First',          desc: 'People-centred programs that create real, lasting impact.', icon: Globe },
-  { title: 'Mission-Driven Action',    desc: 'Every effort connects directly to our purpose and vision.', icon: Target },
-];
-
-const reasons = [
-  { title: 'Build Real Leadership',      desc: 'Step into organizing, managing, and leading programs that impact hundreds of students.' },
-  { title: 'Expand Your Network',        desc: 'Connect with like-minded peers, alumni, faculty mentors, and community leaders.' },
-  { title: 'Earn Verified Certificates', desc: 'Receive officially verified volunteering and participation certificates for every event.' },
-  { title: 'Develop Diverse Skills',     desc: 'From public speaking to event logistics — grow skills that define your career.' },
+const coreValues = [
+  "Leadership", "Service", "Integrity", "Inclusiveness", 
+  "Respect", "Teamwork", "Accountability", "Innovation", 
+  "Social Responsibility", "Compassion", "Professionalism"
 ];
 
 export default function Home() {
+  const [stats, setStats] = useState({ events: 0, photos: 0, units: 0 });
+  const [recentEvents, setRecentEvents] = useState([]);
+  const [recentPhotos, setRecentPhotos] = useState([]);
+  const [previewTeam, setPreviewTeam] = useState(null);
+  const [previewMembers, setPreviewMembers] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch Events
+        const eventsRes = await fetch('/api/events');
+        const eventsData = await eventsRes.json();
+        if (eventsData.success) {
+          setStats(s => ({ ...s, events: eventsData.data.length }));
+          setRecentEvents(eventsData.data.slice(0, 3));
+        }
+
+        // Fetch Gallery
+        const galleryRes = await fetch('/api/gallery');
+        const galleryData = await galleryRes.json();
+        if (galleryData.success) {
+          setStats(s => ({ ...s, photos: galleryData.data.length }));
+          setRecentPhotos(galleryData.data.slice(0, 4));
+        }
+
+        // Fetch Units
+        const unitsRes = await fetch('/api/units?includeInactive=false');
+        const unitsData = await unitsRes.json();
+        if (unitsData.success) {
+          setStats(s => ({ ...s, units: unitsData.data.length }));
+        }
+
+        // Fetch Teams & Members Preview
+        const teamsRes = await fetch('/api/teams');
+        const teamsData = await teamsRes.json();
+        if (teamsData.success && teamsData.data.length > 0) {
+          const firstTeam = teamsData.data[0];
+          setPreviewTeam(firstTeam);
+          const membersRes = await fetch(`/api/teams/${firstTeam._id}/members`);
+          const membersData = await membersRes.json();
+          if (membersData.success) {
+            setPreviewMembers(membersData.data.slice(0, 4));
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching homepage data:', err);
+      }
+    };
+    fetchData();
+  }, []);
+
   return (
-    <div>
+    <main className="home-wrapper">
       {/* ── 1. HERO SECTION ───────────────────────────────────── */}
-      <section className="hero-section">
-        <div className="hero-container">
-          <div className="hero-left">
-            <div className="hero-badge">
-              <Sparkles style={{ width: 14, height: 14 }} />
-              <span>Youth Empowerment Movement</span>
-            </div>
-            <h1 className="hero-heading">
-              Empowering Youth for <span className="highlight">Greater Impact</span>
+      <section className="home-hero">
+        <div className="container-default hero-container">
+          <div className="hero-content">
+            <span className="hero-badge">A Movement for Change</span>
+            <h1 className="hero-title">
+              Men and Women Aiming Greater Initiative for Change
             </h1>
-            <p className="hero-description">
-              MAGIC Youth (Men &amp; Women Aiming Greater Initiatives for Change) is a student-led organization fostering leadership, community service, and personal development.
+            <p className="hero-subtitle">
+              Empowering young people to lead, serve, and create meaningful change in their communities.
             </p>
-            <div className="hero-buttons">
-              <Link to="/join" className="btn-primary-purple">
-                Join MAGIC Youth
-                <ArrowRight style={{ width: 18, height: 18 }} />
-              </Link>
-              <Link to="/about" className="btn-secondary-outline">
+            <div className="hero-actions">
+              <Link to="/about" className="btn-primary">
                 Explore MAGIC Youth
               </Link>
-            </div>
-          </div>
-
-          <div className="hero-right">
-            <div className="hero-image-wrapper">
-              <img
-                src="/assets/magic.png"
-                alt="MAGIC Youth Movement"
-                className="hero-image"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 2. ABOUT MAGIC YOUTH ───────────────────────────── */}
-      <section className="home-section">
-        <div className="home-container">
-          <div className="about-grid">
-            <div className="about-content">
-              <span className="section-label">About Us</span>
-              <h3>Making A Greater Impact in Communities</h3>
-              <p>
-                Founded at Andhra Loyola Institute of Engineering and Technology (ALIET), Vijayawada, MAGIC Youth bridges academic growth with social responsibility.
-              </p>
-              <p>
-                Our platform enables passionate students to develop real-world leadership skills while organizing blood drives, awareness campaigns, technical workshops, and community outreach.
-              </p>
-              <div style={{ marginTop: '1.5rem' }}>
-                <Link to="/about" className="vm-link">
-                  Learn More About Our Story <ChevronRight style={{ width: 16, height: 16 }} />
-                </Link>
-              </div>
-            </div>
-
-            <div className="about-stats-grid">
-              <div className="stat-card">
-                <div className="stat-value">2022</div>
-                <div className="stat-label">Founded</div>
-                <div className="stat-sub">ALIET Vijayawada</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">250+</div>
-                <div className="stat-label">Active Members</div>
-                <div className="stat-sub">Across Units</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">45+</div>
-                <div className="stat-label">Events Hosted</div>
-                <div className="stat-sub">Community & Academic</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">500+</div>
-                <div className="stat-label">Volunteers</div>
-                <div className="stat-sub">Engaged Annually</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 3. VISION & MISSION ─────────────────────────────── */}
-      <section className="home-section-alt">
-        <div className="home-container">
-          <div className="home-section-header">
-            <span className="section-label">Purpose &amp; Direction</span>
-            <h2 className="section-title">Vision &amp; Mission</h2>
-            <p className="section-subtitle">
-              Guiding our youth towards meaningful action, ethical leadership, and lasting social contribution.
-            </p>
-          </div>
-
-          <div className="vm-grid">
-            <div className="vm-card">
-              <div className="vm-icon-wrapper">
-                <Compass style={{ width: 24, height: 24 }} />
-              </div>
-              <h3>Our Vision</h3>
-              <p>
-                To cultivate a vibrant generation of empathetic, skilled, and socially conscious youth who lead initiatives that transform their communities and inspire meaningful progress.
-              </p>
-              <Link to="/mission" className="vm-link">
-                Explore Our Objectives <ChevronRight style={{ width: 16, height: 16 }} />
-              </Link>
-            </div>
-
-            <div className="vm-card">
-              <div className="vm-icon-wrapper">
-                <Target style={{ width: 24, height: 24 }} />
-              </div>
-              <h3>Our Mission</h3>
-              <p>
-                To empower students through a collaborative platform for leadership development, community volunteering, technical and cultural workshops, and social campaigns.
-              </p>
-              <Link to="/mission" className="vm-link">
-                Read Full Mission Statement <ChevronRight style={{ width: 16, height: 16 }} />
+              <Link to="/join" className="btn-secondary">
+                Join the Movement
               </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── 4. CORE VALUES ──────────────────────────────────── */}
-      <section className="home-section">
-        <div className="home-container">
-          <div className="home-section-header">
-            <span className="section-label">Our Guiding Pillars</span>
-            <h2 className="section-title">Core Values</h2>
-            <p className="section-subtitle">
-              The fundamental principles behind every project, campaign, and decision we make.
-            </p>
-          </div>
-
-          <div className="values-grid">
-            {values.map((v) => {
-              const IconComp = v.icon;
-              return (
-                <div key={v.title} className="value-card">
-                  <div className="value-icon">
-                    <IconComp style={{ width: 22, height: 22 }} />
-                  </div>
-                  <h3>{v.title}</h3>
-                  <p>{v.desc}</p>
-                </div>
-              );
-            })}
+      {/* ── 2. IMPACT / STATISTICS ────────────────────────────── */}
+      <section className="home-stats-section">
+        <div className="container-default">
+          <div className="stats-grid">
+            <div className="stat-item">
+              <div className="stat-number">{stats.units > 0 ? `${stats.units}+` : '10+'}</div>
+              <div className="stat-label">Active Units</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">{stats.events > 0 ? `${stats.events}+` : '50+'}</div>
+              <div className="stat-label">Events & Initiatives</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">{stats.photos > 0 ? `${stats.photos}+` : '500+'}</div>
+              <div className="stat-label">Memories Captured</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">1000+</div>
+              <div className="stat-label">Students Engaged</div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── 5. WHY JOIN MAGIC YOUTH ─────────────────────────── */}
-      <section className="home-section-alt">
-        <div className="home-container">
-          <div className="home-section-header">
-            <span className="section-label">Student Growth</span>
-            <h2 className="section-title">Why Join MAGIC Youth?</h2>
-            <p className="section-subtitle">
-              Discover how participating in MAGIC Youth enriches your college experience and prepares you for real-world success.
+      {/* ── 3. WHO WE ARE ─────────────────────────────────────── */}
+      <section className="section-padding section-light">
+        <div className="container-default who-we-are-container">
+          <div className="who-we-are-text">
+            <h2>Young people with a purpose.<br/>A movement for change.</h2>
+            <p>
+              MAGIC Youth — Men and Women Aiming Greater Initiative for Change — is a student-led youth organization under YES-J that encourages young people to grow as responsible leaders through service, education, teamwork, innovation and community engagement.
             </p>
+            <Link to="/about" className="btn-secondary" style={{ marginTop: '1.5rem' }}>
+              Learn More About MAGIC
+            </Link>
           </div>
+          <div className="who-we-are-image">
+            {recentPhotos[0] ? (
+              <img src={recentPhotos[0].file_path} alt="MAGIC Youth Students" loading="lazy" />
+            ) : (
+              <div className="image-placeholder"><ImageIcon size={48} /></div>
+            )}
+          </div>
+        </div>
+      </section>
 
-          <div className="why-grid">
-            {reasons.map((r) => (
-              <div key={r.title} className="why-card">
-                <div className="why-icon">
-                  <Star style={{ width: 22, height: 22 }} />
-                </div>
-                <div>
-                  <h3>{r.title}</h3>
-                  <p>{r.desc}</p>
-                </div>
-              </div>
+      {/* ── 4. VISION SECTION ─────────────────────────────────── */}
+      <section className="section-padding section-vision">
+        <div className="container-default vision-container">
+          <Quote className="vision-icon" />
+          <h2 className="vision-heading">Building young leaders for a better tomorrow.</h2>
+          <p className="vision-text">
+            We envision compassionate, responsible, skilled and socially conscious young people contributing to a just, inclusive and sustainable society.
+          </p>
+        </div>
+      </section>
+
+      {/* ── 5. WHAT WE DO ─────────────────────────────────────── */}
+      <section className="section-padding">
+        <div className="container-default">
+          <div className="section-header-center">
+            <h2>What We Do</h2>
+            <p>Our initiatives are centered around four core pillars of youth development.</p>
+          </div>
+          <div className="what-we-do-grid">
+            <div className="what-we-do-card">
+              <Target className="card-icon" />
+              <h3>Leadership</h3>
+              <p>Developing confident and responsible young leaders capable of guiding their peers and communities.</p>
+            </div>
+            <div className="what-we-do-card">
+              <Globe className="card-icon" />
+              <h3>Service</h3>
+              <p>Turning concern for others into meaningful, hands-on action through community volunteering.</p>
+            </div>
+            <div className="what-we-do-card">
+              <BookOpen className="card-icon" />
+              <h3>Learning</h3>
+              <p>Building knowledge, skills, and personality through workshops, training, and real-world experiences.</p>
+            </div>
+            <div className="what-we-do-card">
+              <Users className="card-icon" />
+              <h3>Community</h3>
+              <p>Creating opportunities for young people to work together, network, and create positive change.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 6. CORE VALUES ────────────────────────────────────── */}
+      <section className="section-padding section-light">
+        <div className="container-default">
+          <div className="section-header-center">
+            <h2>Our Core Values</h2>
+            <p>The principles that guide our members and our movement.</p>
+          </div>
+          <div className="values-cloud">
+            {coreValues.map(val => (
+              <span key={val} className="value-pill">{val}</span>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── 6. FINAL JOIN CTA ───────────────────────────────── */}
-      <section className="home-section">
-        <div className="home-container">
-          <div className="cta-box">
-            <h2>Ready to Make an Impact?</h2>
-            <p>
-              Join MAGIC Youth today and become part of a student-led movement creating positive change in leadership and community service.
-            </p>
-            <div className="cta-buttons">
-              <Link to="/join" className="btn-cta-white">
-                Join MAGIC Youth
-                <ArrowRight style={{ width: 18, height: 18 }} />
-              </Link>
-              <Link to="/contact" className="btn-cta-outline">
-                Contact Us
-              </Link>
+      {/* ── 7. EVENTS PREVIEW ─────────────────────────────────── */}
+      {recentEvents.length > 0 && (
+        <section className="section-padding">
+          <div className="container-default">
+            <div className="section-header-flex">
+              <h2>Moments That Move Us</h2>
+              <Link to="/events" className="link-arrow">View All Events <ArrowRight size={18} /></Link>
+            </div>
+            <div className="events-preview-grid">
+              {recentEvents.map(evt => (
+                <div key={evt._id} className="event-preview-card">
+                  <div className="event-preview-img">
+                    {evt.poster ? (
+                      <img src={evt.poster} alt={evt.title} loading="lazy" />
+                    ) : (
+                      <div className="placeholder"><Calendar size={32} /></div>
+                    )}
+                  </div>
+                  <div className="event-preview-content">
+                    <span className="event-date">
+                      {new Date(evt.start_date || evt.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    <h3>{evt.title}</h3>
+                    {evt.unitId && <p className="event-unit">{evt.unitId.name}</p>}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
+        </section>
+      )}
+
+      {/* ── 9. GALLERY PREVIEW ────────────────────────────────── */}
+      {recentPhotos.length > 0 && (
+        <section className="section-padding">
+          <div className="container-default">
+            <div className="section-header-flex">
+              <h2>Life at MAGIC</h2>
+              <Link to="/gallery" className="link-arrow">Explore Gallery <ArrowRight size={18} /></Link>
+            </div>
+            <div className="gallery-preview-grid">
+              {recentPhotos.map(photo => (
+                <div key={photo._id} className="gallery-preview-item">
+                  <img src={photo.file_path} alt={photo.title || 'MAGIC Youth Photo'} loading="lazy" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── 10. TEAMS PREVIEW ─────────────────────────────────── */}
+      {previewMembers.length > 0 && (
+        <section className="section-padding section-light">
+          <div className="container-default">
+            <div className="section-header-flex">
+              <div>
+                <h2>The People Behind MAGIC</h2>
+                <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
+                  {previewTeam?.name} {previewTeam?.unitId ? `— ${previewTeam.unitId.name}` : ''}
+                </p>
+              </div>
+              <Link to="/teams" className="link-arrow">Meet Our Teams <ArrowRight size={18} /></Link>
+            </div>
+            <div className="teams-preview-grid">
+              {previewMembers.map(member => (
+                <div key={member._id} className="team-preview-card">
+                  <div className="team-member-photo">
+                    {member.photo ? (
+                      <img src={member.photo} alt={member.name} loading="lazy" />
+                    ) : (
+                      <div className="avatar-placeholder">{member.name ? member.name[0].toUpperCase() : 'U'}</div>
+                    )}
+                  </div>
+                  <h3 className="team-member-name">{member.name}</h3>
+                  <p className="team-member-role">{member.position}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── 11. FINAL CTA ─────────────────────────────────────── */}
+      <section className="section-padding final-cta-section">
+        <div className="container-default final-cta-container">
+          <h2 className="final-cta-heading">Think. Lead. Serve. Change.</h2>
+          <p className="final-cta-text">
+            Whether you want to lead, volunteer, learn, serve or contribute, there is a place for you in MAGIC Youth.
+          </p>
+          <Link to="/join" className="btn-cta-large">
+            Join the Movement
+          </Link>
         </div>
       </section>
-    </div>
+    </main>
   );
 }

@@ -70,7 +70,7 @@ export default function Contact() {
                 <div>
                   <h3 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.25rem' }}>Address</h3>
                   <p style={{ fontSize: '0.84375rem', color: '#4B5563', lineHeight: 1.5 }}>
-                    Andhra Loyola Institute of Engineering and Technology (ALIET), Vijayawada — 520 008, AP
+                    YOUTH EMPOWERING CENTER - JESUITS (YES - J)<br/>Vijayawada
                   </p>
                 </div>
               </div>
@@ -81,7 +81,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.25rem' }}>Email</h3>
-                  <p style={{ fontSize: '0.84375rem', color: '#4B5563' }}>contact@magicyouth.in</p>
+                  <p style={{ fontSize: '0.84375rem', color: '#4B5563' }}>magicyouth.loyola@gmail.com</p>
                 </div>
               </div>
 
@@ -121,7 +121,7 @@ export default function Contact() {
                   </p>
                   <button
                     onClick={() => { setSent(false); setForm({ name:'', email:'', phone:'', subject:'General Inquiry', message:'' }); }}
-                    className="btn-primary-purple"
+                    className="btn-primary"
                   >
                     Send Another Message
                   </button>
@@ -169,7 +169,7 @@ export default function Contact() {
                   </div>
 
                   <div>
-                    <button type="submit" disabled={sending} className="btn-primary-purple" style={{ width: 'auto' }}>
+                    <button type="submit" disabled={sending} className="btn-primary" style={{ width: 'auto' }}>
                       <Send style={{ width: 16, height: 16 }} />
                       {sending ? 'Sending…' : 'Send Message'}
                     </button>

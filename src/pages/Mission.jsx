@@ -1,6 +1,5 @@
 import React from 'react';
 import { Compass, Target, CheckCircle, ShieldCheck, Award, Heart, Sparkles, TrendingUp } from 'lucide-react';
-import '../styles/about.css';
 import '../styles/home.css';
 
 export default function Mission() {
@@ -26,62 +25,60 @@ export default function Mission() {
   ];
 
   return (
-    <div>
+    <main className="home-wrapper">
       {/* ── MISSION HERO ───────────────────────────────────────────── */}
-      <section className="about-hero">
-        <div className="about-hero-content">
-          <span className="about-badge">Our Purpose</span>
-          <h1 className="about-title">Mission &amp; <span className="highlight">Vision</span></h1>
-          <p className="about-lead">
-            Men &amp; Women Aiming Greater Initiatives for Change. Discover the core values, objectives, and future roadmaps that define our movement.
-          </p>
+      <section className="home-hero">
+        <div className="container-default hero-container">
+          <div className="hero-content">
+            <span className="hero-badge">Our Purpose</span>
+            <h1 className="hero-title">Mission &amp; Vision</h1>
+            <p className="hero-subtitle">
+              Men &amp; Women Aiming Greater Initiatives for Change. Discover the core values, objectives, and future roadmaps that define our movement.
+            </p>
+          </div>
         </div>
       </section>
 
       {/* ── VISION & MISSION ────────────────────────────────────── */}
-      <section className="home-section">
-        <div className="home-container">
-          <div className="vm-grid">
-            <div className="vm-card">
-              <div className="vm-icon-wrapper">
-                <Compass style={{ width: 26, height: 26 }} />
+      <section className="section-padding section-light">
+        <div className="container-default">
+          <div className="what-we-do-grid" style={{ gridTemplateColumns: 'repeat(1, 1fr)' }}>
+            <div className="what-we-do-card" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+              <Compass size={48} color="var(--primary-purple)" />
+              <div>
+                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Our Vision</h3>
+                <p style={{ fontSize: '1.125rem' }}>
+                  To cultivate a vibrant generation of empathetic, skilled, and socially conscious young people who actively lead initiatives that transform society and inspire meaningful progress across campuses, cities, and beyond.
+                </p>
               </div>
-              <h3>Our Vision</h3>
-              <p>
-                To cultivate a vibrant generation of empathetic, skilled, and socially conscious young people who actively lead initiatives that transform society and inspire meaningful progress across campuses, cities, and beyond.
-              </p>
             </div>
 
-            <div className="vm-card">
-              <div className="vm-icon-wrapper">
-                <Target style={{ width: 26, height: 26 }} />
+            <div className="what-we-do-card" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+              <Target size={48} color="var(--primary-purple)" />
+              <div>
+                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Our Mission</h3>
+                <p style={{ fontSize: '1.125rem' }}>
+                  To empower students with a collaborative platform for leadership development, community volunteering, technical and cultural workshops, and impactful social awareness campaigns — building character and capability in equal measure.
+                </p>
               </div>
-              <h3>Our Mission</h3>
-              <p>
-                To empower students with a collaborative platform for leadership development, community volunteering, technical and cultural workshops, and impactful social awareness campaigns — building character and capability in equal measure.
-              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* ── OBJECTIVES ──────────────────────────────────────────── */}
-      <section className="home-section-alt">
-        <div className="home-container">
-          <div className="home-section-header">
-            <span className="section-label">Action Plan</span>
-            <h2 className="section-title">Core Objectives</h2>
+      <section className="section-padding">
+        <div className="container-default">
+          <div className="section-header-center">
+            <h2>Core Objectives</h2>
+            <p>Our action plan for sustainable youth empowerment.</p>
           </div>
-          <div className="why-grid">
+          <div className="what-we-do-grid">
             {objectives.map((item) => (
-              <div key={item.title} className="why-card">
-                <div className="why-icon">
-                  <CheckCircle style={{ width: 22, height: 22 }} />
-                </div>
-                <div>
-                  <h3>{item.title}</h3>
-                  <p>{item.desc}</p>
-                </div>
+              <div key={item.title} className="what-we-do-card">
+                <CheckCircle className="card-icon" />
+                <h3>{item.title}</h3>
+                <p>{item.desc}</p>
               </div>
             ))}
           </div>
@@ -89,17 +86,17 @@ export default function Mission() {
       </section>
 
       {/* ── FUTURE GOALS ────────────────────────────────────────── */}
-      <section className="home-section">
-        <div className="home-container">
-          <div className="home-section-header">
-            <span className="section-label">Strategic Roadmap</span>
-            <h2 className="section-title">Future Goals</h2>
+      <section className="section-padding section-light">
+        <div className="container-default">
+          <div className="section-header-center">
+            <h2>Future Goals</h2>
+            <p>Our strategic roadmap for scaling impact.</p>
           </div>
-          <div className="values-grid">
+          <div className="what-we-do-grid">
             {futureGoals.map((goal) => (
-              <div key={goal.title} className="value-card" style={{ borderLeft: '4px solid #5B21B6' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <TrendingUp style={{ width: 18, height: 18, color: '#5B21B6' }} />
+              <div key={goal.title} className="what-we-do-card" style={{ borderLeft: '4px solid var(--primary-purple)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <TrendingUp style={{ width: 24, height: 24, color: 'var(--primary-purple)' }} />
                   <h3 style={{ margin: 0 }}>{goal.title}</h3>
                 </div>
                 <p>{goal.desc}</p>
@@ -110,20 +107,17 @@ export default function Mission() {
       </section>
 
       {/* ── CORE VALUES ─────────────────────────────────────────── */}
-      <section className="home-section-alt">
-        <div className="home-container">
-          <div className="home-section-header">
-            <span className="section-label">Guiding Principles</span>
-            <h2 className="section-title">Core Values</h2>
+      <section className="section-padding">
+        <div className="container-default">
+          <div className="section-header-center">
+            <h2>Guiding Principles</h2>
           </div>
-          <div className="values-grid">
+          <div className="what-we-do-grid">
             {values.map((v) => {
               const IconComp = v.icon;
               return (
-                <div key={v.title} className="value-card">
-                  <div className="value-icon">
-                    <IconComp style={{ width: 22, height: 22 }} />
-                  </div>
+                <div key={v.title} className="what-we-do-card">
+                  <IconComp className="card-icon" />
                   <h3>{v.title}</h3>
                   <p>{v.desc}</p>
                 </div>
@@ -132,6 +126,6 @@ export default function Mission() {
           </div>
         </div>
       </section>
-    </div>
+    </main>
   );
 }

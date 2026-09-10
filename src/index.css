@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import './styles/theme.css';
 @import './styles/utilities.css';
 
@@ -9,22 +9,34 @@
 :root {
   --bg-primary: #FFFFFF;
   --bg-secondary: #F8F7FC;
-  --soft-lavender: #EDE9FE;
+  --bg-accent: #F3F0FF;
+  
   --primary-purple: #5B21B6;
-  --secondary-purple: #6366F1;
-  --pink-accent: #EC4899;
-  --blue-accent: #3B82F6;
-  --text-primary: #1F2937;
-  --text-secondary: #6B7280;
+  --primary-purple-hover: #4C1D95;
+  --primary-purple-light: #EDE9FE;
+  
+  --secondary-color: #1F2937;
+  
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-tertiary: #6B7280;
+  
   --border-color: #E5E7EB;
+  --border-focus: #8B5CF6;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-purple: 0 10px 25px -5px rgba(91, 33, 182, 0.25);
 }
-  html, body {
+
+html, body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background: #070114;
-  color: #FFFFFF;
-  font-family: 'Inter', 'Manrope', system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -32,123 +44,123 @@
 
 #root {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .public-wrapper {
-  background: var(--bg-primary, #FFFFFF);
-  color: var(--text-primary, #1F2937);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Custom Scrollbar ────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: #08000f; }
-::-webkit-scrollbar-thumb { background: #6d28d9; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #a855f7; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background: #C4B5FD; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary-purple); }
 
-/* ── Dark Glassmorphism Cards ────────────────────────────────────── */
-.dark-glass-card {
-  background: rgba(12, 5, 28, 0.70);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(167, 139, 250, 0.14);
-  border-radius: 18px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+/* ── Typography Hierarchy ───────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
 }
 
-.dark-glass-card:hover {
-  border-color: rgba(167, 139, 250, 0.40);
-  transform: translateY(-3px);
-  box-shadow: 0 20px 50px rgba(124, 58, 237, 0.22), 0 0 25px rgba(168, 85, 247, 0.12);
+p {
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
-/* ── Purple Glow Buttons ─────────────────────────────────────────── */
-.btn-purple-glow {
-  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 22px rgba(124, 58, 237, 0.50);
-  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid rgba(167, 139, 250, 0.3);
+/* ── Base Buttons ─────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary-purple);
+  color: #FFFFFF;
+  font-weight: 600;
+  padding: 0.75rem 1.75rem;
+  border-radius: 9999px;
+  border: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: var(--shadow-md);
 }
 
-.btn-purple-glow:hover {
+.btn-primary:hover {
+  background-color: var(--primary-purple-hover);
   transform: translateY(-2px);
-  box-shadow: 0 10px 35px rgba(168, 85, 247, 0.65);
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  box-shadow: var(--shadow-purple);
 }
 
-.btn-purple-glow:active {
-  transform: translateY(0);
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFFFFF;
+  color: var(--primary-purple);
+  font-weight: 600;
+  padding: 0.75rem 1.75rem;
+  border-radius: 9999px;
+  border: 1.5px solid var(--primary-purple-light);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
 }
 
-/* ── Ghost / Outline Buttons ─────────────────────────────────────── */
-.btn-ghost {
-  background: transparent;
-  color: #c084fc;
-  border: 1px solid rgba(167, 139, 250, 0.35);
-  transition: all 0.22s ease;
+.btn-secondary:hover {
+  background-color: var(--primary-purple-light);
+  border-color: var(--primary-purple);
 }
 
-.btn-ghost:hover {
-  background: rgba(124, 58, 237, 0.18);
-  border-color: rgba(167, 139, 250, 0.65);
-  color: #e9d5ff;
-}
-
-/* ── Premium Gradient Text ───────────────────────────────────────── */
-.gradient-text-purple {
-  background: linear-gradient(135deg, #ffffff 0%, #c084fc 50%, #818cf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Inline Purple Glow Shadow Utility ───────────────────────────── */
-.shadow-purple-glow {
-  box-shadow: 0 0 22px rgba(124, 58, 237, 0.38);
-}
-
-/* ── Input Fields ────────────────────────────────────────────────── */
+/* ── Inputs ────────────────────────────────────────────────── */
 input, textarea, select {
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit;
 }
 
 input:focus, textarea:focus, select:focus {
-  border-color: rgba(167, 139, 250, 0.6) !important;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.20);
+  border-color: var(--border-focus) !important;
+  box-shadow: 0 0 0 3px var(--primary-purple-light);
 }
 
-/* ── Page Header Utility ─────────────────────────────────────────── */
-.page-header {
-  padding-top: 6rem;
-  padding-bottom: 4rem;
-  text-align: center;
-  border-bottom: 1px solid rgba(124, 58, 237, 0.15);
-  background: rgba(5, 0, 20, 0.45);
+/* ── Section Utilities ─────────────────────────────────────────── */
+.section-padding {
+  padding: 5rem 1.5rem;
 }
 
-/* ── Section Divider ─────────────────────────────────────────────── */
-.section-divider {
-  border-top: 1px solid rgba(124, 58, 237, 0.15);
-  background: rgba(5, 0, 20, 0.50);
+@media (min-width: 768px) {
+  .section-padding {
+    padding: 7rem 2rem;
+  }
 }
 
-/* ── Status Badge Variants ───────────────────────────────────────── */
-.badge-upcoming {
-  background: rgba(109, 40, 217, 0.80);
-  color: #ddd6fe;
-  border: 1px solid rgba(139, 92, 246, 0.45);
+.container-default {
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.badge-completed {
-  background: rgba(15, 23, 42, 0.80);
-  color: #94a3b8;
-  border: 1px solid rgba(100, 116, 139, 0.35);
+/* ── Status Badges ───────────────────────────────────────── */
+.badge-upcoming-light {
+  background-color: var(--primary-purple-light);
+  color: var(--primary-purple);
+  border: 1px solid rgba(91, 33, 182, 0.1);
 }
 
-.badge-ongoing {
-  background: rgba(6, 78, 59, 0.75);
-  color: #6ee7b7;
-  border: 1px solid rgba(52, 211, 153, 0.35);
+.badge-completed-light {
+  background-color: #F3F4F6;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
+}
+
+.badge-ongoing-light {
+  background-color: #D1FAE5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
 }

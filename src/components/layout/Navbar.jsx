@@ -17,16 +17,16 @@ export default function Navbar() {
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
 
-  // Public navigation only - exactly the 8 approved items (Documentation moved to footer)
   const links = [
-    { name: 'Home',    path: '/' },
-    { name: 'About',   path: '/about' },
-    { name: 'Mission', path: '/mission' },
-    { name: 'Teams',   path: '/teams' },
-    { name: 'Gallery', path: '/gallery' },
-    { name: 'Events',  path: '/events' },
-    { name: 'Join',    path: '/join' },
-    { name: 'Contact', path: '/contact' },
+    { name: 'Home',          path: '/' },
+    { name: 'About',         path: '/about' },
+    { name: 'Mission',       path: '/mission' },
+    { name: 'Teams',         path: '/teams' },
+    { name: 'Gallery',       path: '/gallery' },
+    { name: 'Events',        path: '/events' },
+    { name: 'Documentation', path: '/documentation' },
+    { name: 'Join',          path: '/join' },
+    { name: 'Contact',       path: '/contact' },
   ];
 
   const isActive = (path) => {
@@ -49,7 +49,7 @@ export default function Navbar() {
 
         {/* Desktop Nav */}
         <nav className="navbar-nav">
-          {links.map(link => (
+          {links.filter(l => l.name !== 'Join').map(link => (
             <Link
               key={link.name}
               to={link.path}
@@ -70,7 +70,7 @@ export default function Navbar() {
             className="navbar-mobile-toggle"
             aria-label="Toggle navigation menu"
           >
-            {mobileOpen ? <X style={{ width: 20, height: 20 }} /> : <Menu style={{ width: 20, height: 20 }} />}
+            {mobileOpen ? <X style={{ width: 24, height: 24 }} /> : <Menu style={{ width: 24, height: 24 }} />}
           </button>
         </div>
       </div>
@@ -88,11 +88,6 @@ export default function Navbar() {
               <ChevronRight style={{ width: 16, height: 16 }} />
             </Link>
           ))}
-          <div className="navbar-mobile-join">
-            <Link to="/join" className="navbar-mobile-join-btn">
-              Join MAGIC Youth
-            </Link>
-          </div>
         </div>
       )}
     </header>
