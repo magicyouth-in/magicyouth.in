@@ -104,37 +104,36 @@
 }
 
 .member-card {
-  background-color: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 1.25rem;
+  background-color: var(--bg-primary);
+  border: none;
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  transition: transform 0.3s ease;
 }
 
 .member-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(91, 33, 182, 0.1);
-  border-color: #EDE9FE;
+  transform: translateY(-8px);
 }
 
 .member-photo-box {
-  aspect-ratio: 1 / 1;
-  background-color: #F8F7FC;
+  aspect-ratio: 3 / 4;
+  background-color: var(--bg-secondary);
   overflow: hidden;
   position: relative;
-  border-bottom: 1px solid #E5E7EB;
 }
 
 .member-photo {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  transition: transform 0.5s ease;
+  filter: grayscale(10%);
 }
 
 .member-card:hover .member-photo {
-  transform: scale(1.05);
+  transform: scale(1.03);
+  filter: grayscale(0%);
 }
 
 .member-placeholder {
@@ -143,52 +142,50 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9CA3AF;
-  font-size: 2rem;
-  font-weight: 700;
+  color: var(--text-tertiary);
+  font-size: 3rem;
+  font-weight: 300;
+  background-color: var(--bg-accent-blue);
 }
 
 .member-info {
-  padding: 1.25rem;
+  padding: 1.5rem 0;
 }
 
 .member-name {
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  color: #1F2937;
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
+  letter-spacing: -0.01em;
 }
 
 .member-role {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
-  color: #5B21B6;
+  color: var(--primary-purple);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .member-dept {
-  font-size: 0.75rem;
-  color: #6B7280;
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
   margin-top: 0.25rem;
 }
 
 .member-bio {
-  font-size: 0.8125rem;
-  color: #4B5563;
-  line-height: 1.5;
-  margin-top: 0.75rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 1rem;
 }
 
 .member-socials {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-top: 1rem;
-  padding-top: 0.875rem;
-  border-top: 1px solid #E5E7EB;
+  gap: 1rem;
+  margin-top: 1.25rem;
 }
 
 .member-social-link {

@@ -45,13 +45,14 @@ export default function Contact() {
   };
 
   return (
-    <div>
-      {/* ── CONTACT HERO ─────────────────────────────────────────── */}
-      <section className="contact-hero">
+    <div className="home-wrapper">
+      {/* ── CONTACT HERO ───────────────────────────────────────── */}
+      <section style={{ backgroundColor: 'var(--bg-primary)', padding: '6rem 1.5rem 2rem', textAlign: 'center' }}>
         <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
-          <span className="about-badge">Get in Touch</span>
-          <h1 className="about-title">Contact <span className="highlight">MAGIC Youth</span></h1>
-          <p className="about-lead">
+          <h1 style={{ fontSize: '3rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1rem' }}>
+            Get in Touch
+          </h1>
+          <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)' }}>
             Have a question, collaboration proposal, or feedback? Send us a message and our team will get back to you.
           </p>
         </div>

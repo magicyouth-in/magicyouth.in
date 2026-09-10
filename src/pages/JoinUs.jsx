@@ -4,7 +4,7 @@ import {
   HeartHandshake, CheckCircle2, ArrowRight, ArrowLeft,
   User, GraduationCap, Wrench, MessageSquare, AlertCircle,
   FileUp, Image as ImageIcon, ClipboardList, Loader2, Sparkles,
-  Building2
+  Building2, Award, Heart, Users
 } from 'lucide-react';
 import '../styles/about.css';
 import '../styles/join.css';
@@ -183,9 +183,49 @@ export default function JoinUs() {
       </section>
 
       {/* ── FORM CONTAINER ──────────────────────────────────────── */}
-      <section className="join-section">
-        <div className="join-container">
-          {isSubmitted ? (
+      <section className="join-section" style={{ backgroundColor: 'var(--bg-primary)', padding: '5rem 1.5rem' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr', gap: '4rem', alignItems: 'start' }} className="join-split-layout">
+          
+          {/* WHY JOIN SIDEBAR */}
+          <div className="join-sidebar" style={{ position: 'sticky', top: '80px' }}>
+            <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '2rem', color: 'var(--text-primary)' }}>Why Join MAGIC Youth?</h2>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--primary-purple-light)', color: 'var(--primary-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Award size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Leadership</h3>
+                  <p style={{ color: 'var(--text-secondary)' }}>Develop practical leadership skills by organizing events, managing budgets, and leading student committees.</p>
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--bg-accent-blue)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Heart size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Service</h3>
+                  <p style={{ color: 'var(--text-secondary)' }}>Directly impact your community through organized volunteering and social awareness drives.</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Users size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Community</h3>
+                  <p style={{ color: 'var(--text-secondary)' }}>Join a massive network of like-minded students across different colleges under the YES-J umbrella.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* APPLICATION FORM */}
+          <div className="join-form-wrapper" style={{ backgroundColor: 'var(--bg-secondary)', padding: '2rem', borderRadius: '1.5rem', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)' }}>
+            {isSubmitted ? (
             <div className="join-card" style={{ padding: '3.5rem 2rem', textAlign: 'center' }}>
               <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#5B21B6' }}>
                 <CheckCircle2 style={{ width: 36, height: 36 }} />
@@ -476,6 +516,7 @@ export default function JoinUs() {
             </div>
           )}
         </div>
+      </div>
       </section>
     </div>
   );

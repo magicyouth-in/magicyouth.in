@@ -82,20 +82,31 @@ export default function Events() {
 
   const totalPages = Math.ceil(total / 12);
 
+  const featuredEvent = events.find(e => e.status === 'Upcoming' || e.status === 'Ongoing') || events[0];
+  const regularEvents = events.filter(e => e._id !== featuredEvent?._id);
+
+  const getBadgeClass = (status) => {
+    if (status === 'Upcoming') return 'badge-upcoming-light';
+    if (status === 'Ongoing') return 'badge-ongoing-light';
+    return 'badge-completed-light';
+  };
+
   return (
-    <div>
-      {/* ── EVENTS HERO ─────────────────────────────────────────── */}
+    <div className="home-wrapper">
+      {/* ── EVENTS HERO ───────────────────────────────────────── */}
       <section className="events-hero">
         <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
-          <span className="about-badge">Activities &amp; Programs</span>
-          <h1 className="about-title">MAGIC Youth <span className="highlight">Events</span></h1>
-          <p className="about-lead">
-            Explore official MAGIC Youth events, workshops, campaigns, and student activities across units.
+          <span className="hero-badge">Activities &amp; Programs</span>
+          <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '1rem', color: '#1F2937' }}>
+            Activity Journal
+          </h1>
+          <p className="hero-subtitle" style={{ color: '#4B5563' }}>
+            Discover our outreach initiatives, training programs, and impact across all units.
           </p>
         </div>
       </section>
 
-      {/* ── FILTERS & LISTINGS ──────────────────────────────────── */}
+      {/* ── FILTERS & LISTINGS ────────────────────────────────── */}
       <section className="events-section">
         <div className="events-container">
 
@@ -105,68 +116,53 @@ export default function Events() {
               <button
                 key={t.key}
                 onClick={() => setFilter('status', t.key)}
-                className={`status-tab-btn ${filters.status === t.key ? 'active' : ''}`}
+                className={`status-tab ${filters.status === t.key ? 'active' : ''}`}
               >
                 {t.label}
               </button>
             ))}
           </div>
 
-          {/* Filters Row */}
-          <div className="events-filter-bar">
-            {/* Search */}
-            <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-              <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
-              <input
-                type="text"
-                placeholder="Search events…"
-                value={filters.search}
-                onChange={e => setFilter('search', e.target.value)}
-                className="event-search-input"
-              />
+          <div className="filter-grid">
+            <div className="filter-group">
+              <label>Unit</label>
+              <div className="filter-input-wrap">
+                <Building2 className="filter-icon" />
+                <select value={filters.unitId} onChange={e => { setFilter('unitId', e.target.value); setFilter('academicYearId', ''); }}>
+                  <option value="">All Units</option>
+                  {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                </select>
+                <ChevronDown className="filter-chevron" />
+              </div>
             </div>
 
-            {/* Unit Filter */}
-            <div style={{ position: 'relative' }}>
-              <Building2 style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
-              <select
-                value={filters.unitId}
-                onChange={e => { setFilter('unitId', e.target.value); setFilter('academicYearId', ''); }}
-                className="event-filter-select"
-              >
-                <option value="">All Units</option>
-                {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-              </select>
-              <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#5B21B6', pointerEvents: 'none' }} />
+            <div className="filter-group">
+              <label>Academic Year</label>
+              <div className="filter-input-wrap">
+                <CalendarDays className="filter-icon" />
+                <select 
+                  value={filters.academicYearId} 
+                  onChange={e => setFilter('academicYearId', e.target.value)}
+                  disabled={!filters.unitId}
+                >
+                  <option value="">All Years</option>
+                  {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                </select>
+                <ChevronDown className="filter-chevron" />
+              </div>
             </div>
 
-            {/* Academic Year Filter */}
-            <div style={{ position: 'relative' }}>
-              <CalendarDays style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
-              <select
-                value={filters.academicYearId}
-                onChange={e => setFilter('academicYearId', e.target.value)}
-                disabled={!filters.unitId}
-                className="event-filter-select"
-              >
-                <option value="">All Years</option>
-                {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
-              </select>
-              <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#5B21B6', pointerEvents: 'none' }} />
-            </div>
-
-            {/* Category Filter */}
-            <div style={{ position: 'relative' }}>
-              <Filter style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
-              <select
-                value={filters.category}
-                onChange={e => setFilter('category', e.target.value)}
-                className="event-filter-select"
-              >
-                <option value="">All Categories</option>
-                {EVENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#5B21B6', pointerEvents: 'none' }} />
+            <div className="filter-group">
+              <label>Search</label>
+              <div className="filter-input-wrap">
+                <Search className="filter-icon" />
+                <input 
+                  type="text" 
+                  placeholder="Search events..." 
+                  value={filters.search}
+                  onChange={e => setFilter('search', e.target.value)}
+                />
+              </div>
             </div>
           </div>
 

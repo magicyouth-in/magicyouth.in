@@ -213,100 +213,96 @@ export default function Documentation() {
             <span>Lead Access Active: {authAdmin?.name || authAdmin?.email}</span>
             <button onClick={handleLogout} style={{ background: 'none', border: 'none', color: '#DC2626', fontWeight: 800, cursor: 'pointer', marginLeft: '0.5rem', fontSize: '0.75rem' }}>[Lock Archive]</button>
           </div>
-          <h1 className="about-title">Documentation <span className="highlight">Center</span></h1>
-          <p className="about-lead">
+          <h1 className="hero-title" style={{ fontSize: '3rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>
+            Official Archive
+          </h1>
+          <p className="hero-subtitle" style={{ color: 'var(--text-secondary)' }}>
             Access event reports, annual records, certificates, meeting minutes, and official files.
           </p>
         </div>
       </section>
 
-      {/* ── FILTERS & LISTINGS ──────────────────────────────────── */}
+      {/* ── FILTERS & LISTINGS ────────────────────────────────── */}
       <section className="docs-section">
         <div className="docs-container">
-          <div className="docs-filter-bar">
-            {/* Search */}
-            <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-              <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
-              <input
-                type="text"
-                placeholder="Search documents…"
-                value={filters.search}
-                onChange={e => setFilter('search', e.target.value)}
-                style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.5rem', border: '1px solid #D1D5DB', borderRadius: '0.75rem', fontSize: '0.875rem', outline: 'none', boxSizing: 'border-box' }}
-              />
+          <div className="filter-grid">
+            <div className="filter-group">
+              <label>Search</label>
+              <div className="filter-input-wrap">
+                <Search className="filter-icon" />
+                <input
+                  type="text"
+                  placeholder="Search documents…"
+                  value={filters.search}
+                  onChange={e => setFilter('search', e.target.value)}
+                />
+              </div>
             </div>
 
-            {/* Unit */}
-            <div style={{ position: 'relative' }}>
-              <Building2 style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
-              <select
-                value={filters.unitId}
-                onChange={e => setFilter('unitId', e.target.value)}
-                style={{ padding: '0.625rem 2rem 0.625rem 2.25rem', backgroundColor: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: '0.75rem', fontSize: '0.875rem', color: '#1F2937', appearance: 'none', outline: 'none' }}
-              >
-                <option value="">All Units</option>
-                {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-              </select>
-              <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#5B21B6', pointerEvents: 'none' }} />
+            <div className="filter-group">
+              <label>Unit</label>
+              <div className="filter-input-wrap">
+                <Building2 className="filter-icon" />
+                <select value={filters.unitId} onChange={e => setFilter('unitId', e.target.value)}>
+                  <option value="">All Units</option>
+                  {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                </select>
+                <ChevronDown className="filter-chevron" />
+              </div>
             </div>
 
-            {/* Year */}
-            <div style={{ position: 'relative' }}>
-              <CalendarDays style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
-              <select
-                value={filters.academicYearId}
-                onChange={e => setFilter('academicYearId', e.target.value)}
-                disabled={!filters.unitId}
-                style={{ padding: '0.625rem 2rem 0.625rem 2.25rem', backgroundColor: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: '0.75rem', fontSize: '0.875rem', color: '#1F2937', appearance: 'none', outline: 'none' }}
-              >
-                <option value="">All Years</option>
-                {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
-              </select>
-              <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#5B21B6', pointerEvents: 'none' }} />
+            <div className="filter-group">
+              <label>Academic Year</label>
+              <div className="filter-input-wrap">
+                <CalendarDays className="filter-icon" />
+                <select
+                  value={filters.academicYearId}
+                  onChange={e => setFilter('academicYearId', e.target.value)}
+                  disabled={!filters.unitId}
+                >
+                  <option value="">All Years</option>
+                  {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                </select>
+                <ChevronDown className="filter-chevron" />
+              </div>
             </div>
 
-            {/* Document Type */}
-            <div style={{ position: 'relative' }}>
-              <Filter style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
-              <select
-                value={filters.documentType}
-                onChange={e => setFilter('documentType', e.target.value)}
-                style={{ padding: '0.625rem 2rem 0.625rem 2.25rem', backgroundColor: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: '0.75rem', fontSize: '0.875rem', color: '#1F2937', appearance: 'none', outline: 'none' }}
-              >
-                <option value="">All Document Types</option>
-                {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#5B21B6', pointerEvents: 'none' }} />
+            <div className="filter-group">
+              <label>Document Type</label>
+              <div className="filter-input-wrap">
+                <Filter className="filter-icon" />
+                <select value={filters.documentType} onChange={e => setFilter('documentType', e.target.value)}>
+                  <option value="">All Types</option>
+                  {DOCUMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <ChevronDown className="filter-chevron" />
+              </div>
             </div>
           </div>
 
           {/* Loading */}
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
-              <Loader2 style={{ width: 36, height: 36, color: '#5B21B6' }} className="animate-spin" />
+              <Loader2 style={{ width: 36, height: 36, color: 'var(--primary-purple)' }} className="animate-spin" />
             </div>
           )}
 
           {/* Empty State */}
           {!loading && docs.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '4rem 1.5rem' }}>
-              <FileText style={{ width: 48, height: 48, color: '#9CA3AF', margin: '0 auto 1rem' }} />
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1F2937' }}>No documents found</h3>
-              <p style={{ fontSize: '0.875rem', color: '#6B7280' }}>Try adjusting your filters or search terms.</p>
+            <div className="events-empty">
+              <h3>Official documents will be available here.</h3>
+              <p>Try adjusting your filters or search terms.</p>
             </div>
           )}
 
-          {/* Docs Grid */}
+          {/* Grid */}
           {!loading && docs.length > 0 && (
             <div>
-              <div style={{ fontSize: '0.875rem', color: '#6B7280', marginBottom: '1.5rem', fontWeight: 500 }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', fontWeight: 600 }}>
                 Showing {total} document{total !== 1 ? 's' : ''}
               </div>
-
-              <div className="docs-grid">
-                {docs.map(doc => (
-                  <DocumentCard key={doc._id} doc={doc} />
-                ))}
+              <div className="docs-list">
+                {docs.map(doc => <DocumentCard key={doc._id} doc={doc} />)}
               </div>
 
               {/* Pagination */}

@@ -180,20 +180,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── 6. CORE VALUES ────────────────────────────────────── */}
-      <section className="section-padding section-light">
-        <div className="container-default">
-          <div className="section-header-center">
-            <h2>Our Core Values</h2>
-            <p>The principles that guide our members and our movement.</p>
-          </div>
-          <div className="values-cloud">
-            {coreValues.map(val => (
-              <span key={val} className="value-pill">{val}</span>
-            ))}
-          </div>
-        </div>
-      </section>
+      
 
       {/* ── 7. EVENTS PREVIEW ─────────────────────────────────── */}
       {recentEvents.length > 0 && (

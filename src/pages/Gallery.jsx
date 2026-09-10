@@ -70,10 +70,12 @@ export default function Gallery() {
       {/* ── GALLERY HERO ─────────────────────────────────────────── */}
       <section className="gallery-hero">
         <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
-          <span className="about-badge">Photo Archive</span>
-          <h1 className="about-title">MAGIC Youth <span className="highlight">Gallery</span></h1>
-          <p className="about-lead">
-            Visual memories captured across events, programs, community drives, and achievements.
+          <span className="hero-badge" style={{ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}>Photo Archive</span>
+          <h1 className="hero-title" style={{ color: 'white', fontSize: '3.5rem', marginBottom: '1rem' }}>
+            Moments &amp; Memories
+          </h1>
+          <p className="hero-subtitle" style={{ color: 'rgba(255,255,255,0.8)' }}>
+            A visual record of our community impact, leadership programs, and collective achievements.
           </p>
         </div>
       </section>
@@ -81,58 +83,53 @@ export default function Gallery() {
       {/* ── FILTERS & GALLERY GRID ───────────────────────────────── */}
       <section className="gallery-section">
         <div className="gallery-container">
-          <div className="gallery-filter-bar">
-            {/* Unit */}
-            <div style={{ position: 'relative' }}>
-              <Building2 style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
-              <select
-                value={filters.unitId}
-                onChange={e => { setFilter('unitId', e.target.value); setFilter('academicYearId', ''); }}
-                style={{ padding: '0.625rem 2rem 0.625rem 2.25rem', backgroundColor: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: '0.75rem', fontSize: '0.875rem', color: '#1F2937', appearance: 'none', outline: 'none' }}
-              >
-                <option value="">All Units</option>
-                {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-              </select>
-              <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#5B21B6', pointerEvents: 'none' }} />
+          <div className="filter-grid">
+            <div className="filter-group">
+              <label>Unit</label>
+              <div className="filter-input-wrap">
+                <Building2 className="filter-icon" />
+                <select value={filters.unitId} onChange={e => { setFilter('unitId', e.target.value); setFilter('academicYearId', ''); }}>
+                  <option value="">All Units</option>
+                  {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                </select>
+                <ChevronDown className="filter-chevron" />
+              </div>
             </div>
 
-            {/* Year */}
-            <div style={{ position: 'relative' }}>
-              <CalendarDays style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
-              <select
-                value={filters.academicYearId}
-                onChange={e => setFilter('academicYearId', e.target.value)}
-                disabled={!filters.unitId}
-                style={{ padding: '0.625rem 2rem 0.625rem 2.25rem', backgroundColor: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: '0.75rem', fontSize: '0.875rem', color: '#1F2937', appearance: 'none', outline: 'none' }}
-              >
-                <option value="">All Years</option>
-                {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
-              </select>
-              <ChevronDown style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#5B21B6', pointerEvents: 'none' }} />
+            <div className="filter-group">
+              <label>Academic Year</label>
+              <div className="filter-input-wrap">
+                <CalendarDays className="filter-icon" />
+                <select 
+                  value={filters.academicYearId} 
+                  onChange={e => setFilter('academicYearId', e.target.value)}
+                  disabled={!filters.unitId}
+                >
+                  <option value="">All Years</option>
+                  {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                </select>
+                <ChevronDown className="filter-chevron" />
+              </div>
             </div>
           </div>
 
-          {/* Loading */}
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
-              <Loader2 style={{ width: 36, height: 36, color: '#5B21B6' }} className="animate-spin" />
+              <Loader2 className="animate-spin" style={{ width: 36, height: 36, color: 'var(--primary-purple)' }} />
             </div>
           )}
 
-          {/* Empty State */}
           {!loading && photos.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '4rem 1.5rem' }}>
-              <ImageIcon style={{ width: 48, height: 48, color: '#9CA3AF', margin: '0 auto 1rem' }} />
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1F2937' }}>No photos found</h3>
-              <p style={{ fontSize: '0.875rem', color: '#6B7280' }}>Try selecting a different unit or academic year.</p>
+            <div className="events-empty">
+              <h3>Our moments will appear here soon.</h3>
+              <p>Try selecting a different unit or academic year.</p>
             </div>
           )}
 
-          {/* Grid */}
           {!loading && photos.length > 0 && (
             <div>
-              <div style={{ fontSize: '0.875rem', color: '#6B7280', marginBottom: '1.5rem', fontWeight: 500 }}>
-                Showing {total} photo{total !== 1 ? 's' : ''}
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', fontWeight: 600 }}>
+                Showing {total} moment{total !== 1 ? 's' : ''}
               </div>
               <div className="gallery-grid">
                 {photos.map((photo) => (
