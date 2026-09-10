@@ -64,21 +64,30 @@ export default function Home() {
   return (
     <main className="home-wrapper">
       {/* ── 1. HERO SECTION ───────────────────────────────────── */}
-      <section className="home-hero">
-        <div className="container-default hero-container">
+      <section className="home-hero relative overflow-hidden">
+        {/* Soft Background Decor */}
+        <div className="hero-bg-shape hero-shape-1"></div>
+        <div className="hero-bg-shape hero-shape-2"></div>
+        
+        <div className="container-default hero-container relative z-10">
           <div className="hero-content">
-            <span className="hero-badge">A Movement for Change</span>
+            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-purple)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                YOUTH EMPOWERING SERVICE – JESUITS (YES-J)
+              </span>
+              <span className="hero-badge">MAGIC Youth</span>
+            </div>
             <h1 className="hero-title">
               Men and Women Aiming Greater Initiative for Change
             </h1>
             <p className="hero-subtitle">
-              Empowering young people to lead, serve, and create meaningful change in their communities.
+              A student-driven initiative empowering young people to lead, serve, and create meaningful social impact in our communities.
             </p>
             <div className="hero-actions">
               <Link to="/about" className="btn-primary">
                 Explore MAGIC Youth
               </Link>
-              <Link to="/join" className="btn-secondary">
+              <Link to="/join" className="btn-secondary" style={{ backgroundColor: 'white', border: '1px solid #E5E7EB', color: '#1F2937' }}>
                 Join the Movement
               </Link>
             </div>

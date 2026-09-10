@@ -20,50 +20,53 @@ export default function About() {
   return (
     <main className="home-wrapper">
       {/* ── ABOUT HERO ───────────────────────────────────────────── */}
-      <section className="home-hero">
-        <div className="container-default hero-container">
+      <section className="home-hero relative overflow-hidden">
+        <div className="hero-bg-shape hero-shape-1"></div>
+        <div className="hero-bg-shape hero-shape-2"></div>
+        <div className="container-default hero-container relative z-10">
           <div className="hero-content">
             <span className="hero-badge">Our Identity</span>
-            <h1 className="hero-title">About MAGIC Youth</h1>
+            <h1 className="hero-title">About YES-J & MAGIC Youth</h1>
             <p className="hero-subtitle">
-              Men &amp; Women Aiming Greater Initiatives for Change — a student-led organization empowering youth through leadership, service, and innovation since 2022.
+              A collaborative network dedicated to empowering young people through leadership, service, and social justice.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ── ORGANIZATIONAL STORY ─────────────────────────────────── */}
+      {/* ── YES-J INTRODUCTION ────────────────────────────────────── */}
       <section className="section-padding">
         <div className="container-default who-we-are-container">
           <div className="who-we-are-text">
-            <h2>Born from Student Initiative</h2>
+            <h2>Youth Empowering Service – Jesuits (YES-J)</h2>
             <p>
-              MAGIC Youth was founded by a passionate group of students at Andhra Loyola Institute of Engineering and Technology (ALIET), Vijayawada. They believed that young people hold the key to creating sustainable change — both within their university campus and in the broader community.
+              YES-J operates as the central coordination body promoting social awareness, ethics, social justice outreach, and character-building in Jesuit institutions. 
+              It provides a structural foundation and mentorship for student-led initiatives to thrive, granting members access to collaborative state-wide volunteering networks and specialized community resources.
             </p>
             <p style={{ marginTop: '1rem' }}>
-              Starting with small community outreach programs, the organization quickly grew into a recognized platform for leadership development, cultural events, strategic competitions, and social impact campaigns.
+              Rooted in the principles of holistic education and societal empathy, YES-J guides young people to become proactive, responsible leaders dedicated to serving others.
             </p>
-            <blockquote style={{ borderLeft: '4px solid var(--primary-purple)', paddingLeft: '1.5rem', marginTop: '2rem', fontStyle: 'italic', fontSize: '1.125rem', color: 'var(--text-primary)' }}>
-              "We empower students to become proactive change-makers, turning passion into organized, impactful community action."
-            </blockquote>
           </div>
         </div>
       </section>
 
-      {/* ── YES-J ALIGNMENT ──────────────────────────────────────── */}
+      {/* ── MAGIC YOUTH ──────────────────────────────────────── */}
       <section className="section-padding section-light">
         <div className="container-default">
           <div className="section-header-center">
-            <h2>Academic &amp; Jesuit Alliance</h2>
-            <p>Collaborative Integration with YES-J</p>
+            <h2>MAGIC Youth</h2>
+            <p>Men and Women Aiming Greater Initiative for Change</p>
           </div>
           <div className="what-we-do-card" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
             <p style={{ fontSize: '1.125rem', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>
-              As a student-led organization based at Andhra Loyola Institute of Engineering and Technology, Vijayawada, MAGIC Youth is closely aligned and collaborates with <strong>YES-J (Youth Empowerment Services - Jesuits)</strong>.
+              Operating as a dynamic student/youth initiative under the guidance of YES-J, MAGIC Youth translates these core values into organized, impactful community action.
             </p>
             <p>
-              YES-J operates as the central coordination body promoting social awareness, ethics, social justice outreach, and character-building in Jesuit institutions. This partnership grants our members access to mentors, collaborative state-wide volunteering networks, and specialized community resources.
+              MAGIC Youth empowers students to organize community outreach programs, cultural events, strategic competitions, and social impact campaigns. By taking charge of these initiatives, young people develop crucial leadership skills while making a tangible difference in their campuses and local communities.
             </p>
+            <blockquote style={{ borderLeft: '4px solid var(--primary-purple)', paddingLeft: '1.5rem', marginTop: '2rem', fontStyle: 'italic', fontSize: '1.125rem', color: 'var(--text-primary)', textAlign: 'left' }}>
+              "We empower students to become proactive change-makers, turning passion into organized, impactful community action."
+            </blockquote>
           </div>
         </div>
       </section>

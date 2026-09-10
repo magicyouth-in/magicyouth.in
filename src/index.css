@@ -8,12 +8,16 @@
 
 :root {
   --bg-primary: #FFFFFF;
-  --bg-secondary: #F8F7FC;
-  --bg-accent: #F3F0FF;
+  --bg-secondary: #F8F7FC;     /* Very light lavender/gray */
+  --bg-tertiary: #FAF9F6;      /* Warm off-white */
+  --bg-accent: #F3F0FF;        /* Soft purple tint */
+  --bg-accent-blue: #F0F4FF;   /* Soft blue tint */
   
   --primary-purple: #5B21B6;
   --primary-purple-hover: #4C1D95;
   --primary-purple-light: #EDE9FE;
+  
+  --accent-blue: #3B82F6;
   
   --secondary-color: #1F2937;
   
