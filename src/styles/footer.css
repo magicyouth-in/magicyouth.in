@@ -1,7 +1,7 @@
 /* src/styles/footer.css */
 
 .footer {
-  background-color: var(--primary-purple);
+  background-color: var(--primary-blue);
   color: #FFFFFF;
   padding: 5rem 1.5rem 2rem;
 }

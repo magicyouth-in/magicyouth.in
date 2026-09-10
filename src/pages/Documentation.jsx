@@ -283,7 +283,7 @@ export default function Documentation() {
           {/* Loading */}
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
-              <Loader2 style={{ width: 36, height: 36, color: 'var(--primary-purple)' }} className="animate-spin" />
+              <Loader2 style={{ width: 36, height: 36, color: 'var(--primary-blue)' }} className="animate-spin" />
             </div>
           )}
 
@@ -297,13 +297,13 @@ export default function Documentation() {
 
           {/* Grid */}
           {!loading && docs.length > 0 && (
-            <div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', fontWeight: 600 }}>
-                Showing {total} document{total !== 1 ? 's' : ''}
-              </div>
-              <div className="docs-list">
-                {docs.map(doc => <DocumentCard key={doc._id} doc={doc} />)}
-              </div>
+              <div>
+                <div style={{ fontSize: '0.875rem', color: '#6B7280', marginBottom: '1.5rem', fontWeight: 500 }}>
+                  Showing {total} document{total !== 1 ? 's' : ''}
+                </div>
+                <div className="docs-list">
+                  {docs.map((doc, i) => <DocumentCard key={doc._id} doc={doc} i={i} />)}
+                </div>
 
               {/* Pagination */}
               {totalPages > 1 && (
@@ -333,9 +333,17 @@ export default function Documentation() {
   );
 }
 
-function DocumentCard({ doc }) {
+import { motion } from 'framer-motion';
+
+function DocumentCard({ doc, i }) {
   return (
-    <div className="doc-card">
+    <motion.div 
+      initial={{ opacity: 0, x: -20 }} 
+      whileInView={{ opacity: 1, x: 0 }} 
+      viewport={{ once: true }} 
+      transition={{ duration: 0.4, delay: (i % 10) * 0.05 }} 
+      className="doc-card"
+    >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
         <div className="doc-icon-box">
           {mimeIcon(doc.mimeType)}
@@ -364,6 +372,6 @@ function DocumentCard({ doc }) {
         <Download style={{ width: 14, height: 14 }} />
         Download Document
       </a>
-    </div>
+    </motion.div>
   );
 }

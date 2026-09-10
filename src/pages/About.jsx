@@ -64,7 +64,7 @@ export default function About() {
             <p>
               MAGIC Youth empowers students to organize community outreach programs, cultural events, strategic competitions, and social impact campaigns. By taking charge of these initiatives, young people develop crucial leadership skills while making a tangible difference in their campuses and local communities.
             </p>
-            <blockquote style={{ borderLeft: '4px solid var(--primary-purple)', paddingLeft: '1.5rem', marginTop: '2rem', fontStyle: 'italic', fontSize: '1.125rem', color: 'var(--text-primary)', textAlign: 'left' }}>
+            <blockquote style={{ borderLeft: '4px solid var(--primary-blue)', paddingLeft: '1.5rem', marginTop: '2rem', fontStyle: 'italic', fontSize: '1.125rem', color: 'var(--text-primary)', textAlign: 'left' }}>
               "We empower students to become proactive change-makers, turning passion into organized, impactful community action."
             </blockquote>
           </div>
@@ -79,7 +79,7 @@ export default function About() {
           </div>
           <div className="what-we-do-grid" style={{ gridTemplateColumns: 'repeat(1, 1fr)' }}>
             <div className="what-we-do-card" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-              <Compass size={48} color="var(--primary-purple)" />
+              <Compass size={48} color="var(--primary-blue)" />
               <div>
                 <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Our Vision</h3>
                 <p style={{ fontSize: '1.125rem' }}>
@@ -88,7 +88,7 @@ export default function About() {
               </div>
             </div>
             <div className="what-we-do-card" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-              <Target size={48} color="var(--primary-purple)" />
+              <Target size={48} color="var(--primary-blue)" />
               <div>
                 <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Our Mission</h3>
                 <p style={{ fontSize: '1.125rem' }}>
@@ -108,7 +108,7 @@ export default function About() {
           </div>
           <div className="what-we-do-grid" style={{ marginBottom: '4rem' }}>
             {objectives.map((obj) => (
-              <div key={obj.title} className="what-we-do-card" style={{ borderLeft: '4px solid var(--primary-purple)' }}>
+              <div key={obj.title} className="what-we-do-card" style={{ borderLeft: '4px solid var(--primary-blue)' }}>
                 <h3>{obj.title}</h3>
                 <p>{obj.desc}</p>
               </div>

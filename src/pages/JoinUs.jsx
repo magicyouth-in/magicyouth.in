@@ -10,8 +10,8 @@ import '../styles/about.css';
 import '../styles/join.css';
 
 const fadeUp = {
-  hidden: { opacity: 1, y: 0 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
 };
 
 export default function JoinUs() {
@@ -192,7 +192,7 @@ export default function JoinUs() {
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <div style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--primary-purple-light)', color: 'var(--primary-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--primary-blue-light)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Award size={24} />
                 </div>
                 <div>

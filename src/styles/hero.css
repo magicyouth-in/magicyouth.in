@@ -82,7 +82,7 @@
   gap: 1rem;
 }
 
-.btn-primary-purple {
+.btn-primary-blue {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -98,7 +98,7 @@
   transition: all 0.2s ease;
 }
 
-.btn-primary-purple:hover {
+.btn-primary-blue:hover {
   background-color: #4C1D95;
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(91, 33, 182, 0.4);

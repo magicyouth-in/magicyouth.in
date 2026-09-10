@@ -42,7 +42,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--primary-purple);
+  color: var(--primary-blue);
   font-weight: 600;
   text-decoration: none;
   transition: gap 0.2s ease;
@@ -55,15 +55,29 @@
 /* ── 1. Hero ─────────────────────────────────────────── */
 .home-hero {
   position: relative;
-  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-accent) 100%);
-  padding: 7rem 1.5rem;
-  text-align: center;
+  background-color: var(--bg-tertiary);
+  background-image: radial-gradient(circle at 100% 0%, var(--primary-pink-light) 0%, transparent 40%),
+                    radial-gradient(circle at 0% 100%, var(--primary-blue-light) 0%, transparent 40%);
+  padding: 6rem 1.5rem 4rem;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  min-height: 85vh;
 }
 
-@media (min-width: 768px) {
-  .home-hero {
-    padding: 10rem 2rem 7rem;
+@media (min-width: 992px) {
+  .home-hero { padding: 8rem 2rem 5rem; }
+  .home-hero .container-default {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+  .hero-content {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 
@@ -72,23 +86,60 @@
   border-radius: 50%;
   filter: blur(80px);
   z-index: 0;
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .hero-shape-1 {
-  width: 400px;
-  height: 400px;
-  background-color: var(--primary-purple-light);
+  width: 500px;
+  height: 500px;
+  background-color: var(--primary-blue);
+  opacity: 0.15;
   top: -100px;
   left: -100px;
 }
 
 .hero-shape-2 {
-  width: 500px;
-  height: 500px;
-  background-color: var(--bg-accent-blue);
-  bottom: -150px;
-  right: -150px;
+  width: 400px;
+  height: 400px;
+  background-color: var(--primary-pink);
+  opacity: 0.15;
+  bottom: -50px;
+  right: -50px;
+}
+
+.hero-image-composition {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  display: none;
+}
+@media (min-width: 992px) {
+  .hero-image-composition { display: block; }
+}
+.hero-image-main {
+  width: 80%;
+  height: 80%;
+  object-fit: cover;
+  border-radius: 2rem;
+  box-shadow: var(--shadow-hover);
+  position: absolute;
+  top: 10%;
+  right: 0;
+  z-index: 2;
+  border: 4px solid white;
+}
+.hero-image-secondary {
+  width: 60%;
+  height: 60%;
+  object-fit: cover;
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-card);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 3;
+  border: 4px solid white;
 }
 
 .hero-container {
@@ -105,8 +156,8 @@
 .hero-badge {
   display: inline-block;
   padding: 0.5rem 1rem;
-  background-color: var(--primary-purple-light);
-  color: var(--primary-purple);
+  background-color: var(--primary-blue-light);
+  color: var(--primary-blue);
   font-weight: 600;
   font-size: 0.875rem;
   border-radius: 9999px;
@@ -156,7 +207,7 @@
 
 /* ── 2. Stats ─────────────────────────────────────────── */
 .home-stats-section {
-  background-color: var(--primary-purple);
+  background-color: var(--primary-blue);
   color: #FFFFFF;
   padding: 3rem 1.5rem;
 }
@@ -237,7 +288,7 @@
 
 /* ── 4. Vision ────────────────────────────────────────── */
 .section-vision {
-  background-color: var(--primary-purple);
+  background-color: var(--primary-blue);
   color: #FFFFFF;
   text-align: center;
 }
@@ -304,13 +355,13 @@
 .what-we-do-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
-  border-color: var(--primary-purple-light);
+  border-color: var(--primary-blue-light);
 }
 
 .card-icon {
   width: 32px;
   height: 32px;
-  color: var(--primary-purple);
+  color: var(--primary-blue);
   margin-bottom: 1.5rem;
 }
 
@@ -341,8 +392,8 @@
 }
 
 .value-pill:hover {
-  border-color: var(--primary-purple);
-  color: var(--primary-purple);
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
   transform: translateY(-2px);
 }
 
@@ -393,7 +444,7 @@
 .event-date {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--primary-purple);
+  color: var(--primary-blue);
   display: block;
   margin-bottom: 0.5rem;
 }
@@ -425,7 +476,7 @@
 .testimonial-icon {
   width: 40px;
   height: 40px;
-  color: var(--primary-purple-light);
+  color: var(--primary-blue-light);
   margin-bottom: 1.5rem;
 }
 
@@ -446,7 +497,7 @@
 .author-avatar {
   width: 48px;
   height: 48px;
-  background-color: var(--primary-purple);
+  background-color: var(--primary-blue);
   color: #FFFFFF;
   border-radius: 50%;
   display: flex;
@@ -553,14 +604,14 @@
 
 .team-member-role {
   font-size: 0.875rem;
-  color: var(--primary-purple);
+  color: var(--primary-blue);
   font-weight: 500;
   margin: 0;
 }
 
 /* ── 11. Final CTA ────────────────────────────────────── */
 .final-cta-section {
-  background-color: var(--primary-purple);
+  background-color: var(--primary-blue);
   text-align: center;
 }
 
@@ -583,7 +634,7 @@
   align-items: center;
   justify-content: center;
   background-color: #FFFFFF;
-  color: var(--primary-purple);
+  color: var(--primary-blue);
   font-weight: 700;
   font-size: 1.125rem;
   padding: 1rem 2.5rem;

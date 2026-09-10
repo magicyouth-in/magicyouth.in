@@ -26,5 +26,5 @@
 .rounded-full { border-radius: 9999px; }
 
 .transition { transition: all 0.2s ease; }
-.hover\:bg-purple:hover { background: var(--color-primary-purple); }
+.hover\:bg-purple:hover { background: var(--color-primary-blue); }
 .hover\:text-white:hover { color: #fff; }

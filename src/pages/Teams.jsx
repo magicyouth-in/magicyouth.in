@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { Users, ChevronDown, Linkedin, Instagram, Mail, Loader2, Building2, CalendarDays } from 'lucide-react';
 import '../styles/about.css';
 import '../styles/teams.css';
@@ -202,7 +204,13 @@ export default function Teams() {
 
 function MemberCard({ member }) {
   return (
-    <div className="member-card">
+    <motion.div 
+      className="member-card"
+      initial={{ opacity: 0, y: 30 }} 
+      whileInView={{ opacity: 1, y: 0 }} 
+      viewport={{ once: true, margin: "-50px" }} 
+      transition={{ duration: 0.5 }}
+    >
       <div className="member-photo-box">
         {member.photo ? (
           <img
@@ -222,7 +230,7 @@ function MemberCard({ member }) {
         <h3 className="member-name">{member.name}</h3>
         <div className="member-role">{member.position}</div>
         {member.department && (
-          <div className="member-dept">{member.department}{member.batchYear ? ` · ${member.batchYear}` : ''}</div>
+          <div className="member-dept">{member.department}{member.batchYear ? ` • ${member.batchYear}` : ''}</div>
         )}
         {member.biography && (
           <p className="member-bio">{member.biography}</p>
@@ -248,6 +256,6 @@ function MemberCard({ member }) {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

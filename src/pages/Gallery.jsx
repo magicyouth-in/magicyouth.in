@@ -115,7 +115,7 @@ export default function Gallery() {
 
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
-              <Loader2 className="animate-spin" style={{ width: 36, height: 36, color: 'var(--primary-purple)' }} />
+              <Loader2 className="animate-spin" style={{ width: 36, height: 36, color: 'var(--primary-blue)' }} />
             </div>
           )}
 
@@ -132,8 +132,12 @@ export default function Gallery() {
                 Showing {total} moment{total !== 1 ? 's' : ''}
               </div>
               <div className="gallery-grid">
-                {photos.map((photo) => (
-                  <div
+                {photos.map((photo, i) => (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-50px" }}
+                    transition={{ duration: 0.5, delay: (i % 6) * 0.05 }}
                     key={photo._id}
                     className="gallery-item"
                     onClick={() => setLightbox(photo)}
@@ -147,7 +151,7 @@ export default function Gallery() {
                     <div className="gallery-overlay">
                       <ZoomIn style={{ width: 28, height: 28 }} />
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
 

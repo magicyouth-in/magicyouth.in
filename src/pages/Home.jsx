@@ -63,7 +63,7 @@ export default function Home() {
 
   return (
     <main className="home-wrapper">
-      {/* ── 1. HERO SECTION ───────────────────────────────────── */}
+      {/* ── 1. HERO SECTION ────────────────────────────────────── */}
       <section className="home-hero relative overflow-hidden">
         {/* Soft Background Decor */}
         <div className="hero-bg-shape hero-shape-1"></div>
@@ -71,26 +71,69 @@ export default function Home() {
         
         <div className="container-default hero-container relative z-10">
           <div className="hero-content">
-            <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-purple)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                YOUTH EMPOWERING SERVICE – JESUITS (YES-J)
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.7 }}
+            >
+              <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.75rem', display: 'block' }}>
+                Youth Empowering Service – Jesuits (YES-J)
               </span>
-              <span className="hero-badge">MAGIC Youth</span>
-            </div>
-            <h1 className="hero-title">
-              Men and Women Aiming Greater Initiative for Change
-            </h1>
-            <p className="hero-subtitle">
-              A student-driven initiative empowering young people to lead, serve, and create meaningful social impact in our communities.
-            </p>
-            <div className="hero-actions">
-              <Link to="/about" className="btn-primary">
-                Explore MAGIC Youth
-              </Link>
-              <Link to="/join" className="btn-secondary" style={{ backgroundColor: 'white', border: '1px solid #E5E7EB', color: '#1F2937' }}>
-                Join the Movement
-              </Link>
-            </div>
+            </motion.div>
+            
+            <motion.h1 
+              className="hero-title"
+              initial={{ opacity: 0, scale: 0.95 }} 
+              animate={{ opacity: 1, scale: 1 }} 
+              transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
+            >
+              MAGIC <span style={{ color: 'var(--primary-pink)' }}>Youth</span>
+            </motion.h1>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.7, delay: 0.2 }}
+            >
+              <p className="hero-subtitle" style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                Men and Women Aiming Greater Initiative for Change
+              </p>
+              <p className="hero-subtitle" style={{ fontSize: '1.125rem' }}>
+                A vibrant community of students driving positive social change through leadership, service, and continuous learning.
+              </p>
+            </motion.div>
+            
+            <motion.div 
+              className="hero-actions"
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ duration: 0.7, delay: 0.3 }}
+            >
+              <Link to="/join" className="btn-primary">Join the Movement</Link>
+              <Link to="/about" className="btn-secondary">Discover Our Mission</Link>
+            </motion.div>
+          </div>
+
+          {/* Right Image Composition */}
+          <div className="hero-image-composition">
+            <motion.img 
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.9, delay: 0.2, ease: "easeOut" }}
+              src={recentPhotos.length > 0 ? recentPhotos[0].file_path : '/assets/magic.png'} 
+              alt="MAGIC Youth Leadership" 
+              className="hero-image-main" 
+            />
+            {recentPhotos.length > 1 && (
+              <motion.img 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, delay: 0.4, ease: "easeOut" }}
+                src={recentPhotos[1].file_path} 
+                alt="MAGIC Youth Service" 
+                className="hero-image-secondary" 
+              />
+            )}
           </div>
         </div>
       </section>

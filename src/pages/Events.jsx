@@ -185,16 +185,45 @@ export default function Events() {
           )}
 
           {/* Events Grid */}
-          {!loading && events.length > 0 && (
-            <div>
-              <div style={{ fontSize: '0.875rem', color: '#6B7280', marginBottom: '1.5rem', fontWeight: 500 }}>
-                Showing {total} event{total !== 1 ? 's' : ''}
-              </div>
-              <div className="events-grid">
-                {events.map((evt, i) => (
-                  <EventCard key={evt._id} evt={evt} i={i} onClick={() => setModal(evt)} />
-                ))}
-              </div>
+            {!loading && events.length > 0 && (
+              <div>
+                <div style={{ fontSize: '0.875rem', color: '#6B7280', marginBottom: '1.5rem', fontWeight: 500 }}>
+                  Showing {total} event{total !== 1 ? 's' : ''}
+                </div>
+                
+                {featuredEvent && page === 1 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 30 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    transition={{ duration: 0.6 }}
+                    className="featured-event-block"
+                    onClick={() => setModal(featuredEvent)}
+                  >
+                    <div className="featured-event-img">
+                      {featuredEvent.poster ? (
+                        <img src={featuredEvent.poster} alt={featuredEvent.title} loading="lazy" />
+                      ) : (
+                        <div className="placeholder"><Calendar size={64} /></div>
+                      )}
+                      <span className={`featured-badge ${getBadgeClass(featuredEvent.status)}`}>{featuredEvent.status}</span>
+                    </div>
+                    <div className="featured-event-content">
+                      <span className="featured-label">Featured Event</span>
+                      <h2>{featuredEvent.title}</h2>
+                      <p className="featured-desc">{featuredEvent.description}</p>
+                      <div className="featured-meta">
+                        <span><CalendarDays size={18} /> {new Date(featuredEvent.start_date || featuredEvent.startDate).toLocaleDateString()}</span>
+                        {featuredEvent.location && <span><MapPin size={18} /> {featuredEvent.location}</span>}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                <div className="events-grid">
+                  {regularEvents.map((evt, i) => (
+                    <EventCard key={evt._id} evt={evt} i={i} onClick={() => setModal(evt)} />
+                  ))}
+                </div>
 
               {/* Pagination */}
               {totalPages > 1 && (
@@ -278,7 +307,7 @@ export default function Events() {
   );
 }
 
-function EventCard({ evt, onClick }) {
+function EventCard({ evt, i, onClick }) {
   const getBadgeClass = (status) => {
     if (status === 'Upcoming') return 'badge-upcoming-light';
     if (status === 'Ongoing') return 'badge-ongoing-light';
@@ -286,7 +315,14 @@ function EventCard({ evt, onClick }) {
   };
 
   return (
-    <div className="event-card" onClick={onClick}>
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }} 
+      whileInView={{ opacity: 1, y: 0 }} 
+      viewport={{ once: true, margin: "-50px" }} 
+      transition={{ duration: 0.5, delay: (i % 3) * 0.1 }}
+      className="event-card" 
+      onClick={onClick}
+    >
       <div className="event-poster-box">
         {evt.poster ? (
           <img
@@ -326,6 +362,6 @@ function EventCard({ evt, onClick }) {
           {evt.unitId?.name && <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><Building2 style={{ width: 14, height: 14, color: '#5B21B6' }} />{evt.unitId.name}</div>}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
