@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const DEFAULT_MONGODB_URI = 'mongodb://magicyouthin:WQW3B7VvgAvYSblR@ac-4xd7xpn-shard-00-00.5otozzf.mongodb.net:27017,ac-4xd7xpn-shard-00-01.5otozzf.mongodb.net:27017,ac-4xd7xpn-shard-00-02.5otozzf.mongodb.net:27017/magicyouth?tls=true&authSource=admin&retryWrites=true&w=majority&appName=MAGICYOUTH';
+
 
 let cached = global.mongoose;
 
@@ -14,7 +14,10 @@ async function connectDB() {
   }
 
   if (!cached.promise) {
-    const uri = process.env.MONGODB_URI || DEFAULT_MONGODB_URI;
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      throw new Error('Please define the MONGODB_URI environment variable inside .env');
+    }
     const opts = {
       bufferCommands: false,
       serverSelectionTimeoutMS: 10000,
