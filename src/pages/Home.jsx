@@ -91,20 +91,16 @@ export default function Home() {
         <div className="container-default">
           <div className="stats-grid">
             <div className="stat-item">
-              <div className="stat-number">{stats.units > 0 ? `${stats.units}+` : '10+'}</div>
+              <div className="stat-number">{stats.units > 0 ? stats.units : '-'}</div>
               <div className="stat-label">Active Units</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number">{stats.events > 0 ? `${stats.events}+` : '50+'}</div>
+              <div className="stat-number">{stats.events > 0 ? stats.events : '-'}</div>
               <div className="stat-label">Events & Initiatives</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number">{stats.photos > 0 ? `${stats.photos}+` : '500+'}</div>
+              <div className="stat-number">{stats.photos > 0 ? stats.photos : '-'}</div>
               <div className="stat-label">Memories Captured</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">1000+</div>
-              <div className="stat-label">Students Engaged</div>
             </div>
           </div>
         </div>

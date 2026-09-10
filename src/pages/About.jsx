@@ -47,29 +47,6 @@ export default function About() {
               "We empower students to become proactive change-makers, turning passion into organized, impactful community action."
             </blockquote>
           </div>
-          
-          <div className="what-we-do-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-            <div className="what-we-do-card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary-purple)' }}>2022</div>
-              <h3 style={{ fontSize: '1rem', marginTop: '0.5rem' }}>Founded</h3>
-              <p style={{ fontSize: '0.875rem' }}>ALIET, Vijayawada</p>
-            </div>
-            <div className="what-we-do-card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary-purple)' }}>250+</div>
-              <h3 style={{ fontSize: '1rem', marginTop: '0.5rem' }}>Members</h3>
-              <p style={{ fontSize: '0.875rem' }}>Active volunteers</p>
-            </div>
-            <div className="what-we-do-card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary-purple)' }}>45+</div>
-              <h3 style={{ fontSize: '1rem', marginTop: '0.5rem' }}>Events</h3>
-              <p style={{ fontSize: '0.875rem' }}>Programs organized</p>
-            </div>
-            <div className="what-we-do-card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--primary-purple)' }}>500+</div>
-              <h3 style={{ fontSize: '1rem', marginTop: '0.5rem' }}>Impact</h3>
-              <p style={{ fontSize: '0.875rem' }}>Lives touched</p>
-            </div>
-          </div>
         </div>
       </section>
 
