@@ -3,25 +3,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
   Users, Heart, Award, ArrowRight, ArrowDown, Volume2, VolumeX, 
-  Subtitles, ChevronDown, BookOpen, Leaf, Sparkles, Rocket, 
+  ChevronDown, BookOpen, Leaf, Sparkles, Rocket, 
   Globe, Shield, CheckCircle2, Building, MessageSquare, Compass
 } from 'lucide-react';
 import '../styles/home.css';
-
-import captionsTimeline from '../assets/captionsTimeline.json';
 
 export default function Home() {
   const [stats, setStats] = useState({ events: null, units: null, members: null, initialized: false });
   const [recentPhotos, setRecentPhotos] = useState([]);
   const [recentEvents, setRecentEvents] = useState([]);
   
-  // Video Controls & Voiceover Audio State
+  // Video Controls State
   const [isMuted, setIsMuted] = useState(true);
-  const [showCaptions, setShowCaptions] = useState(false);
-  const [currentCaption, setCurrentCaption] = useState('');
   const [videoError, setVideoError] = useState(false);
   const videoRef = useRef(null);
-  const audioRef = useRef(null);
 
   // FAQ State
   const [activeFaq, setActiveFaq] = useState(null);
@@ -66,71 +61,16 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // Handle Video Subtitles & Time Sync with Voiceover Audio
-  useEffect(() => {
-    const video = videoRef.current;
-    const audio = audioRef.current;
-    if (!video) return;
-
-    const handleTimeUpdate = () => {
-      const time = video.currentTime;
-      const match = captionsTimeline.find(c => time >= c.start && time <= c.end);
-      setCurrentCaption(match ? match.text : '');
-
-      if (audio && !isMuted && Math.abs(audio.currentTime - time) > 0.35) {
-        audio.currentTime = time;
-      }
-    };
-
-    const handlePlay = () => {
-      if (audio && !isMuted) {
-        audio.currentTime = video.currentTime;
-        audio.play().catch(() => {});
-      }
-    };
-
-    const handlePause = () => {
-      if (audio) audio.pause();
-    };
-
-    const handleSeeked = () => {
-      if (audio) audio.currentTime = video.currentTime;
-    };
-
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    video.addEventListener('seeked', handleSeeked);
-
-    return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-      video.removeEventListener('seeked', handleSeeked);
-    };
-  }, [isMuted]);
-
   const toggleSound = () => {
     const nextMuted = !isMuted;
     if (videoRef.current) {
       videoRef.current.muted = nextMuted;
-      videoRef.current.volume = nextMuted ? 0 : 0.35; // Duck background music to 35%
-    }
-    if (audioRef.current) {
-      audioRef.current.muted = nextMuted;
-      audioRef.current.volume = nextMuted ? 0 : 1.0;  // Full volume voiceover narration
       if (!nextMuted) {
-        audioRef.current.currentTime = videoRef.current ? videoRef.current.currentTime : 0;
-        audioRef.current.play().catch(() => {});
-      } else {
-        audioRef.current.pause();
+        videoRef.current.volume = 1.0;
+        videoRef.current.play().catch(() => {});
       }
     }
     setIsMuted(nextMuted);
-  };
-
-  const toggleCaptions = () => {
-    setShowCaptions(!showCaptions);
   };
 
   const fadeUp = {
@@ -221,36 +161,27 @@ export default function Home() {
       >
         {/* Real HTML5 Background Video */}
         {!videoError ? (
-          <>
-            <video
-              ref={videoRef}
-              autoPlay
-              muted={isMuted}
-              loop
-              playsInline
-              preload="metadata"
-              poster="/assets/magic-logo.png"
-              onError={() => setVideoError(true)}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                zIndex: 0
-              }}
-            >
-              <source src="/videos/magic-youth.mp4" type="video/mp4" />
-              <track src="/videos/magic-youth.vtt" kind="captions" srcLang="en" label="English" default={showCaptions} />
-            </video>
-            <audio
-              ref={audioRef}
-              src="/videos/magic-youth-voiceover.wav"
-              preload="auto"
-              loop
-            />
-          </>
+          <video
+            ref={videoRef}
+            autoPlay
+            muted={isMuted}
+            loop
+            playsInline
+            preload="metadata"
+            poster="/assets/magic-logo.png"
+            onError={() => setVideoError(true)}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              zIndex: 0
+            }}
+          >
+            <source src="/videos/magic-youth.mp4" type="video/mp4" />
+          </video>
         ) : (
           <div 
             style={{
@@ -340,31 +271,7 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {/* Live Synchronized Captions Bar */}
-        {showCaptions && currentCaption && (
-          <div 
-            style={{
-              position: 'absolute',
-              bottom: '5.5rem',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              backgroundColor: 'rgba(0, 0, 0, 0.85)',
-              color: '#F8FAFC',
-              padding: '0.6rem 1.5rem',
-              borderRadius: '0.5rem',
-              fontSize: '0.9375rem',
-              fontWeight: 600,
-              maxWidth: '90%',
-              zIndex: 3,
-              border: '1px solid rgba(255,255,255,0.15)',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
-            }}
-          >
-            {currentCaption}
-          </div>
-        )}
-
-        {/* Floating Video Sound & Captions Controls */}
+        {/* Floating Video Sound Control */}
         <div 
           style={{
             position: 'absolute',
@@ -376,29 +283,6 @@ export default function Home() {
             zIndex: 3
           }}
         >
-          <button
-            onClick={toggleCaptions}
-            aria-label="Toggle Subtitles"
-            style={{
-              backgroundColor: showCaptions ? 'var(--primary-blue)' : 'rgba(15, 23, 42, 0.75)',
-              color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
-              padding: '0.5rem 0.875rem',
-              borderRadius: '999px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.35rem',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              backdropFilter: 'blur(8px)',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <Subtitles size={16} />
-            <span>CC</span>
-          </button>
-
           <button
             onClick={toggleSound}
             aria-label={isMuted ? "Turn Sound On" : "Turn Sound Off"}
