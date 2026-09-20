@@ -143,23 +143,8 @@ export default function Home() {
 
   return (
     <main className="home-wrapper">
-      {/* 1. CINEMATIC FULL-SCREEN VIDEO BACKGROUND HERO */}
-      <section 
-        className="home-hero-video-container" 
-        style={{ 
-          position: 'relative', 
-          minHeight: 'calc(100vh - 70px)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          textAlign: 'center', 
-          color: 'white', 
-          padding: '4rem 1.5rem', 
-          overflow: 'hidden', 
-          backgroundColor: '#0B1120' 
-        }}
-      >
-        {/* Real HTML5 Background Video */}
+      {/* 1. CINEMATIC FULL-WIDTH VIDEO SECTION (NO TEXT OVERLAY) */}
+      <section className="home-video-section">
         {!videoError ? (
           <video
             ref={videoRef}
@@ -167,17 +152,14 @@ export default function Home() {
             muted={isMuted}
             loop
             playsInline
-            preload="metadata"
+            preload="auto"
             poster="/assets/magic-logo.png"
             onError={() => setVideoError(true)}
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
               width: '100%',
               height: '100%',
               objectFit: 'cover',
-              zIndex: 0
+              display: 'block'
             }}
           >
             <source src="/videos/magic-youth.mp4" type="video/mp4" />
@@ -185,126 +167,138 @@ export default function Home() {
         ) : (
           <div 
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
               width: '100%',
               height: '100%',
               backgroundImage: `url(${recentPhotos.length > 0 ? recentPhotos[0].file_path : '/assets/magic-logo.png'})`,
               backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              zIndex: 0
+              backgroundPosition: 'center'
             }}
           />
         )}
 
-        {/* Dark Cinematic Gradient Overlay */}
+        {/* Floating Minimal Video Sound Control (Bottom-Right) */}
         <div 
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'linear-gradient(180deg, rgba(11, 17, 32, 0.72) 0%, rgba(15, 23, 42, 0.85) 60%, rgba(11, 17, 32, 0.95) 100%)',
-            zIndex: 1
-          }} 
-          aria-hidden="true" 
-        />
-
-        {/* Hero Content Above Video */}
-        <motion.div 
-          className="hero-content" 
-          initial="hidden" 
-          animate="visible" 
-          variants={fadeUp} 
-          style={{ maxWidth: '960px', margin: '0 auto', position: 'relative', zIndex: 2 }}
-        >
-          <div 
-            className="hero-eyebrow" 
-            style={{ 
-              color: 'var(--primary-pink)', 
-              letterSpacing: '0.25em', 
-              textTransform: 'uppercase', 
-              marginBottom: '1.5rem', 
-              fontWeight: 800, 
-              fontSize: '0.9375rem' 
-            }}
-          >
-            YES-J &bull; MAGIC YOUTH
-          </div>
-          
-          <h1 
-            className="hero-headline" 
-            style={{ 
-              color: 'white', 
-              fontSize: 'clamp(2.25rem, 5.5vw, 4.25rem)', 
-              fontWeight: 900, 
-              lineHeight: 1.12, 
-              letterSpacing: '-0.02em', 
-              marginBottom: '1.5rem' 
-            }}
-          >
-            Men and Women Aiming at <span style={{ color: 'var(--primary-pink)' }}>Greater Initiatives</span> for Change
-          </h1>
-          
-          <p 
-            className="hero-subtitle" 
-            style={{ 
-              color: '#E2E8F0', 
-              fontSize: 'clamp(1.1rem, 2vw, 1.3rem)', 
-              lineHeight: 1.65, 
-              maxWidth: '720px', 
-              margin: '0 auto 2.5rem' 
-            }}
-          >
-            A campus-based movement that forms young people as agents of conscience, compassion, and commitment.
-          </p>
-          
-          <div className="hero-actions" style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.25rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem', boxShadow: '0 10px 25px rgba(2, 132, 199, 0.4)' }}>
-              JOIN MAGIC
-            </Link>
-            <Link to="/about" className="btn-outline" style={{ color: 'white', borderColor: 'rgba(255,255,255,0.35)', padding: '1rem 2.25rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem', border: '2px solid' }}>
-              Discover Our Story
-            </Link>
-          </div>
-        </motion.div>
-
-        {/* Floating Video Sound Control */}
-        <div 
-          style={{
-            position: 'absolute',
-            bottom: '1.75rem',
-            right: '1.75rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            zIndex: 3
+            bottom: '1.5rem',
+            right: '1.5rem',
+            zIndex: 10
           }}
         >
           <button
             onClick={toggleSound}
             aria-label={isMuted ? "Turn Sound On" : "Turn Sound Off"}
             style={{
-              backgroundColor: !isMuted ? 'var(--primary-pink)' : 'rgba(15, 23, 42, 0.75)',
+              backgroundColor: !isMuted ? 'var(--primary-pink)' : 'rgba(15, 23, 42, 0.85)',
               color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
-              padding: '0.5rem 1rem',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              padding: '0.6rem 1.25rem',
               borderRadius: '999px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
-              fontSize: '0.8125rem',
+              fontSize: '0.875rem',
               fontWeight: 700,
-              backdropFilter: 'blur(8px)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
               transition: 'all 0.2s ease'
             }}
           >
-            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             <span>{isMuted ? 'Sound Off' : 'Sound On'}</span>
           </button>
+        </div>
+      </section>
+
+      {/* 2. MAGIC YOUTH EDITORIAL INTRODUCTION (TEXT BELOW VIDEO) */}
+      <section className="home-intro-section">
+        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+          <motion.div 
+            className="hero-content" 
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true, margin: '-40px' }} 
+            variants={fadeUp}
+            style={{ margin: '0 auto' }}
+          >
+            <div 
+              className="hero-eyebrow" 
+              style={{ 
+                color: 'var(--primary-pink)', 
+                letterSpacing: '0.25em', 
+                textTransform: 'uppercase', 
+                marginBottom: '1.5rem', 
+                fontWeight: 800, 
+                fontSize: '0.9375rem' 
+              }}
+            >
+              YES-J &bull; MAGIC YOUTH
+            </div>
+            
+            <h1 
+              className="hero-headline" 
+              style={{ 
+                color: 'white', 
+                fontSize: 'clamp(2.25rem, 5.5vw, 4.25rem)', 
+                fontWeight: 900, 
+                lineHeight: 1.15, 
+                letterSpacing: '-0.02em', 
+                marginBottom: '1.5rem' 
+              }}
+            >
+              Men and Women Aiming at <span style={{ color: 'var(--primary-pink)' }}>Greater Initiatives</span> for Change
+            </h1>
+            
+            <p 
+              className="hero-subtitle" 
+              style={{ 
+                color: '#E2E8F0', 
+                fontSize: 'clamp(1.1rem, 2.2vw, 1.35rem)', 
+                lineHeight: 1.7, 
+                maxWidth: '760px', 
+                margin: '0 auto 2.75rem',
+                fontWeight: 400
+              }}
+            >
+              A campus-based movement that forms young people as agents of conscience, compassion, and commitment.
+            </p>
+            
+            <div className="hero-actions" style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link 
+                to="/join" 
+                className="btn-primary" 
+                style={{ 
+                  backgroundColor: 'var(--primary-pink)', 
+                  color: 'white', 
+                  padding: '1rem 2.5rem', 
+                  borderRadius: '999px', 
+                  textDecoration: 'none', 
+                  fontWeight: 800, 
+                  fontSize: '1rem', 
+                  boxShadow: '0 10px 25px rgba(225, 29, 72, 0.4)' 
+                }}
+              >
+                JOIN MAGIC &rarr;
+              </Link>
+              <Link 
+                to="/about" 
+                className="btn-outline" 
+                style={{ 
+                  color: 'white', 
+                  borderColor: 'rgba(255,255,255,0.35)', 
+                  padding: '1rem 2.5rem', 
+                  borderRadius: '999px', 
+                  textDecoration: 'none', 
+                  fontWeight: 800, 
+                  fontSize: '1rem', 
+                  border: '2px solid' 
+                }}
+              >
+                DISCOVER OUR STORY &rarr;
+              </Link>
+            </div>
+          </motion.div>
         </div>
       </section>
 
