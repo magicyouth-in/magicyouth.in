@@ -65,6 +65,9 @@ export default function Navbar() {
           <Link to="/join" className="navbar-join-btn">
             Join MAGIC Youth
           </Link>
+          <Link to="/admin/login" className="navbar-admin-link">
+            Admin
+          </Link>
           <button
             onClick={() => setMobileOpen(v => !v)}
             className="navbar-mobile-toggle"
@@ -88,6 +91,11 @@ export default function Navbar() {
               <ChevronRight style={{ width: 16, height: 16 }} />
             </Link>
           ))}
+          <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '1rem 0' }}></div>
+          <Link to="/admin/login" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>
+            <span>Admin / Login</span>
+            <ChevronRight style={{ width: 16, height: 16 }} />
+          </Link>
         </div>
       )}
     </header>

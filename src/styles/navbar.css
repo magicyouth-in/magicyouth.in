@@ -204,3 +204,15 @@
   text-decoration: none;
   box-shadow: 0 2px 8px rgba(91, 33, 182, 0.25);
 }
+
+.navbar-admin-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  margin-left: 1rem;
+}
+.navbar-admin-link:hover {
+  color: var(--primary-pink);
+}
