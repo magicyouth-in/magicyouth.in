@@ -98,19 +98,19 @@ export default function Home() {
       <section className="impact-strip">
         <div className="impact-grid">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-            <div className="impact-number">{stats.units > 0 ? stats.units : '10+'}</div>
+            <div className="impact-number">{stats.units > 0 ? stats.units : 'Youth'}</div>
             <div className="impact-label">Community Units</div>
           </motion.div>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.1 }}>
-            <div className="impact-number">{stats.events > 0 ? stats.events : '50+'}</div>
+            <div className="impact-number">{stats.events > 0 ? stats.events : 'Service'}</div>
             <div className="impact-label">Initiatives & Events</div>
           </motion.div>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.2 }}>
-            <div className="impact-number">{stats.photos > 0 ? stats.photos : '500+'}</div>
+            <div className="impact-number">{stats.photos > 0 ? stats.photos : 'Impact'}</div>
             <div className="impact-label">Moments Captured</div>
           </motion.div>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.3 }}>
-            <div className="impact-number">{stats.members > 0 ? stats.members : '100+'}</div>
+            <div className="impact-number">{stats.members > 0 ? stats.members : 'Action'}</div>
             <div className="impact-label">Active Volunteers</div>
           </motion.div>
         </div>
