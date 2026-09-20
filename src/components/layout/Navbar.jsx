@@ -14,58 +14,59 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [location]);
+
   return (
-    <nav className={`my-navbar ${isScrolled ? 'scrolled' : ''}`}>
-      <div className="my-nav-container">
+    <header className={`navbar-header ${isScrolled ? 'scrolled' : ''}`}>
+      <div className="navbar-container">
         {/* LOGO AREA */}
-        <Link to="/" className="my-nav-brand">
-          <img src="/assets/magic-logo.png" alt="MAGIC Logo" className="my-brand-logo" />
-          <div className="my-brand-text">
-            <span className="my-brand-title">MAGIC Youth</span>
-            <span className="my-brand-subtitle">A YES-J Student Youth Wing</span>
+        <Link to="/" className="navbar-brand">
+          <img src="/assets/magic-logo.png" alt="MAGIC Logo" className="navbar-logo" />
+          <div className="navbar-title" style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+            <span style={{ fontSize: '1.25rem', color: 'var(--primary-blue)' }}>MAGIC Youth</span>
           </div>
         </Link>
 
         {/* DESKTOP LINKS */}
-        <div className="my-nav-links desktop-only">
-          <Link to="/" className="my-nav-link">Home</Link>
-          <Link to="/about" className="my-nav-link">About</Link>
-          <Link to="/impact" className="my-nav-link">Impact</Link>
-          <Link to="/media" className="my-nav-link">Media</Link>
-          <Link to="/teams" className="my-nav-link">Team</Link>
-          <Link to="/contact" className="my-nav-link">Contact</Link>
-        </div>
+        <nav className="navbar-nav">
+          <Link to="/" className={`navbar-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>
+          <Link to="/about" className={`navbar-link ${location.pathname === '/about' ? 'active' : ''}`}>About</Link>
+          <Link to="/impact" className={`navbar-link ${location.pathname === '/impact' ? 'active' : ''}`}>Impact</Link>
+          <Link to="/media" className={`navbar-link ${location.pathname === '/media' ? 'active' : ''}`}>Media</Link>
+          <Link to="/teams" className={`navbar-link ${location.pathname === '/teams' ? 'active' : ''}`}>Team</Link>
+          <Link to="/contact" className={`navbar-link ${location.pathname === '/contact' ? 'active' : ''}`}>Contact</Link>
+        </nav>
 
         {/* DESKTOP ACTIONS */}
-        <div className="my-nav-actions desktop-only">
-          <a href="https://yesj.org/contact?program=magic" target="_blank" rel="noopener noreferrer" className="my-nav-btn-primary">
+        <div className="navbar-actions">
+          <a href="https://yesj.org/contact?program=magic" target="_blank" rel="noopener noreferrer" className="navbar-join-btn">
             Join MAGIC
           </a>
+          <button className="navbar-mobile-toggle" onClick={() => setIsMobileOpen(!isMobileOpen)}>
+            {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
-
-        {/* MOBILE TOGGLE */}
-        <button className="my-mobile-toggle mobile-only" onClick={() => setIsMobileOpen(!isMobileOpen)}>
-          {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
       </div>
 
       {/* MOBILE DRAWER */}
       {isMobileOpen && (
-        <div className="my-mobile-drawer mobile-only">
-          <Link to="/" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>Home</Link>
-          <Link to="/about" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>About</Link>
-          <Link to="/impact" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>Impact</Link>
-          <Link to="/media" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>Media</Link>
-          <Link to="/teams" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>Team</Link>
-          <Link to="/contact" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>Contact</Link>
+        <div className="navbar-mobile-drawer">
+          <Link to="/" className={`navbar-mobile-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>
+          <Link to="/about" className={`navbar-mobile-link ${location.pathname === '/about' ? 'active' : ''}`}>About</Link>
+          <Link to="/impact" className={`navbar-mobile-link ${location.pathname === '/impact' ? 'active' : ''}`}>Impact</Link>
+          <Link to="/media" className={`navbar-mobile-link ${location.pathname === '/media' ? 'active' : ''}`}>Media</Link>
+          <Link to="/teams" className={`navbar-mobile-link ${location.pathname === '/teams' ? 'active' : ''}`}>Team</Link>
+          <Link to="/contact" className={`navbar-mobile-link ${location.pathname === '/contact' ? 'active' : ''}`}>Contact</Link>
           
-          <div className="mobile-nav-actions">
-            <a href="https://yesj.org/contact?program=magic" target="_blank" rel="noopener noreferrer" className="my-nav-btn-primary" style={{ width: '100%', textAlign: 'center' }}>
+          <div className="navbar-mobile-join">
+            <a href="https://yesj.org/contact?program=magic" target="_blank" rel="noopener noreferrer" className="navbar-mobile-join-btn">
               Join MAGIC
             </a>
           </div>
         </div>
       )}
-    </nav>
+    </header>
   );
 }
