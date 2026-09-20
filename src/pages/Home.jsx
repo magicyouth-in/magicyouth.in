@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Users, Target, BookOpen, Globe, Quote, Image as ImageIcon, Calendar } from 'lucide-react';
 import '../styles/home.css';
