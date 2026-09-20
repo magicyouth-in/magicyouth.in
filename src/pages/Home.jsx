@@ -143,11 +143,12 @@ export default function Home() {
 
   return (
     <main className="home-wrapper">
-      {/* 1. CINEMATIC FULL-FRAME VIDEO SECTION (NON-CROPPED) */}
-      <section className="home-video-section">
+      {/* 1. CINEMATIC FULL-WIDTH RESPONSIVE VIDEO ELEMENT (NATURAL ASPECT RATIO, NO CROPPING) */}
+      <section className="video-section">
         {!videoError ? (
           <video
             ref={videoRef}
+            src="/videos/magic-youth.mp4"
             autoPlay
             muted={isMuted}
             loop
@@ -155,16 +156,12 @@ export default function Home() {
             preload="auto"
             poster="/assets/magic-logo.png"
             onError={() => setVideoError(true)}
-            className="home-video-player"
-          >
-            <source src="/videos/magic-youth.mp4" type="video/mp4" />
-          </video>
+          />
         ) : (
           <div 
             style={{
               width: '100%',
-              height: '50vh',
-              minHeight: '300px',
+              minHeight: '240px',
               backgroundImage: `url(${recentPhotos.length > 0 ? recentPhotos[0].file_path : '/assets/magic-logo.png'})`,
               backgroundSize: 'contain',
               backgroundRepeat: 'no-repeat',
@@ -174,79 +171,38 @@ export default function Home() {
         )}
 
         {/* Floating Minimal Video Sound Control (Bottom-Right) */}
-        <div 
-          style={{
-            position: 'absolute',
-            bottom: '1rem',
-            right: '1rem',
-            zIndex: 10
-          }}
+        <button
+          onClick={toggleSound}
+          aria-label={isMuted ? "Turn Sound On" : "Turn Sound Off"}
+          className={`video-sound-toggle ${!isMuted ? 'unmuted' : ''}`}
         >
-          <button
-            onClick={toggleSound}
-            aria-label={isMuted ? "Turn Sound On" : "Turn Sound Off"}
-            className={`home-video-sound-btn ${!isMuted ? 'unmuted' : ''}`}
-          >
-            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            <span>{isMuted ? 'Sound Off' : 'Sound On'}</span>
-          </button>
-        </div>
+          {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          <span>{isMuted ? 'Sound Off' : 'Sound On'}</span>
+        </button>
       </section>
 
-      {/* 2. MAGIC YOUTH EDITORIAL INTRODUCTION (TEXT BELOW VIDEO) */}
-      <section className="home-intro-section">
-        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+      {/* 2. MAGIC YOUTH EDITORIAL INTRODUCTION (TEXT STRICTLY BELOW VIDEO) */}
+      <section className="intro-section">
+        <div className="intro-container">
           <motion.div 
-            className="hero-content" 
             initial="hidden" 
             whileInView="visible" 
             viewport={{ once: true, margin: '-40px' }} 
             variants={fadeUp}
-            style={{ margin: '0 auto' }}
           >
-            <div 
-              className="hero-eyebrow" 
-              style={{ 
-                color: 'var(--primary-pink)', 
-                letterSpacing: '0.25em', 
-                textTransform: 'uppercase', 
-                marginBottom: '1.5rem', 
-                fontWeight: 800, 
-                fontSize: '0.9375rem' 
-              }}
-            >
+            <div className="intro-eyebrow">
               YES-J &bull; MAGIC YOUTH
             </div>
             
-            <h1 
-              className="hero-headline" 
-              style={{ 
-                color: 'white', 
-                fontSize: 'clamp(2.25rem, 5.5vw, 4.25rem)', 
-                fontWeight: 900, 
-                lineHeight: 1.15, 
-                letterSpacing: '-0.02em', 
-                marginBottom: '1.5rem' 
-              }}
-            >
+            <h1 className="intro-headline">
               Men and Women Aiming at <span style={{ color: 'var(--primary-pink)' }}>Greater Initiatives</span> for Change
             </h1>
             
-            <p 
-              className="hero-subtitle" 
-              style={{ 
-                color: '#E2E8F0', 
-                fontSize: 'clamp(1.1rem, 2.2vw, 1.35rem)', 
-                lineHeight: 1.7, 
-                maxWidth: '760px', 
-                margin: '0 auto 2.75rem',
-                fontWeight: 400
-              }}
-            >
+            <p className="intro-subtitle">
               A campus-based movement that forms young people as agents of conscience, compassion, and commitment.
             </p>
             
-            <div className="hero-actions" style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div className="intro-actions">
               <Link 
                 to="/join" 
                 className="btn-primary" 
