@@ -589,3 +589,11 @@
 
 @media (min-width: 768px) { .section-title { font-size: 2.75rem; } }
 @media (min-width: 768px) { .impact-number { font-size: 3rem; } }
+
+/* MAGIC Journey Timeline */
+.magic-timeline { display: flex; flex-direction: column; gap: 2rem; position: relative; max-width: 1200px; margin: 4rem auto 0; padding-left: 2rem; border-left: 2px solid var(--border-color); }
+.timeline-item { position: relative; padding: 1.5rem 2rem; background: white; border: 1px solid var(--border-color); border-radius: 1rem; box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+.timeline-item::before { content: ""; position: absolute; left: -2.65rem; top: 2rem; width: 1rem; height: 1rem; background: var(--primary-pink); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 0 2px var(--border-color); }
+@media (min-width: 768px) { .magic-timeline { flex-direction: row; padding-left: 0; border-left: none; border-top: 2px solid var(--border-color); padding-top: 2rem; gap: 1.5rem; } .timeline-item::before { left: 2rem; top: -2.65rem; } }
+.flow-diagram { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem; margin-top: 2rem; }
+.flow-arrow { width: 2px; height: 40px; background: linear-gradient(to bottom, var(--primary-blue), var(--primary-pink)); }

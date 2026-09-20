@@ -6,15 +6,11 @@ export default function Footer() {
   return (
     <footer className="footer">
       <div className="footer-container">
-        <div className="footer-brand">
-          <h2>MAGIC Youth</h2>
-          <p style={{ fontWeight: 600, color: 'white', marginBottom: '0.5rem' }}>Men and Women Aiming at Greater Initiatives for Change</p>
-          <p>A YES-J student youth wing forming young people as agents of conscience, compassion, and commitment.</p>
-        </div>
+        
+        {/* BRAND & NAVIGATION */}
         <div>
-          <h3 className="footer-heading">Explore</h3>
+          <h3 className="footer-heading" style={{ color: 'white', fontSize: '1.25rem', marginBottom: '1.5rem' }}>MAGIC Youth</h3>
           <ul className="footer-links">
-            <li><Link to="/" className="footer-link">Home</Link></li>
             <li><Link to="/about" className="footer-link">About</Link></li>
             <li><Link to="/impact" className="footer-link">Impact</Link></li>
             <li><Link to="/media" className="footer-link">Media</Link></li>
@@ -22,22 +18,33 @@ export default function Footer() {
             <li><Link to="/contact" className="footer-link">Contact</Link></li>
           </ul>
         </div>
+        
+        {/* RESOURCES */}
         <div>
-          <h3 className="footer-heading">Resources & Connect</h3>
-          <ul className="footer-links" style={{ marginBottom: '2rem' }}>
-            <li><Link to="/media" className="footer-link">Magazines</Link></li>
-            <li><Link to="/media" className="footer-link">Images</Link></li>
+          <h3 className="footer-heading">Resources</h3>
+          <ul className="footer-links">
             <li><Link to="/documentation" className="footer-link">Documentation</Link></li>
+            <li><Link to="/media" className="footer-link">Publications</Link></li>
           </ul>
+        </div>
+
+        {/* CONNECT */}
+        <div>
+          <h3 className="footer-heading">Connect</h3>
           <ul className="footer-links">
             <li><a href="https://yesj.org" target="_blank" rel="noopener noreferrer" className="footer-link">YES-J Official Site</a></li>
           </ul>
         </div>
+
       </div>
-      <div className="footer-bottom">
-        <p>© {new Date().getFullYear()} MAGIC Youth. All rights reserved.</p>
-        <div style={{ display: 'flex', gap: '1.5rem' }}>
-          <Link to="/admin/login" className="footer-link" style={{ fontSize: '0.75rem', opacity: 0.5 }}>Admin Login</Link>
+
+      <div className="footer-bottom" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+        <p style={{ textAlign: 'center' }}>
+          © {new Date().getFullYear()} MAGIC Youth.<br/>
+          Part of YES-J.
+        </p>
+        <div>
+          <Link to="/admin/login" className="footer-link" style={{ fontSize: '0.75rem', opacity: 0.3, textDecoration: 'none' }}>Admin Login</Link>
         </div>
       </div>
     </footer>
