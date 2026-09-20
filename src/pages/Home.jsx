@@ -143,7 +143,7 @@ export default function Home() {
 
   return (
     <main className="home-wrapper">
-      {/* 1. CINEMATIC FULL-WIDTH VIDEO SECTION (NO TEXT OVERLAY) */}
+      {/* 1. CINEMATIC FULL-FRAME VIDEO SECTION (NON-CROPPED) */}
       <section className="home-video-section">
         {!videoError ? (
           <video
@@ -155,12 +155,7 @@ export default function Home() {
             preload="auto"
             poster="/assets/magic-logo.png"
             onError={() => setVideoError(true)}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              display: 'block'
-            }}
+            className="home-video-player"
           >
             <source src="/videos/magic-youth.mp4" type="video/mp4" />
           </video>
@@ -168,9 +163,11 @@ export default function Home() {
           <div 
             style={{
               width: '100%',
-              height: '100%',
+              height: '50vh',
+              minHeight: '300px',
               backgroundImage: `url(${recentPhotos.length > 0 ? recentPhotos[0].file_path : '/assets/magic-logo.png'})`,
-              backgroundSize: 'cover',
+              backgroundSize: 'contain',
+              backgroundRepeat: 'no-repeat',
               backgroundPosition: 'center'
             }}
           />
@@ -180,32 +177,17 @@ export default function Home() {
         <div 
           style={{
             position: 'absolute',
-            bottom: '1.5rem',
-            right: '1.5rem',
+            bottom: '1rem',
+            right: '1rem',
             zIndex: 10
           }}
         >
           <button
             onClick={toggleSound}
             aria-label={isMuted ? "Turn Sound On" : "Turn Sound Off"}
-            style={{
-              backgroundColor: !isMuted ? 'var(--primary-pink)' : 'rgba(15, 23, 42, 0.85)',
-              color: 'white',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              padding: '0.6rem 1.25rem',
-              borderRadius: '999px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              fontSize: '0.875rem',
-              fontWeight: 700,
-              backdropFilter: 'blur(10px)',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-              transition: 'all 0.2s ease'
-            }}
+            className={`home-video-sound-btn ${!isMuted ? 'unmuted' : ''}`}
           >
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
             <span>{isMuted ? 'Sound Off' : 'Sound On'}</span>
           </button>
         </div>
