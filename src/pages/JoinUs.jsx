@@ -172,12 +172,12 @@ export default function JoinUs() {
   return (
     <div>
       {/* ── JOIN HERO ───────────────────────────────────────────── */}
-      <section className="join-hero">
+      <section className="join-hero" style={{ backgroundColor: '#0F172A', color: 'white', padding: '6rem 1.5rem 4rem', textAlign: 'center' }}>
         <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
-          <span className="about-badge">Membership Application</span>
-          <h1 className="about-title">Join <span className="highlight">MAGIC Youth</span></h1>
-          <p className="about-lead">
-            Apply to become an active student volunteer, coordinator, and community leader.
+          <span style={{ color: 'var(--primary-pink)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem', display: 'inline-block' }}>YES-J &bull; MAGIC YOUTH MEMBERSHIP</span>
+          <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '1.25rem', color: 'white' }}>Become a <span style={{ color: 'var(--primary-pink)' }}>Change Agent</span></h1>
+          <p style={{ color: '#94A3B8', fontSize: '1.2rem', lineHeight: 1.6 }}>
+            Join a campus-based movement forming young people as leaders of conscience, compassion, and commitment.
           </p>
         </div>
       </section>

@@ -18,6 +18,19 @@ export default function Navbar() {
     setIsMobileOpen(false);
   }, [location]);
 
+  const navLinks = [
+    { name: 'Home', path: '/' },
+    { name: 'About', path: '/about' },
+    { name: 'Programs', path: '/programs' },
+    { name: 'Chapters', path: '/chapters' },
+    { name: 'Impact', path: '/impact' },
+    { name: 'Media', path: '/media' },
+    { name: 'Stories', path: '/stories' },
+    { name: 'Team', path: '/teams' },
+    { name: 'Resources', path: '/resources' },
+    { name: 'Contact', path: '/contact' },
+  ];
+
   return (
     <header className={`navbar-header ${isScrolled ? 'scrolled' : ''}`}>
       <div className="navbar-container">
@@ -25,26 +38,35 @@ export default function Navbar() {
         <Link to="/" className="navbar-brand">
           <img src="/assets/magic-logo.png" alt="MAGIC Logo" className="navbar-logo" />
           <div className="navbar-title" style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-            <span style={{ fontSize: '1.25rem', color: 'var(--primary-blue)' }}>MAGIC Youth</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary-blue)' }}>MAGIC Youth</span>
+            <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: 700, letterSpacing: '0.05em' }}>A YES-J YOUTH WING</span>
           </div>
         </Link>
 
         {/* DESKTOP LINKS */}
         <nav className="navbar-nav">
-          <Link to="/" className={`navbar-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>
-          <Link to="/about" className={`navbar-link ${location.pathname === '/about' ? 'active' : ''}`}>About</Link>
-          <Link to="/impact" className={`navbar-link ${location.pathname === '/impact' ? 'active' : ''}`}>Impact</Link>
-          <Link to="/media" className={`navbar-link ${location.pathname === '/media' ? 'active' : ''}`}>Media</Link>
-          <Link to="/teams" className={`navbar-link ${location.pathname === '/teams' ? 'active' : ''}`}>Team</Link>
-          <Link to="/contact" className={`navbar-link ${location.pathname === '/contact' ? 'active' : ''}`}>Contact</Link>
+          {navLinks.map((link) => (
+            <Link 
+              key={link.path} 
+              to={link.path} 
+              className={`navbar-link ${location.pathname === link.path ? 'active' : ''}`}
+            >
+              {link.name}
+            </Link>
+          ))}
         </nav>
 
         {/* DESKTOP ACTIONS */}
         <div className="navbar-actions">
-          <a href="https://yesj.org/contact?program=magic" target="_blank" rel="noopener noreferrer" className="navbar-join-btn">
-            Join MAGIC
-          </a>
-          <button className="navbar-mobile-toggle" onClick={() => setIsMobileOpen(!isMobileOpen)} aria-label="Toggle mobile menu" aria-expanded={isMobileOpen}>
+          <Link to="/join" className="navbar-join-btn">
+            JOIN MAGIC
+          </Link>
+          <button 
+            className="navbar-mobile-toggle" 
+            onClick={() => setIsMobileOpen(!isMobileOpen)} 
+            aria-label="Toggle mobile menu" 
+            aria-expanded={isMobileOpen}
+          >
             {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
@@ -53,17 +75,20 @@ export default function Navbar() {
       {/* MOBILE DRAWER */}
       {isMobileOpen && (
         <div className="navbar-mobile-drawer">
-          <Link to="/" className={`navbar-mobile-link ${location.pathname === '/' ? 'active' : ''}`}>Home</Link>
-          <Link to="/about" className={`navbar-mobile-link ${location.pathname === '/about' ? 'active' : ''}`}>About</Link>
-          <Link to="/impact" className={`navbar-mobile-link ${location.pathname === '/impact' ? 'active' : ''}`}>Impact</Link>
-          <Link to="/media" className={`navbar-mobile-link ${location.pathname === '/media' ? 'active' : ''}`}>Media</Link>
-          <Link to="/teams" className={`navbar-mobile-link ${location.pathname === '/teams' ? 'active' : ''}`}>Team</Link>
-          <Link to="/contact" className={`navbar-mobile-link ${location.pathname === '/contact' ? 'active' : ''}`}>Contact</Link>
+          {navLinks.map((link) => (
+            <Link 
+              key={link.path} 
+              to={link.path} 
+              className={`navbar-mobile-link ${location.pathname === link.path ? 'active' : ''}`}
+            >
+              {link.name}
+            </Link>
+          ))}
           
           <div className="navbar-mobile-join">
-            <a href="https://yesj.org/contact?program=magic" target="_blank" rel="noopener noreferrer" className="navbar-mobile-join-btn">
-              Join MAGIC
-            </a>
+            <Link to="/join" className="navbar-mobile-join-btn">
+              JOIN MAGIC
+            </Link>
           </div>
         </div>
       )}

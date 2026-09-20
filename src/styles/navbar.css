@@ -54,7 +54,7 @@
 .navbar-nav {
   display: none;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.15rem;
 }
 
 @media (min-width: 1024px) {
@@ -64,13 +64,14 @@
 }
 
 .navbar-link {
-  font-size: 0.9375rem;
-  font-weight: 500;
+  font-size: 0.875rem;
+  font-weight: 600;
   color: #4B5563;
   text-decoration: none;
-  padding: 0.5rem 0.25rem;
+  padding: 0.4rem 0.15rem;
   position: relative;
   transition: color 0.2s ease;
+  white-space: nowrap;
 }
 
 .navbar-link:hover {

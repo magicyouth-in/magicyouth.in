@@ -7,6 +7,10 @@ import Footer  from './components/layout/Footer';
 
 const Home          = React.lazy(() => import('./pages/Home'));
 const About         = React.lazy(() => import('./pages/About'));
+const Programs      = React.lazy(() => import('./pages/Programs'));
+const Chapters      = React.lazy(() => import('./pages/Chapters'));
+const Stories       = React.lazy(() => import('./pages/Stories'));
+const Resources     = React.lazy(() => import('./pages/Resources'));
 const Teams         = React.lazy(() => import('./pages/Teams'));
 const Impact        = React.lazy(() => import('./pages/Impact'));
 const Media         = React.lazy(() => import('./pages/Media'));
@@ -71,9 +75,13 @@ export default function App() {
         {/* 🌐 PUBLIC ROUTES – wrapped in PublicLayout 🌐 */}
         <Route path="/"              element={<PublicLayout><Home          /></PublicLayout>} />
         <Route path="/about"         element={<PublicLayout><About         /></PublicLayout>} />
+        <Route path="/programs"      element={<PublicLayout><Programs      /></PublicLayout>} />
+        <Route path="/chapters"      element={<PublicLayout><Chapters      /></PublicLayout>} />
+        <Route path="/stories"       element={<PublicLayout><Stories       /></PublicLayout>} />
         <Route path="/impact"        element={<PublicLayout><Impact        /></PublicLayout>} />
         <Route path="/media"         element={<PublicLayout><Media         /></PublicLayout>} />
         <Route path="/teams"         element={<PublicLayout><Teams         /></PublicLayout>} />
+        <Route path="/resources"     element={<PublicLayout><Resources     /></PublicLayout>} />
         <Route path="/documentation" element={<PublicLayout><Documentation /></PublicLayout>} />
         <Route path="/join"          element={<PublicLayout><JoinUs        /></PublicLayout>} />
         <Route path="/contact"       element={<PublicLayout><Contact       /></PublicLayout>} />
