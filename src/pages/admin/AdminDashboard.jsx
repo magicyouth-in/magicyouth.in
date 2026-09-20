@@ -119,7 +119,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="admin-layout" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 style={{ width: 36, height: 36, color: '#5B21B6' }} className="animate-spin" />
+        <Loader2 style={{ width: 36, height: 36, color: '#0284C7' }} className="animate-spin" />
       </div>
     );
   }
@@ -251,8 +251,8 @@ function DashboardModule({ admin, currentUnitId }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
         {cards.map(c => (
-          <div key={c.label} className="admin-card" style={{ padding: '1.25rem', borderLeft: c.alert ? '4px solid #EF4444' : '4px solid #5B21B6' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: c.alert ? '#DC2626' : '#5B21B6', marginBottom: '0.25rem' }}>{c.value}</div>
+          <div key={c.label} className="admin-card" style={{ padding: '1.25rem', borderLeft: c.alert ? '4px solid #EF4444' : '4px solid #0284C7' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 800, color: c.alert ? '#DC2626' : '#0284C7', marginBottom: '0.25rem' }}>{c.value}</div>
             <p style={{ fontSize: '0.8125rem', color: '#6B7280', fontWeight: 600, margin: 0 }}>{c.label}</p>
           </div>
         ))}
@@ -266,7 +266,7 @@ function DashboardModule({ admin, currentUnitId }) {
             {stats.recentEvents.map(e => (
               <div key={e._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.625rem 0', borderBottom: '1px solid #F3F4F6' }}>
                 <span style={{ fontSize: '0.875rem', color: '#1F2937', fontWeight: 600 }}>{e.title}</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '9999px', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>{e.status}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '9999px', backgroundColor: '#F0F9FF', color: '#0284C7' }}>{e.status}</span>
               </div>
             ))}
           </div>
@@ -414,7 +414,7 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
     <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-          <CalendarDays style={{ width: 16, height: 16, color: '#5B21B6' }} /> Academic Years &amp; Leads ({years.length})
+          <CalendarDays style={{ width: 16, height: 16, color: '#0284C7' }} /> Academic Years &amp; Leads ({years.length})
         </h4>
         <button onClick={() => setShowAddYear(!showAddYear)} className="admin-btn-action">
           <Plus style={{ width: 14, height: 14 }} /> Add Year
@@ -430,7 +430,7 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
       )}
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}><Loader2 style={{ width: 20, height: 20, color: '#5B21B6' }} className="animate-spin" /></div>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}><Loader2 style={{ width: 20, height: 20, color: '#0284C7' }} className="animate-spin" /></div>
       ) : years.length === 0 ? (
         <p style={{ fontSize: '0.8125rem', color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', margin: 0 }}>No Academic Years created yet for this unit.</p>
       ) : (
@@ -440,7 +440,7 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
             return (
               <div key={y._id} style={{ backgroundColor: '#F8F7FC', border: '1px solid #E5E7EB', borderRadius: '0.875rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#5B21B6', backgroundColor: '#EDE9FE', padding: '0.25rem 0.625rem', borderRadius: '9999px' }}>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0284C7', backgroundColor: '#F0F9FF', padding: '0.25rem 0.625rem', borderRadius: '9999px' }}>
                     Academic Year: {y.year}
                   </span>
                   <button onClick={() => setActiveYearForTeam(activeYearForTeam === y._id ? null : y._id)} className="admin-btn-action">
@@ -459,7 +459,7 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
                 {yearTeams.length === 0 ? (
                   <p style={{ fontSize: '0.75rem', color: '#9CA3AF', fontStyle: 'italic', margin: 0 }}>No teams in this academic year.</p>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', paddingLeft: '0.5rem', borderLeft: '2px solid #EDE9FE' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', paddingLeft: '0.5rem', borderLeft: '2px solid #F0F9FF' }}>
                     {yearTeams.map(t => {
                       const teamMems = members[t._id] || [];
                       return (
@@ -492,10 +492,10 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
                               {/* Photo Upload */}
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                 {memberPhotoPreview && (
-                                  <img src={memberPhotoPreview} alt="preview" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid #5B21B6', flexShrink: 0 }} />
+                                  <img src={memberPhotoPreview} alt="preview" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid #0284C7', flexShrink: 0 }} />
                                 )}
                                 <label style={{ flex: 1, cursor: 'pointer' }}>
-                                  <div className="admin-input" style={{ padding: '0.375rem 0.625rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: memberPhoto ? '#5B21B6' : '#9CA3AF', cursor: 'pointer' }}>
+                                  <div className="admin-input" style={{ padding: '0.375rem 0.625rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: memberPhoto ? '#0284C7' : '#9CA3AF', cursor: 'pointer' }}>
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                                     {memberPhoto ? memberPhoto.name : 'Upload Photo (optional)'}
                                   </div>
@@ -524,9 +524,9 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
                                 <div key={m._id} style={{ backgroundColor: '#F8F7FC', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     {m.photo ? (
-                                      <img src={m.photo} alt={m.name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '2px solid #5B21B6', flexShrink: 0 }} />
+                                      <img src={m.photo} alt={m.name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '2px solid #0284C7', flexShrink: 0 }} />
                                     ) : (
-                                      <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#5B21B6', flexShrink: 0 }}>
+                                      <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: '#F0F9FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#0284C7', flexShrink: 0 }}>
                                         {m.name ? m.name[0].toUpperCase() : 'U'}
                                       </div>
                                     )}
@@ -629,7 +629,7 @@ function UnitsModule({ toast, refreshUnits }) {
         </div>
       )}
 
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {units.map(u => {
             const isExpanded = expandedUnitId === u._id;
@@ -655,7 +655,7 @@ function UnitsModule({ toast, refreshUnits }) {
                       <button onClick={() => archive(u._id)} className="admin-btn-action">Archive</button>
                     )}
 
-                    <button onClick={() => setExpandedUnitId(isExpanded ? null : u._id)} className="admin-btn-action" style={{ backgroundColor: isExpanded ? '#EDE9FE' : '#FFFFFF', color: isExpanded ? '#5B21B6' : '#374151' }}>
+                    <button onClick={() => setExpandedUnitId(isExpanded ? null : u._id)} className="admin-btn-action" style={{ backgroundColor: isExpanded ? '#F0F9FF' : '#FFFFFF', color: isExpanded ? '#0284C7' : '#374151' }}>
                       Hierarchy &amp; Leads <ChevronDown style={{ width: 14, height: 14, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
                     </button>
                   </div>
@@ -724,7 +724,7 @@ function AcademicYearsModule({ toast, units, currentUnitId }) {
         </div>
       )}
 
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
         <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
           <table className="admin-table">
             <thead>
@@ -738,7 +738,7 @@ function AcademicYearsModule({ toast, units, currentUnitId }) {
               {years.map(y => (
                 <tr key={y._id}>
                   <td style={{ fontWeight: 600 }}>{y.unitId?.name || '—'}</td>
-                  <td style={{ fontWeight: 700, color: '#5B21B6' }}>{y.year}</td>
+                  <td style={{ fontWeight: 700, color: '#0284C7' }}>{y.year}</td>
                   <td>
                     <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: y.status === 'Active' ? '#D1FAE5' : '#F3F4F6', color: y.status === 'Active' ? '#065F46' : '#4B5563' }}>{y.status}</span>
                   </td>
@@ -856,7 +856,7 @@ function TeamsModule({ toast, admin, currentUnitId, units: propUnits = [], refre
         </div>
       )}
 
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
         <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
           <table className="admin-table">
             <thead>
@@ -1052,7 +1052,7 @@ function EventsModule({ toast, admin, currentUnitId, units = [] }) {
 
             <div>
               <label className="admin-label">Organizers</label>
-              <input placeholder="e.g. YES-J Leadership Team" value={form.organizers} onChange={e => setForm(f => ({ ...f, organizers: e.target.value }))} className="admin-input" />
+              <input placeholder="e.g. MAGIC Youth Leadership Team" value={form.organizers} onChange={e => setForm(f => ({ ...f, organizers: e.target.value }))} className="admin-input" />
             </div>
 
             <div>
@@ -1070,7 +1070,7 @@ function EventsModule({ toast, admin, currentUnitId, units = [] }) {
         </form>
       )}
 
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
         <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
           <table className="admin-table">
             <thead>
@@ -1089,7 +1089,7 @@ function EventsModule({ toast, admin, currentUnitId, units = [] }) {
                   <td>{e.unitId?.name || '—'}</td>
                   <td>{e.category}</td>
                   <td>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>{e.status}</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: '#F0F9FF', color: '#0284C7' }}>{e.status}</span>
                   </td>
                   <td>
                     <button onClick={() => del(e._id)} className="admin-btn-danger">
@@ -1170,8 +1170,8 @@ function AdministratorsModule({ toast, units }) {
             <p style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937', marginBottom: '0.5rem' }}>Assign Units</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.5rem' }}>
               {units.map(u => (
-                <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #E5E7EB', backgroundColor: form.assignedUnitIds.includes(u._id) ? '#EDE9FE' : '#FFFFFF', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={form.assignedUnitIds.includes(u._id)} onChange={() => toggleUnit(u._id)} style={{ accentColor: '#5B21B6' }} />
+                <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #E5E7EB', backgroundColor: form.assignedUnitIds.includes(u._id) ? '#F0F9FF' : '#FFFFFF', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={form.assignedUnitIds.includes(u._id)} onChange={() => toggleUnit(u._id)} style={{ accentColor: '#0284C7' }} />
                   <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1F2937' }}>{u.name}</span>
                 </label>
               ))}
@@ -1186,7 +1186,7 @@ function AdministratorsModule({ toast, units }) {
         </div>
       )}
 
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {admins.map(a => (
             <div key={a._id} className="admin-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1242,14 +1242,14 @@ function JoinRequestsModule({ toast, admin, currentUnitId }) {
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           {['', 'Pending', 'Approved', 'Rejected'].map(s => (
             <button key={s} onClick={() => { setFilter(s); setLoading(true); }}
-              className="admin-btn-action" style={{ backgroundColor: filter === s ? '#5B21B6' : '#FFFFFF', color: filter === s ? '#FFFFFF' : '#374151', borderRadius: '9999px', padding: '0.375rem 0.875rem' }}>
+              className="admin-btn-action" style={{ backgroundColor: filter === s ? '#0284C7' : '#FFFFFF', color: filter === s ? '#FFFFFF' : '#374151', borderRadius: '9999px', padding: '0.375rem 0.875rem' }}>
               {s || 'All'}
             </button>
           ))}
         </div>
       </div>
 
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {reqs.map(r => (
             <div key={r._id} className="admin-card">
@@ -1293,7 +1293,7 @@ function ContactModule({ toast }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Contact Messages</h2>
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {messages.map(m => (
             <div key={m._id} className="admin-card">
@@ -1302,7 +1302,7 @@ function ContactModule({ toast }) {
                   <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>{m.name}</p>
                   <p style={{ fontSize: '0.8125rem', color: '#6B7280', margin: '0.1rem 0 0' }}>{m.email} {m.phone ? `· ${m.phone}` : ''}</p>
                 </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: m.status === 'New' ? '#EDE9FE' : '#F3F4F6', color: m.status === 'New' ? '#5B21B6' : '#4B5563' }}>{m.status}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: m.status === 'New' ? '#F0F9FF' : '#F3F4F6', color: m.status === 'New' ? '#0284C7' : '#4B5563' }}>{m.status}</span>
               </div>
               {m.subject && <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', margin: '0 0 0.25rem' }}>{m.subject}</p>}
               <p style={{ fontSize: '0.8125rem', color: '#4B5563', lineHeight: 1.5, margin: 0 }}>{m.message}</p>
@@ -1481,7 +1481,7 @@ function GalleryModule({ toast, admin, currentUnitId, units = [] }) {
         </form>
       )}
 
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
         <>
           {!photos.length && <div style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No photos yet. Click "+ Add Photos" above to upload images.</div>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem' }}>
@@ -1647,7 +1647,7 @@ function DocumentsModule({ toast, admin, currentUnitId, units = [] }) {
         </form>
       )}
 
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#5B21B6' }} className="animate-spin" /></div> : (
+      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
         <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
           <table className="admin-table">
             <thead>

@@ -1,7 +1,7 @@
 /* src/styles/join.css */
 
 .join-hero {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F8F7FC 60%, #EDE9FE 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8F7FC 60%, var(--bg-secondary) 100%);
   padding: 5rem 1.5rem 3rem;
   border-bottom: 1px solid #E5E7EB;
   text-align: center;
@@ -43,14 +43,14 @@
 }
 
 .stepper-step.active {
-  background-color: #5B21B6;
+  background-color: var(--primary-blue);
   color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(91, 33, 182, 0.3);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
 }
 
 .stepper-step.completed {
-  background-color: #EDE9FE;
-  color: #5B21B6;
+  background-color: var(--bg-secondary);
+  color: var(--primary-blue);
 }
 
 .stepper-step.inactive {
@@ -71,8 +71,8 @@
 }
 
 .join-input:focus {
-  border-color: #5B21B6;
-  box-shadow: 0 0 0 3px rgba(91, 33, 182, 0.15);
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
 .join-option-chip {
@@ -88,7 +88,7 @@
 }
 
 .join-option-chip.selected {
-  background-color: #5B21B6;
+  background-color: var(--primary-blue);
   color: #FFFFFF;
-  border-color: #5B21B6;
+  border-color: var(--primary-blue);
 }

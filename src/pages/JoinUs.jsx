@@ -217,7 +217,7 @@ export default function JoinUs() {
                 </div>
                 <div>
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Community</h3>
-                  <p style={{ color: 'var(--text-secondary)' }}>Join a massive network of like-minded students across different colleges under the YES-J umbrella.</p>
+                  <p style={{ color: 'var(--text-secondary)' }}>Join a massive network of like-minded students across different colleges under the MAGIC Youth umbrella.</p>
                 </div>
               </div>
             </div>
@@ -227,7 +227,7 @@ export default function JoinUs() {
           <div className="join-form-wrapper" style={{ backgroundColor: 'var(--bg-secondary)', padding: '2rem', borderRadius: '1.5rem', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)' }}>
             {isSubmitted ? (
             <div className="join-card" style={{ padding: '3.5rem 2rem', textAlign: 'center' }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: '#5B21B6' }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: 'var(--primary-blue)' }}>
                 <CheckCircle2 style={{ width: 36, height: 36 }} />
               </div>
               <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1F2937' }}>Application Received!</h2>
@@ -266,7 +266,7 @@ export default function JoinUs() {
                         <div className={`stepper-step ${stateClass}`}>
                           {currentStep > s.num ? '✓' : s.num}
                         </div>
-                        <span style={{ fontSize: '0.75rem', fontWeight: currentStep === s.num ? 700 : 500, color: currentStep === s.num ? '#5B21B6' : '#6B7280' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: currentStep === s.num ? 700 : 500, color: currentStep === s.num ? 'var(--primary-blue)' : '#6B7280' }}>
                           {s.label}
                         </span>
                       </div>
@@ -445,7 +445,7 @@ export default function JoinUs() {
 
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                         <div style={{ border: '1px dashed #D1D5DB', borderRadius: '1rem', padding: '1.5rem', textAlign: 'center', backgroundColor: '#F8F7FC' }}>
-                          <ImageIcon style={{ width: 32, height: 32, color: '#5B21B6', margin: '0 auto 0.5rem' }} />
+                          <ImageIcon style={{ width: 32, height: 32, color: 'var(--primary-blue)', margin: '0 auto 0.5rem' }} />
                           <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937' }}>Profile Photo</div>
                           <div style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0.25rem 0 1rem' }}>JPG or PNG format</div>
                           <label className="btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.75rem' }}>
@@ -458,7 +458,7 @@ export default function JoinUs() {
                         </div>
 
                         <div style={{ border: '1px dashed #D1D5DB', borderRadius: '1rem', padding: '1.5rem', textAlign: 'center', backgroundColor: '#F8F7FC' }}>
-                          <FileUp style={{ width: 32, height: 32, color: '#5B21B6', margin: '0 auto 0.5rem' }} />
+                          <FileUp style={{ width: 32, height: 32, color: 'var(--primary-blue)', margin: '0 auto 0.5rem' }} />
                           <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937' }}>Resume / CV</div>
                           <div style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0.25rem 0 1rem' }}>PDF format only</div>
                           <label className="btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.75rem' }}>

@@ -81,7 +81,7 @@ export default function Teams() {
             <div className="teams-filter-group">
               <label className="teams-filter-label">Select Unit</label>
               <div style={{ position: 'relative' }}>
-                <Building2 style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
+                <Building2 style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--primary-blue)', pointerEvents: 'none' }} />
                 <select
                   value={selectedUnit}
                   onChange={e => setSelectedUnit(e.target.value)}
@@ -92,7 +92,7 @@ export default function Teams() {
                     <option key={u._id} value={u._id}>{u.name} {u.institution ? `— ${u.institution}` : ''}</option>
                   ))}
                 </select>
-                <ChevronDown style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
+                <ChevronDown style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--primary-blue)', pointerEvents: 'none' }} />
               </div>
             </div>
 
@@ -100,7 +100,7 @@ export default function Teams() {
             <div className="teams-filter-group">
               <label className="teams-filter-label">Academic Year</label>
               <div style={{ position: 'relative' }}>
-                <CalendarDays style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
+                <CalendarDays style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--primary-blue)', pointerEvents: 'none' }} />
                 <select
                   value={selectedYear}
                   onChange={e => setSelectedYear(e.target.value)}
@@ -112,14 +112,14 @@ export default function Teams() {
                     <option key={y._id} value={y._id}>{y.year}</option>
                   ))}
                 </select>
-                <ChevronDown style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#5B21B6', pointerEvents: 'none' }} />
+                <ChevronDown style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--primary-blue)', pointerEvents: 'none' }} />
               </div>
             </div>
           </div>
 
           {/* Breadcrumb */}
           {selectedUnitData && (
-            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#5B21B6', marginBottom: '1.5rem' }}>
+            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-blue)', marginBottom: '1.5rem' }}>
               {selectedUnitData.name}
               {selectedYearData && <> &rsaquo; {selectedYearData.year}</>}
             </div>
@@ -128,8 +128,8 @@ export default function Teams() {
           {/* Empty state — no selection */}
           {!selectedYear && !loading && (
             <div className="teams-empty">
-              <div style={{ width: 56, height: 56, borderRadius: '50%', backgroundColor: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-                <Users style={{ width: 28, height: 28, color: '#5B21B6' }} />
+              <div style={{ width: 56, height: 56, borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                <Users style={{ width: 28, height: 28, color: 'var(--primary-blue)' }} />
               </div>
               <h3>Select a unit and academic year above</h3>
               <p>All leadership teams for your selection will appear here.</p>
@@ -139,7 +139,7 @@ export default function Teams() {
           {/* Loading */}
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
-              <Loader2 style={{ width: 36, height: 36, color: '#5B21B6' }} className="animate-spin" />
+              <Loader2 style={{ width: 36, height: 36, color: 'var(--primary-blue)' }} className="animate-spin" />
             </div>
           )}
 
@@ -174,10 +174,10 @@ export default function Teams() {
                   {/* Team name divider */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Users style={{ width: 18, height: 18, color: '#5B21B6' }} />
+                      <Users style={{ width: 18, height: 18, color: 'var(--primary-blue)' }} />
                       <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>{team.name}</h3>
                     </div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '9999px', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '9999px', backgroundColor: 'var(--bg-secondary)', color: 'var(--primary-blue)' }}>
                       {members.length} member{members.length !== 1 ? 's' : ''}
                     </span>
                     <div style={{ flex: 1, height: 1, backgroundColor: '#E5E7EB' }} />

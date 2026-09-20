@@ -169,7 +169,7 @@ export default function Events() {
           {/* Loading Indicator */}
           {loading && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 0' }}>
-              <Loader2 style={{ width: 36, height: 36, color: '#5B21B6' }} className="animate-spin" />
+              <Loader2 style={{ width: 36, height: 36, color: 'var(--primary-blue)' }} className="animate-spin" />
             </div>
           )}
 
@@ -264,7 +264,7 @@ export default function Events() {
               <div style={{ padding: '1.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
                   <div>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: '9999px', display: 'inline-block', marginBottom: '0.5rem', backgroundColor: '#EDE9FE', color: '#5B21B6' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: '9999px', display: 'inline-block', marginBottom: '0.5rem', backgroundColor: 'var(--bg-secondary)', color: 'var(--primary-blue)' }}>
                       {modal.status}
                     </span>
                     <h2 style={{ fontSize: '1.375rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>{modal.title}</h2>
@@ -280,22 +280,22 @@ export default function Events() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', fontSize: '0.875rem', color: '#4B5563' }}>
                   {modal.unitId?.name && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Building2 style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>{modal.unitId.name}</span></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Building2 style={{ width: 16, height: 16, color: 'var(--primary-blue)' }} /><span>{modal.unitId.name}</span></div>
                   )}
                   {modal.academicYearId?.year && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CalendarDays style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>{modal.academicYearId.year}</span></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CalendarDays style={{ width: 16, height: 16, color: 'var(--primary-blue)' }} /><span>{modal.academicYearId.year}</span></div>
                   )}
                   {modal.date && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Calendar style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>{modal.date}</span></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Calendar style={{ width: 16, height: 16, color: 'var(--primary-blue)' }} /><span>{modal.date}</span></div>
                   )}
                   {(modal.startTime || modal.endTime) && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>{modal.startTime}{modal.endTime ? ` – ${modal.endTime}` : ''}</span></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Clock style={{ width: 16, height: 16, color: 'var(--primary-blue)' }} /><span>{modal.startTime}{modal.endTime ? ` – ${modal.endTime}` : ''}</span></div>
                   )}
                   {modal.location && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MapPin style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>{modal.location}</span></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><MapPin style={{ width: 16, height: 16, color: 'var(--primary-blue)' }} /><span>{modal.location}</span></div>
                   )}
                   {modal.category && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Filter style={{ width: 16, height: 16, color: '#5B21B6' }} /><span>Category: {modal.category}</span></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Filter style={{ width: 16, height: 16, color: 'var(--primary-blue)' }} /><span>Category: {modal.category}</span></div>
                   )}
                 </div>
               </div>
@@ -357,9 +357,9 @@ function EventCard({ evt, i, onClick }) {
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.75rem', color: '#6B7280', borderTop: '1px solid #E5E7EB', paddingTop: '0.75rem' }}>
-          {evt.date && <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><Calendar style={{ width: 14, height: 14, color: '#5B21B6' }} />{evt.date}</div>}
-          {evt.location && <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><MapPin style={{ width: 14, height: 14, color: '#5B21B6' }} />{evt.location}</div>}
-          {evt.unitId?.name && <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><Building2 style={{ width: 14, height: 14, color: '#5B21B6' }} />{evt.unitId.name}</div>}
+          {evt.date && <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><Calendar style={{ width: 14, height: 14, color: 'var(--primary-blue)' }} />{evt.date}</div>}
+          {evt.location && <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><MapPin style={{ width: 14, height: 14, color: 'var(--primary-blue)' }} />{evt.location}</div>}
+          {evt.unitId?.name && <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><Building2 style={{ width: 14, height: 14, color: 'var(--primary-blue)' }} />{evt.unitId.name}</div>}
         </div>
       </div>
     </motion.div>

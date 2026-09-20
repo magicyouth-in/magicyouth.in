@@ -1,9 +1,9 @@
 /* src/styles/theme.css */
 :root {
   /* Colors */
-  --color-primary-blue: #5B21B6;
-  --color-secondary-indigo: #6366F1;
-  --color-soft-lavender: #EDE9FE;
+  --color-primary-blue: var(--primary-blue);
+  --color-secondary-indigo: var(--primary-pink);
+  --color-soft-lavender: var(--bg-secondary);
   --color-bg-primary: #FFFFFF;
   --color-bg-secondary: #F8F7FC;
   --color-text-primary: #1F2937;
@@ -77,7 +77,7 @@ p { margin: 0; line-height: 1.6; }
 }
 .navbar.scrolled {
   background: var(--color-bg-primary);
-  border-bottom: 1px solid rgba(91,33,182,0.2);
+  border-bottom: 1px solid rgba(2, 132, 199,0.2);
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 .navbar .brand {
@@ -129,9 +129,9 @@ p { margin: 0; line-height: 1.6; }
   align-items: center;
   justify-content: center;
   padding: 0.5rem;
-  border: 1px solid rgba(91,33,182,0.25);
+  border: 1px solid rgba(2, 132, 199,0.25);
   border-radius: 0.5rem;
-  background: rgba(91,33,182,0.05);
+  background: rgba(2, 132, 199,0.05);
   color: var(--color-primary-blue);
 }
 /* Mobile drawer */
@@ -141,7 +141,7 @@ p { margin: 0; line-height: 1.6; }
   left: 0;
   right: 0;
   background: var(--color-bg-primary);
-  border-top: 1px solid rgba(91,33,182,0.3);
+  border-top: 1px solid rgba(2, 132, 199,0.3);
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   padding: 1rem;
 }

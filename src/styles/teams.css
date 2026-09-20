@@ -1,6 +1,6 @@
 /* src/styles/teams.css */
 .teams-hero {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F8F7FC 60%, #EDE9FE 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8F7FC 60%, var(--bg-secondary) 100%);
   padding: 5rem 1.5rem 3rem;
   border-bottom: 1px solid #E5E7EB;
   text-align: center;
@@ -49,7 +49,7 @@
   display: block;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #5B21B6;
+  color: var(--primary-blue);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 0.5rem;
@@ -69,8 +69,8 @@
 }
 
 .teams-filter-select:focus {
-  border-color: #5B21B6;
-  box-shadow: 0 0 0 3px rgba(91, 33, 182, 0.15);
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
 .teams-filter-select:disabled {
@@ -198,7 +198,7 @@
 }
 
 .member-social-link:hover {
-  color: #5B21B6;
+  color: var(--primary-blue);
 }
 
 .teams-empty {

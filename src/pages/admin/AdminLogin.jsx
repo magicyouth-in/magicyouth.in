@@ -116,7 +116,7 @@ export default function AdminLogin() {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                style={{ borderRadius: '0.25rem', borderColor: '#D1D5DB', width: 16, height: 16, accentColor: '#5B21B6' }}
+                style={{ borderRadius: '0.25rem', borderColor: '#D1D5DB', width: 16, height: 16, accentColor: '#0284C7' }}
               />
               <span>Remember Me</span>
             </label>
@@ -139,7 +139,7 @@ export default function AdminLogin() {
         </form>
 
         <div style={{ textAlign: 'center', marginTop: '1.75rem' }}>
-          <a href="/" style={{ fontSize: '0.8125rem', color: '#5B21B6', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+          <a href="/" style={{ fontSize: '0.8125rem', color: '#0284C7', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
             <ArrowLeft style={{ width: 14, height: 14 }} />
             <span>Back to Public Website</span>
           </a>

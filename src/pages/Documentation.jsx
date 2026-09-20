@@ -126,7 +126,7 @@ export default function Documentation() {
   if (authChecking) {
     return (
       <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 style={{ width: 36, height: 36, color: '#5B21B6' }} className="animate-spin" />
+        <Loader2 style={{ width: 36, height: 36, color: 'var(--primary-blue)' }} className="animate-spin" />
       </div>
     );
   }
@@ -147,7 +147,7 @@ export default function Documentation() {
 
         <section className="docs-section">
           <div className="doc-auth-card">
-            <div style={{ width: 48, height: 48, borderRadius: '1rem', backgroundColor: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', color: '#5B21B6' }}>
+            <div style={{ width: 48, height: 48, borderRadius: '1rem', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', color: 'var(--primary-blue)' }}>
               <Lock style={{ width: 24, height: 24 }} />
             </div>
 
@@ -191,7 +191,7 @@ export default function Documentation() {
               <button
                 type="submit"
                 disabled={loggingIn}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.75rem', backgroundColor: '#5B21B6', color: '#FFFFFF', fontWeight: 700, fontSize: '0.875rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', marginTop: '0.5rem' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.75rem', backgroundColor: 'var(--primary-blue)', color: '#FFFFFF', fontWeight: 700, fontSize: '0.875rem', borderRadius: '0.75rem', border: 'none', cursor: 'pointer', marginTop: '0.5rem' }}
               >
                 {loggingIn ? <Loader2 style={{ width: 18, height: 18 }} className="animate-spin" /> : <Lock style={{ width: 18, height: 18 }} />}
                 Authenticate &amp; Unlock

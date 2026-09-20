@@ -1,6 +1,6 @@
 /* src/styles/about.css */
 .about-hero {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F8F7FC 60%, #EDE9FE 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8F7FC 60%, var(--bg-secondary) 100%);
   padding: 5rem 1.5rem 4rem;
   border-bottom: 1px solid #E5E7EB;
   text-align: center;
@@ -14,8 +14,8 @@
 .about-badge {
   display: inline-block;
   padding: 0.375rem 1rem;
-  background-color: #EDE9FE;
-  color: #5B21B6;
+  background-color: var(--bg-secondary);
+  color: var(--primary-blue);
   font-size: 0.8125rem;
   font-weight: 700;
   border-radius: 9999px;
@@ -33,7 +33,7 @@
 }
 
 .about-title .highlight {
-  color: #5B21B6;
+  color: var(--primary-blue);
 }
 
 .about-lead {
@@ -79,7 +79,7 @@
 
 .story-highlight-box {
   background-color: #F8F7FC;
-  border-left: 4px solid #5B21B6;
+  border-left: 4px solid var(--primary-blue);
   padding: 1.25rem 1.5rem;
   border-radius: 0 0.75rem 0.75rem 0;
   font-size: 0.9375rem;
@@ -106,7 +106,7 @@
 .editorial-stat-val {
   font-size: 2.25rem;
   font-weight: 900;
-  color: #5B21B6;
+  color: var(--primary-blue);
 }
 
 .editorial-stat-lbl {
@@ -125,7 +125,7 @@
 
 /* YES-J Section */
 .yes-j-box {
-  background: linear-gradient(135deg, #F8F7FC 0%, #EDE9FE 100%);
+  background: linear-gradient(135deg, #F8F7FC 0%, var(--bg-secondary) 100%);
   border: 1px solid #E5E7EB;
   border-radius: 1.5rem;
   padding: 3.5rem 2.5rem;
@@ -166,9 +166,9 @@
   align-items: center;
   justify-content: center;
   background-color: #FFFFFF;
-  border: 2px solid #5B21B6;
+  border: 2px solid var(--primary-blue);
   border-radius: 1.25rem;
   padding: 2rem;
-  box-shadow: 0 10px 25px rgba(91, 33, 182, 0.12);
+  box-shadow: 0 10px 25px rgba(2, 132, 199, 0.12);
   text-align: center;
 }

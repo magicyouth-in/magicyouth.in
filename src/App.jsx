@@ -33,7 +33,7 @@ function NotFound() {
   return (
     <PublicLayout>
       <div style={{ minHeight: '70vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '4rem 1.5rem' }}>
-        <div style={{ fontSize: '6rem', fontWeight: 900, color: '#EDE9FE', lineHeight: 1, marginBottom: '1rem' }}>404</div>
+        <div style={{ fontSize: '6rem', fontWeight: 900, color: 'var(--bg-secondary)', lineHeight: 1, marginBottom: '1rem' }}>404</div>
         <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.75rem' }}>Page Not Found</h1>
         <p style={{ fontSize: '0.9375rem', color: '#6B7280', marginBottom: '2rem', maxWidth: '24rem' }}>
           The page you are looking for does not exist or has been removed.

@@ -1,7 +1,7 @@
 /* src/styles/events.css */
 
 .events-hero {
-  background: linear-gradient(135deg, #FFFFFF 0%, #F8F7FC 60%, #EDE9FE 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8F7FC 60%, var(--bg-secondary) 100%);
   padding: 5rem 1.5rem 3rem;
   border-bottom: 1px solid #E5E7EB;
   text-align: center;
@@ -38,14 +38,14 @@
 }
 
 .status-tab-btn:hover {
-  border-color: #5B21B6;
-  color: #5B21B6;
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
 }
 
 .status-tab-btn.active {
-  background-color: #5B21B6;
+  background-color: var(--primary-blue);
   color: #FFFFFF;
-  border-color: #5B21B6;
+  border-color: var(--primary-blue);
 }
 
 .events-filter-bar {
@@ -113,8 +113,8 @@
 
 .event-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(91, 33, 182, 0.1);
-  border-color: #EDE9FE;
+  box-shadow: 0 12px 28px rgba(2, 132, 199, 0.1);
+  border-color: var(--bg-secondary);
 }
 
 .event-poster-box {
@@ -153,8 +153,8 @@
 }
 
 .badge-completed-light {
-  background-color: #EDE9FE;
-  color: #5B21B6;
+  background-color: var(--bg-secondary);
+  color: var(--primary-blue);
   font-weight: 700;
 }
 

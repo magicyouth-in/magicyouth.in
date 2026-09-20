@@ -113,7 +113,7 @@ export default function Contact() {
             <div className="contact-form-card">
               {sent ? (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-                  <div style={{ width: 56, height: 56, borderRadius: '50%', backgroundColor: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', color: '#5B21B6' }}>
+                  <div style={{ width: 56, height: 56, borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', color: 'var(--primary-blue)' }}>
                     <CheckCircle2 style={{ width: 32, height: 32 }} />
                   </div>
                   <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1F2937' }}>Message Sent!</h3>

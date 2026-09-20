@@ -26,7 +26,7 @@ export default function About() {
         <div className="container-default hero-container relative z-10">
           <div className="hero-content">
             <span className="hero-badge">Our Identity</span>
-            <h1 className="hero-title">About YES-J & MAGIC Youth</h1>
+            <h1 className="hero-title">About MAGIC Youth</h1>
             <p className="hero-subtitle">
               A collaborative network dedicated to empowering young people through leadership, service, and social justice.
             </p>
@@ -34,17 +34,17 @@ export default function About() {
         </div>
       </section>
 
-      {/* ── YES-J INTRODUCTION ────────────────────────────────────── */}
+      {/* ── MAGIC YOUTH INTRODUCTION ────────────────────────────────────── */}
       <section className="section-padding">
         <div className="container-default who-we-are-container">
           <div className="who-we-are-text">
             <h2>Youth Empowering Service – Jesuits (YES-J)</h2>
             <p>
-              YES-J operates as the central coordination body promoting social awareness, ethics, social justice outreach, and character-building in Jesuit institutions. 
+              MAGIC Youth operates as a central coordination body promoting social awareness, ethics, social justice outreach, and character-building in Jesuit institutions. 
               It provides a structural foundation and mentorship for student-led initiatives to thrive, granting members access to collaborative state-wide volunteering networks and specialized community resources.
             </p>
             <p style={{ marginTop: '1rem' }}>
-              Rooted in the principles of holistic education and societal empathy, YES-J guides young people to become proactive, responsible leaders dedicated to serving others.
+              Rooted in the principles of holistic education and societal empathy, MAGIC Youth guides young people to become proactive, responsible leaders dedicated to serving others.
             </p>
           </div>
         </div>
@@ -59,7 +59,7 @@ export default function About() {
           </div>
           <div className="what-we-do-card" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
             <p style={{ fontSize: '1.125rem', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>
-              Operating as a dynamic student/youth initiative under the guidance of YES-J, MAGIC Youth translates these core values into organized, impactful community action.
+              Operating as a dynamic student/youth initiative across all our units, MAGIC Youth translates these core values into organized, impactful community action.
             </p>
             <p>
               MAGIC Youth empowers students to organize community outreach programs, cultural events, strategic competitions, and social impact campaigns. By taking charge of these initiatives, young people develop crucial leadership skills while making a tangible difference in their campuses and local communities.
