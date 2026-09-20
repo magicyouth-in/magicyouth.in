@@ -50,3 +50,5 @@
   background-color: var(--primary-blue-light);
   transform: translateY(-2px);
 }
+
+body, html { overflow-x: hidden; max-width: 100%; }

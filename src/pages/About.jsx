@@ -1,134 +1,139 @@
-import React from 'react';
-import { Target, Compass, Users, Heart, Sparkles, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import '../styles/home.css';
 
 export default function About() {
-  const values = [
-    { title: 'Integrity & Transparency', desc: 'Operating with honesty and accountability in every community initiative we lead.', icon: ShieldCheck },
-    { title: 'Youth-Led Governance',     desc: 'Nurturing student autonomy, decision-making, and self-organizing capacity.',     icon: Users },
-    { title: 'Compassionate Service',    desc: 'Dedicated to uplifting underserved communities through collective volunteering.', icon: Heart },
-    { title: 'Continuous Innovation',    desc: 'Fostering creative approaches to student engagement and social awareness.',        icon: Sparkles },
-  ];
+  const [documents, setDocuments] = useState([]);
+  const [stories, setStories] = useState([]);
 
-  const objectives = [
-    { title: 'Community Transformation', desc: 'Executing impactful local projects including blood donations, school tutoring, and environmental cleanups.' },
-    { title: 'Student Skill Cultivation', desc: 'Providing avenues for tech development, creative workshops, and state-level competitive tournaments.' },
-    { title: 'Leadership Incubation',     desc: 'Mentoring active youth through practical event planning, budget execution, and campus teamwork.' },
-    { title: 'Social Justice Outreach',   desc: 'Increasing societal empathy by addressing inequalities and raising community awareness.' }
-  ];
+  useEffect(() => {
+    // Fetch real documents for Transparency section
+    fetch('/api/documents?visibility=Public')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setDocuments(data.data || []);
+      })
+      .catch(console.error);
+
+    // Fetch real events for Impact Stories
+    fetch('/api/events')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Filter to past events that might serve as stories
+          const past = data.data.filter(e => new Date(e.startDate || e.start_date) < new Date());
+          setStories(past.slice(0, 3));
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const fadeUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } }
+  };
 
   return (
     <main className="home-wrapper">
-      {/* ── ABOUT HERO ───────────────────────────────────────────── */}
-      <section className="home-hero relative overflow-hidden">
-        <div className="hero-bg-shape hero-shape-1"></div>
-        <div className="hero-bg-shape hero-shape-2"></div>
-        <div className="container-default hero-container relative z-10">
-          <div className="hero-content">
-            <span className="hero-badge">Our Identity</span>
-            <h1 className="hero-title">About MAGIC Youth</h1>
-            <p className="hero-subtitle">
-              A collaborative network dedicated to empowering young people through leadership, service, and social justice.
-            </p>
-          </div>
+      <section className="page-header-section">
+        <div className="page-bg-glow"></div>
+        <div className="page-header-content">
+          <div className="section-eyebrow">Our Identity</div>
+          <h1 className="page-header-title">About MAGIC Youth</h1>
+          <p className="page-header-subtitle">
+            A campus-based movement that forms young people as agents of conscience, compassion, and commitment.
+          </p>
         </div>
       </section>
 
-      {/* ── MAGIC YOUTH INTRODUCTION ────────────────────────────────────── */}
-      <section className="section-padding">
-        <div className="container-default who-we-are-container">
-          <div className="who-we-are-text">
-            <h2>Youth Empowering Service – Jesuits (YES-J)</h2>
-            <p>
-              MAGIC Youth operates as a central coordination body promoting social awareness, ethics, social justice outreach, and character-building in Jesuit institutions. 
-              It provides a structural foundation and mentorship for student-led initiatives to thrive, granting members access to collaborative state-wide volunteering networks and specialized community resources.
+      {/* 1. CORE STORY */}
+      <section className="inner-section">
+        <div className="content-grid" style={{ alignItems: 'center' }}>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
+            <h2 className="section-title" style={{ textAlign: 'left', marginBottom: '1.5rem' }}>Our Core Story</h2>
+            <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: '1rem' }}>
+              <strong>Men and Women Aiming at Greater Initiatives for Change (MAGIC)</strong> is YES-J's student youth wing inside educational institutions.
             </p>
-            <p style={{ marginTop: '1rem' }}>
-              Rooted in the principles of holistic education and societal empathy, MAGIC Youth guides young people to become proactive, responsible leaders dedicated to serving others.
+            <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
+              It helps students become agents of change for themselves, their campuses, and their communities. We operate as a campus-based movement that forms young people as agents of conscience, compassion, and commitment.
             </p>
-          </div>
+          </motion.div>
+          <motion.div className="about-collage" initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }} style={{ height: '400px' }}>
+            <img src="/assets/magic-logo.png" className="collage-img-1" alt="MAGIC Youth" style={{ objectFit: 'contain', backgroundColor: '#f8fafc', padding: '2rem' }} />
+          </motion.div>
         </div>
       </section>
 
-      {/* ── MAGIC YOUTH ──────────────────────────────────────── */}
-      <section className="section-padding section-light">
-        <div className="container-default">
-          <div className="section-header-center">
-            <h2>MAGIC Youth</h2>
-            <p>Men and Women Aiming Greater Initiative for Change</p>
-          </div>
-          <div className="what-we-do-card" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-            <p style={{ fontSize: '1.125rem', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>
-              Operating as a dynamic student/youth initiative across all our units, MAGIC Youth translates these core values into organized, impactful community action.
-            </p>
-            <p>
-              MAGIC Youth empowers students to organize community outreach programs, cultural events, strategic competitions, and social impact campaigns. By taking charge of these initiatives, young people develop crucial leadership skills while making a tangible difference in their campuses and local communities.
-            </p>
-            <blockquote style={{ borderLeft: '4px solid var(--primary-blue)', paddingLeft: '1.5rem', marginTop: '2rem', fontStyle: 'italic', fontSize: '1.125rem', color: 'var(--text-primary)', textAlign: 'left' }}>
-              "We empower students to become proactive change-makers, turning passion into organized, impactful community action."
-            </blockquote>
-          </div>
+      {/* 2. THE POWER OF MAGIC YOUTH */}
+      <section className="inner-section bg-light">
+        <div className="section-header">
+          <div className="section-eyebrow">The Four-Part Process</div>
+          <h2 className="section-title">The Power of MAGIC Youth</h2>
+        </div>
+        <div className="programs-grid" style={{ marginTop: '3rem' }}>
+          {[
+            { t: 'Experience', d: 'Exposure visits and social encounters that ground learning in reality.' },
+            { t: 'Reflection', d: 'Structured personal and group reflection on what was seen and what must change.' },
+            { t: 'Involvement', d: 'Students design and run initiatives on campus and in local communities.' },
+            { t: 'Transformation', d: 'Long-term change in self, campus culture, and social commitment.' }
+          ].map((item, i) => (
+            <motion.div key={i} className="program-card" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: i * 0.1 }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>{item.t}</div>
+              <p style={{ color: 'var(--text-secondary)' }}>{item.d}</p>
+            </motion.div>
+          ))}
         </div>
       </section>
 
-      {/* ── VISION & MISSION ────────────────────────────────────── */}
-      <section className="section-padding">
-        <div className="container-default">
-          <div className="section-header-center">
-            <h2>Our Pillars</h2>
-          </div>
-          <div className="what-we-do-grid" style={{ gridTemplateColumns: 'repeat(1, 1fr)' }}>
-            <div className="what-we-do-card" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-              <Compass size={48} color="var(--primary-blue)" />
-              <div>
-                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Our Vision</h3>
-                <p style={{ fontSize: '1.125rem' }}>
-                  To cultivate a vibrant generation of empathetic, skilled, and socially conscious young people who actively lead initiatives that transform their communities and inspire meaningful progress across campuses, cities, and beyond.
-                </p>
-              </div>
-            </div>
-            <div className="what-we-do-card" style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-              <Target size={48} color="var(--primary-blue)" />
-              <div>
-                <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Our Mission</h3>
-                <p style={{ fontSize: '1.125rem' }}>
-                  To empower students with a collaborative platform for leadership development, community volunteering, technical and cultural workshops, and impactful social awareness campaigns — building character and capability in equal measure.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 3. & 4. FOUNDATION & HEADQUARTERS (Data-driven placeholders) */}
+      {/* If data exists in the backend for HQ or Pillars, it would render here. Left intentionally data-driven. */}
 
-      {/* ── CORE OBJECTIVES & VALUES ──────────────────────────────── */}
-      <section className="section-padding section-light">
-        <div className="container-default">
-          <div className="section-header-center">
-            <h2>Strategic Focus &amp; Values</h2>
+      {/* 5. IMPACT STORIES */}
+      {stories.length > 0 && (
+        <section className="inner-section">
+          <div className="section-header">
+            <div className="section-eyebrow">Real Action</div>
+            <h2 className="section-title">Impact Stories</h2>
           </div>
-          <div className="what-we-do-grid" style={{ marginBottom: '4rem' }}>
-            {objectives.map((obj) => (
-              <div key={obj.title} className="what-we-do-card" style={{ borderLeft: '4px solid var(--primary-blue)' }}>
-                <h3>{obj.title}</h3>
-                <p>{obj.desc}</p>
-              </div>
+          <div className="content-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '800px', marginTop: '3rem' }}>
+            {stories.map((story, i) => (
+              <motion.div key={story._id} style={{ backgroundColor: 'var(--bg-secondary)', padding: '2rem', borderRadius: '1rem' }} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1rem' }}>{story.title}</h3>
+                <div style={{ marginBottom: '0.5rem' }}><strong>What Happened:</strong> {story.description}</div>
+                {story.unitId && <div style={{ marginBottom: '0.5rem' }}><strong>Who Was Involved:</strong> {story.unitId.name || 'MAGIC Youth Unit'}</div>}
+                {story.location && <div style={{ marginBottom: '0.5rem' }}><strong>Location:</strong> {story.location}</div>}
+              </motion.div>
             ))}
           </div>
-          
-          <div className="what-we-do-grid">
-            {values.map((v) => {
-              const IconComp = v.icon;
-              return (
-                <div key={v.title} className="what-we-do-card">
-                  <IconComp className="card-icon" />
-                  <h3>{v.title}</h3>
-                  <p>{v.desc}</p>
-                </div>
-              );
-            })}
+        </section>
+      )}
+
+      {/* 6. TRANSPARENCY & ACCOUNTABILITY */}
+      {documents.length > 0 && (
+        <section className="inner-section bg-light">
+          <div className="section-header">
+            <div className="section-eyebrow">Documentation</div>
+            <h2 className="section-title">Transparency & Accountability</h2>
           </div>
-        </div>
-      </section>
+          <div className="content-grid" style={{ marginTop: '3rem' }}>
+            {documents.slice(0, 4).map((doc, i) => (
+              <a key={doc._id} href={doc.filePath} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit' }}>
+                <motion.div className="small-event" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: i * 0.1 }}>
+                  <div className="small-event-content">
+                    <h4 style={{ color: 'var(--primary-blue)', marginBottom: '0.25rem' }}>{doc.title}</h4>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{doc.documentType || 'Report'}</p>
+                  </div>
+                </motion.div>
+              </a>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '3rem' }}>
+             <Link to="/media" className="btn-outline">View All Records</Link>
+          </div>
+        </section>
+      )}
+
     </main>
   );
 }

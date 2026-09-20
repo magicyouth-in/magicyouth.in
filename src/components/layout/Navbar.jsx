@@ -1,103 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ChevronRight } from 'lucide-react';
-import magicLogo from '../../assets/magic-logo.png';
+import { Menu, X } from 'lucide-react';
 import '../../styles/navbar.css';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => setMobileOpen(false), [location.pathname]);
-
-  const links = [
-    { name: 'Home',          path: '/' },
-    { name: 'About',         path: '/about' },
-    { name: 'Mission',       path: '/mission' },
-    { name: 'Teams',         path: '/teams' },
-    { name: 'Gallery',       path: '/gallery' },
-    { name: 'Events',        path: '/events' },
-    { name: 'Documentation', path: '/documentation' },
-    { name: 'Join',          path: '/join' },
-    { name: 'Contact',       path: '/contact' },
-  ];
-
-  const isActive = (path) => {
-    if (path === '/') return location.pathname === '/';
-    return location.pathname.startsWith(path);
-  };
-
   return (
-    <header className={`navbar-header ${isScrolled ? 'scrolled' : ''}`}>
-      <div className="navbar-container">
-        {/* Brand */}
-        <Link to="/" className="navbar-brand">
-          <img
-            src={magicLogo}
-            alt="MAGIC Youth Logo"
-            className="navbar-logo"
-          />
-          <span className="navbar-title">MAGIC YOUTH</span>
+    <nav className={`my-navbar ${isScrolled ? 'scrolled' : ''}`}>
+      <div className="my-nav-container">
+        {/* LOGO AREA */}
+        <Link to="/" className="my-nav-brand">
+          <img src="/assets/magic-logo.png" alt="MAGIC Logo" className="my-brand-logo" />
+          <div className="my-brand-text">
+            <span className="my-brand-title">MAGIC Youth</span>
+            <span className="my-brand-subtitle">A YES-J Student Youth Wing</span>
+          </div>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="navbar-nav">
-          {links.filter(l => l.name !== 'Join').map(link => (
-            <Link
-              key={link.name}
-              to={link.path}
-              className={`navbar-link ${isActive(link.path) ? 'active' : ''}`}
-            >
-              {link.name}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Actions (Join CTA + Mobile Toggle) */}
-        <div className="navbar-actions">
-          <Link to="/join" className="navbar-join-btn">
-            Join MAGIC Youth
-          </Link>
-          <Link to="/admin/login" className="navbar-admin-link">
-            Admin
-          </Link>
-          <button
-            onClick={() => setMobileOpen(v => !v)}
-            className="navbar-mobile-toggle"
-            aria-label="Toggle navigation menu"
-          >
-            {mobileOpen ? <X style={{ width: 24, height: 24 }} /> : <Menu style={{ width: 24, height: 24 }} />}
-          </button>
+        {/* DESKTOP LINKS */}
+        <div className="my-nav-links desktop-only">
+          <Link to="/" className="my-nav-link">Home</Link>
+          <Link to="/about" className="my-nav-link">About</Link>
+          <Link to="/impact" className="my-nav-link">Impact</Link>
+          <Link to="/media" className="my-nav-link">Media</Link>
+          <Link to="/teams" className="my-nav-link">Team</Link>
+          <Link to="/contact" className="my-nav-link">Contact</Link>
         </div>
+
+        {/* DESKTOP ACTIONS */}
+        <div className="my-nav-actions desktop-only">
+          <a href="https://yesj.org/contact?program=magic" target="_blank" rel="noopener noreferrer" className="my-nav-btn-primary">
+            Join MAGIC
+          </a>
+        </div>
+
+        {/* MOBILE TOGGLE */}
+        <button className="my-mobile-toggle mobile-only" onClick={() => setIsMobileOpen(!isMobileOpen)}>
+          {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
 
-      {/* Mobile Drawer */}
-      {mobileOpen && (
-        <div className="navbar-mobile-drawer">
-          {links.map(link => (
-            <Link
-              key={link.name}
-              to={link.path}
-              className={`navbar-mobile-link ${isActive(link.path) ? 'active' : ''}`}
-            >
-              <span>{link.name}</span>
-              <ChevronRight style={{ width: 16, height: 16 }} />
-            </Link>
-          ))}
-          <div style={{ height: '1px', backgroundColor: 'var(--border-color)', margin: '1rem 0' }}></div>
-          <Link to="/admin/login" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>
-            <span>Admin / Login</span>
-            <ChevronRight style={{ width: 16, height: 16 }} />
-          </Link>
+      {/* MOBILE DRAWER */}
+      {isMobileOpen && (
+        <div className="my-mobile-drawer mobile-only">
+          <Link to="/" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>Home</Link>
+          <Link to="/about" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>About</Link>
+          <Link to="/impact" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>Impact</Link>
+          <Link to="/media" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>Media</Link>
+          <Link to="/teams" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>Team</Link>
+          <Link to="/contact" className="mobile-nav-link" onClick={() => setIsMobileOpen(false)}>Contact</Link>
+          
+          <div className="mobile-nav-actions">
+            <a href="https://yesj.org/contact?program=magic" target="_blank" rel="noopener noreferrer" className="my-nav-btn-primary" style={{ width: '100%', textAlign: 'center' }}>
+              Join MAGIC
+            </a>
+          </div>
         </div>
       )}
-    </header>
+    </nav>
   );
 }

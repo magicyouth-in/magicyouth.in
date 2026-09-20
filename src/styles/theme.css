@@ -149,3 +149,5 @@ p { margin: 0; line-height: 1.6; }
   display: block;
   padding: 0.75rem 0;
 }
+
+body, html { overflow-x: hidden; max-width: 100%; }

@@ -6,10 +6,9 @@ import Footer  from './components/layout/Footer';
 
 import Home          from './pages/Home';
 import About         from './pages/About';
-import Mission       from './pages/Mission';
 import Teams         from './pages/Teams';
-import Events        from './pages/Events';
-import Gallery       from './pages/Gallery';
+import Impact        from './pages/Impact';
+import Media         from './pages/Media';
 import Documentation from './pages/Documentation';
 import JoinUs        from './pages/JoinUs';
 import Contact       from './pages/Contact';
@@ -51,18 +50,17 @@ export default function App() {
     <Router>
       <Routes>
 
-        {/* ── ADMIN — independent dark theme, no public wrapper ── */}
+        {/* ── ADMIN – independent dark theme, no public wrapper ── */}
         <Route path="/admin/login"     element={<AdminLogin />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin"           element={<Navigate to="/admin/dashboard" replace />} />
 
-        {/* ── PUBLIC ROUTES — wrapped in PublicLayout ── */}
+        {/* ── PUBLIC ROUTES – wrapped in PublicLayout ── */}
         <Route path="/"              element={<PublicLayout><Home          /></PublicLayout>} />
         <Route path="/about"         element={<PublicLayout><About         /></PublicLayout>} />
-        <Route path="/mission"       element={<PublicLayout><Mission       /></PublicLayout>} />
+        <Route path="/impact"        element={<PublicLayout><Impact        /></PublicLayout>} />
+        <Route path="/media"         element={<PublicLayout><Media         /></PublicLayout>} />
         <Route path="/teams"         element={<PublicLayout><Teams         /></PublicLayout>} />
-        <Route path="/gallery"       element={<PublicLayout><Gallery       /></PublicLayout>} />
-        <Route path="/events"        element={<PublicLayout><Events        /></PublicLayout>} />
         <Route path="/documentation" element={<PublicLayout><Documentation /></PublicLayout>} />
         <Route path="/join"          element={<PublicLayout><JoinUs        /></PublicLayout>} />
         <Route path="/contact"       element={<PublicLayout><Contact       /></PublicLayout>} />
