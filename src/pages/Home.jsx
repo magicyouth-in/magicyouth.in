@@ -53,23 +53,9 @@ export default function Home() {
 
   return (
     <main className="home-wrapper">
-      {/* 1. HERO SECTION — VIDEO BACKGROUND */}
-      <section className="home-hero" style={{ position: 'relative', minHeight: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'white', padding: '0 1.5rem', overflow: 'hidden', backgroundColor: '#0F172A' }}>
-        {/* Video Background */}
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          poster="/assets/magic-logo.png"
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
-        >
-          <source src="/videos/magic-youth.mp4" type="video/mp4" />
-        </video>
-        {/* Gradient Overlay */}
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(rgba(15, 23, 42, 0.65), rgba(15, 23, 42, 0.85))', zIndex: 1 }} aria-hidden="true" />
-        
-        <motion.div className="hero-content" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} style={{ maxWidth: '900px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+      {/* 1. HERO SECTION */}
+      <section className="home-hero" style={{ backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.95)), url(${recentPhotos.length > 0 ? recentPhotos[0].file_path : '/assets/magic-logo.png'})`, backgroundSize: 'cover', backgroundPosition: 'center', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'white', padding: '4rem 1.5rem' }}>
+        <motion.div className="hero-content" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div className="hero-eyebrow" style={{ color: 'var(--primary-pink)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1.5rem', fontWeight: 800, fontSize: '0.875rem' }}>YES-J &bull; MAGIC YOUTH</div>
           <h1 className="hero-headline" style={{ color: 'white', fontSize: 'clamp(2.5rem, 5vw, 4.5rem)', fontWeight: 900, lineHeight: 1.1, letterSpacing: '-0.02em', marginBottom: '1.5rem' }}>
             Men and Women Aiming at <span style={{ color: 'var(--primary-pink)' }}>Greater Initiatives</span> for Change
@@ -82,6 +68,32 @@ export default function Home() {
             <Link to="/about" className="btn-outline" style={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)', padding: '1rem 2rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, border: '2px solid' }}>Discover Our Story</Link>
           </div>
         </motion.div>
+      </section>
+
+      {/* 2. SEE MAGIC IN ACTION — DEDICATED VIDEO SECTION */}
+      <section className="video-feature-section" style={{ backgroundColor: '#0B1120', padding: '5rem 1.5rem', borderBottom: '1px solid #1E293B' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
+            <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-pink)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+              SEE MAGIC IN ACTION
+            </div>
+            <h2 style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', fontWeight: 900, color: 'white', marginBottom: '2rem', letterSpacing: '-0.02em' }}>
+              Experience the Movement in Action
+            </h2>
+            <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 9', backgroundColor: '#0F172A', borderRadius: '1rem', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid #1E293B' }}>
+              <video
+                controls
+                playsInline
+                preload="metadata"
+                poster="/assets/magic-logo.png"
+                style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#000000', display: 'block' }}
+              >
+                <source src="/videos/magic-youth.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </motion.div>
+        </div>
       </section>
 
       {/* 2. YES-J + MAGIC RELATIONSHIP */}

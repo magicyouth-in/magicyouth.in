@@ -21,3 +21,5 @@ Thumbs.db
 
 # ── Package lock (keep package-lock.json, ignore npm-debug) ──
 npm-debug.log*
+
+dist/videos/
