@@ -85,28 +85,32 @@ export default function About() {
       </section>
 
       {/* 03 OUR FOUNDATION & 04 OUR HEADQUARTERS */}
-      <section className="inner-section" style={{ backgroundColor: '#0F172A', color: 'white' }}>
+      <section className="inner-section" style={{ backgroundColor: '#FFFFFF', color: 'var(--text-primary)', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
         <div className="content-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem' }}>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
             <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>03</div>
-            <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '1.5rem' }}>Our Foundation</h2>
+            <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0F172A', marginBottom: '1.5rem' }}>Our Foundation</h2>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
-              <Library size={24} color="var(--primary-blue)" style={{ marginTop: '0.25rem' }} />
+              <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: '#F0F9FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Library size={22} color="var(--primary-blue)" />
+              </div>
               <div>
-                <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>Ignatian Pillars</h4>
-                <p style={{ color: '#94A3B8', lineHeight: 1.6 }}>MAGIC Youth is guided by the core institutional principles of YES-J, emphasizing conscience, compassion, and active social commitment in all our student formation initiatives.</p>
+                <h4 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.5rem' }}>Ignatian Pillars</h4>
+                <p style={{ color: '#475569', lineHeight: 1.6 }}>MAGIC Youth is guided by the core institutional principles of YES-J, emphasizing conscience, compassion, and active social commitment in all our student formation initiatives.</p>
               </div>
             </div>
           </motion.div>
           
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.2 }}>
             <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>04</div>
-            <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '1.5rem' }}>Our Headquarters</h2>
+            <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#0F172A', marginBottom: '1.5rem' }}>Our Headquarters</h2>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
-              <MapPin size={24} color="var(--primary-blue)" style={{ marginTop: '0.25rem' }} />
+              <div style={{ width: '40px', height: '40px', borderRadius: '0.5rem', backgroundColor: '#F0F9FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <MapPin size={22} color="var(--primary-blue)" />
+              </div>
               <div>
-                <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>YES-J Institutional Base</h4>
-                <p style={{ color: '#94A3B8', lineHeight: 1.6, marginBottom: '1rem' }}>MAGIC Youth coordinates its regional campus units centrally through the YES-J headquarters in Vijayawada, Andhra Pradesh, India.</p>
+                <h4 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.5rem' }}>YES-J Institutional Base</h4>
+                <p style={{ color: '#475569', lineHeight: 1.6, marginBottom: '1rem' }}>MAGIC Youth coordinates its regional campus units centrally through the YES-J headquarters in Vijayawada, Andhra Pradesh, India.</p>
                 <a href="https://yesj.org/contact" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-blue)', fontWeight: 600, textDecoration: 'none' }}>View Official Location &rarr;</a>
               </div>
             </div>

@@ -204,7 +204,7 @@ export default function Home() {
                   textDecoration: 'none', 
                   fontWeight: 800, 
                   fontSize: '1rem', 
-                  boxShadow: '0 10px 25px rgba(2, 132, 199, 0.35)' 
+                  boxShadow: '0 8px 20px rgba(2, 132, 199, 0.25)' 
                 }}
               >
                 JOIN MAGIC &rarr;
@@ -213,14 +213,15 @@ export default function Home() {
                 to="/about" 
                 className="btn-outline" 
                 style={{ 
-                  color: 'white', 
-                  borderColor: 'rgba(255,255,255,0.35)', 
+                  color: 'var(--text-primary)', 
+                  borderColor: 'var(--border-color)', 
+                  backgroundColor: '#FFFFFF',
                   padding: '1rem 2.5rem', 
                   borderRadius: '999px', 
                   textDecoration: 'none', 
                   fontWeight: 800, 
                   fontSize: '1rem', 
-                  border: '2px solid' 
+                  border: '2px solid var(--border-color)' 
                 }}
               >
                 DISCOVER OUR STORY &rarr;
@@ -431,43 +432,49 @@ export default function Home() {
       </section>
 
       {/* 4. THE MAGIC JOURNEY (INTERACTIVE 4-STAGE PIPELINE) */}
-      <section className="programs-section" style={{ backgroundColor: '#0F172A', color: 'white', padding: '6rem 1.5rem' }}>
+      <section className="programs-section" style={{ backgroundColor: '#F8FAFC', color: 'var(--text-primary)', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
             <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
               The Transformative Process
             </div>
-            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'white', letterSpacing: '-0.02em' }}>
+            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em' }}>
               The MAGIC Journey
             </h2>
-            <p style={{ color: '#94A3B8', fontSize: '1.125rem', maxWidth: '600px', margin: '1rem auto 0' }}>
+            <p style={{ color: '#475569', fontSize: '1.125rem', maxWidth: '600px', margin: '1rem auto 0' }}>
               A sequential formation framework transforming student enthusiasm into lasting social impact.
             </p>
           </div>
 
           {/* Interactive Step Switcher */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
             {journeySteps.map((step, idx) => (
               <button
                 key={idx}
                 onClick={() => setActiveJourney(idx)}
                 style={{
-                  backgroundColor: activeJourney === idx ? '#1E293B' : 'rgba(30, 41, 59, 0.5)',
-                  border: activeJourney === idx ? '2px solid var(--primary-blue)' : '1px solid #334155',
-                  padding: '1.5rem',
+                  backgroundColor: activeJourney === idx ? '#FFFFFF' : '#FFFFFF',
+                  border: activeJourney === idx ? '2px solid var(--primary-blue)' : '1px solid #E2E8F0',
+                  boxShadow: activeJourney === idx ? '0 4px 20px rgba(2, 132, 199, 0.12)' : '0 1px 3px rgba(0,0,0,0.03)',
+                  padding: '1.75rem 1.5rem',
                   borderRadius: '0.75rem',
                   textAlign: 'left',
                   cursor: 'pointer',
                   transition: 'all 0.25s ease'
                 }}
               >
-                <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: activeJourney === idx ? 'var(--primary-blue)' : '#64748B', marginBottom: '0.5rem' }}>
-                  PHASE {step.num}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: activeJourney === idx ? 'var(--primary-blue)' : '#64748B', letterSpacing: '0.05em' }}>
+                    PHASE {step.num}
+                  </span>
+                  {activeJourney === idx && (
+                    <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--primary-pink)' }} />
+                  )}
                 </div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'white', marginBottom: '0.35rem' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.35rem' }}>
                   {step.title}
                 </div>
-                <div style={{ fontSize: '0.875rem', color: '#94A3B8' }}>
+                <div style={{ fontSize: '0.875rem', color: '#64748B' }}>
                   {step.tagline}
                 </div>
               </button>
@@ -481,9 +488,10 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
             style={{ 
-              backgroundColor: '#1E293B', 
-              border: '1px solid #334155', 
-              padding: '3rem', 
+              backgroundColor: '#FFFFFF', 
+              border: '1px solid #E2E8F0', 
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.04)',
+              padding: '3rem 2.5rem', 
               borderRadius: '1rem',
               display: 'flex',
               flexDirection: 'column',
@@ -493,10 +501,10 @@ export default function Home() {
             <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
               Phase {journeySteps[activeJourney].num} &bull; Detailed Overview
             </div>
-            <h3 style={{ fontSize: '2rem', fontWeight: 900, color: 'white' }}>
+            <h3 style={{ fontSize: '1.85rem', fontWeight: 900, color: '#0F172A' }}>
               {journeySteps[activeJourney].title}: <span style={{ color: 'var(--primary-blue)' }}>{journeySteps[activeJourney].tagline}</span>
             </h3>
-            <p style={{ color: '#E2E8F0', fontSize: '1.15rem', lineHeight: 1.8, maxWidth: '850px' }}>
+            <p style={{ color: '#334155', fontSize: '1.1rem', lineHeight: 1.8, maxWidth: '850px' }}>
               {journeySteps[activeJourney].desc}
             </p>
           </motion.div>
@@ -701,37 +709,37 @@ export default function Home() {
       </section>
 
       {/* 9. START A CHAPTER 4-STEP SEQUENCE */}
-      <section style={{ backgroundColor: '#0B1120', color: 'white', padding: '6rem 1.5rem' }}>
+      <section style={{ backgroundColor: '#FFFFFF', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
             <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
               Campus Expansion
             </div>
-            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'white', letterSpacing: '-0.02em' }}>
+            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em' }}>
               Start a MAGIC Chapter at Your Institution
             </h2>
-            <p style={{ color: '#94A3B8', fontSize: '1.125rem', maxWidth: '650px', margin: '1rem auto 0' }}>
+            <p style={{ color: '#475569', fontSize: '1.125rem', maxWidth: '650px', margin: '1rem auto 0' }}>
               Empower your college students by establishing an official YES-J student youth wing.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2rem', marginBottom: '3.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.75rem', marginBottom: '3.5rem' }}>
             {[
               { num: '01', title: 'Faculty Sponsorship', desc: 'Identify a supportive faculty mentor or department coordinator to guide institutional alignment.' },
               { num: '02', title: 'Core Mobilization', desc: 'Form an enthusiastic founding committee of student leaders across various academic years.' },
               { num: '03', title: 'Formal Submission', desc: 'Submit the formal chapter establishment request through the YES-J institutional portal.' },
               { num: '04', title: 'Charter Verification', desc: 'Receive official YES-J chapter charter, orientation toolkits, and launch your first campus initiative.' }
             ].map((step, idx) => (
-              <div key={idx} style={{ backgroundColor: '#1E293B', border: '1px solid #334155', padding: '2rem 1.5rem', borderRadius: '0.75rem', position: 'relative' }}>
+              <div key={idx} style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2.25rem 1.75rem', borderRadius: '0.75rem', position: 'relative' }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--primary-blue)', marginBottom: '0.75rem' }}>{step.num}</div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>{step.title}</h3>
-                <p style={{ color: '#94A3B8', fontSize: '0.875rem', lineHeight: 1.6 }}>{step.desc}</p>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.5rem' }}>{step.title}</h3>
+                <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.6 }}>{step.desc}</p>
               </div>
             ))}
           </div>
 
           <div style={{ textAlign: 'center' }}>
-            <Link to="/chapters#start-chapter" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem', boxShadow: '0 8px 20px rgba(2, 132, 199, 0.35)' }}>
+            <Link to="/chapters#start-chapter" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem', boxShadow: '0 8px 20px rgba(2, 132, 199, 0.25)' }}>
               START A CHAPTER &rarr;
             </Link>
           </div>
