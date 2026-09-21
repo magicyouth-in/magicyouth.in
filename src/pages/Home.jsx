@@ -708,47 +708,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 9. START A CHAPTER 4-STEP SEQUENCE */}
-      <section style={{ backgroundColor: '#FFFFFF', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
-            <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-              Campus Expansion
-            </div>
-            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em' }}>
-              Start a MAGIC Chapter at Your Institution
-            </h2>
-            <p style={{ color: '#475569', fontSize: '1.125rem', maxWidth: '650px', margin: '1rem auto 0' }}>
-              Empower your college students by establishing an official YES-J student youth wing.
-            </p>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.75rem', marginBottom: '3.5rem' }}>
-            {[
-              { num: '01', title: 'Faculty Sponsorship', desc: 'Identify a supportive faculty mentor or department coordinator to guide institutional alignment.' },
-              { num: '02', title: 'Core Mobilization', desc: 'Form an enthusiastic founding committee of student leaders across various academic years.' },
-              { num: '03', title: 'Formal Submission', desc: 'Submit the formal chapter establishment request through the YES-J institutional portal.' },
-              { num: '04', title: 'Charter Verification', desc: 'Receive official YES-J chapter charter, orientation toolkits, and launch your first campus initiative.' }
-            ].map((step, idx) => (
-              <div key={idx} style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2.25rem 1.75rem', borderRadius: '0.75rem', position: 'relative' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--primary-blue)', marginBottom: '0.75rem' }}>{step.num}</div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.5rem' }}>{step.title}</h3>
-                <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.6 }}>{step.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ textAlign: 'center' }}>
-            <Link to="/chapters#start-chapter" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem', boxShadow: '0 8px 20px rgba(2, 132, 199, 0.25)' }}>
-              START A CHAPTER &rarr;
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* 10. REAL IMPACT METRICS */}
+      {/* 9. REAL IMPACT METRICS */}
       {stats.initialized && (
-        <section className="impact-strip" style={{ backgroundColor: 'white', padding: '4rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+        <section className="impact-strip" style={{ backgroundColor: '#F8FAFC', padding: '4.5rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', textAlign: 'center' }}>
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
               <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--primary-blue)', marginBottom: '0.25rem' }}>
@@ -788,6 +750,44 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      {/* 10. START A CHAPTER 4-STEP SEQUENCE */}
+      <section style={{ backgroundColor: '#FFFFFF', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
+            <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+              Campus Expansion
+            </div>
+            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em' }}>
+              Start a MAGIC Chapter at Your Institution
+            </h2>
+            <p style={{ color: '#475569', fontSize: '1.125rem', maxWidth: '650px', margin: '1rem auto 0' }}>
+              Empower your college students by establishing an official YES-J student youth wing.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.75rem', marginBottom: '3.5rem' }}>
+            {[
+              { num: '01', title: 'Faculty Sponsorship', desc: 'Identify a supportive faculty mentor or department coordinator to guide institutional alignment.' },
+              { num: '02', title: 'Core Mobilization', desc: 'Form an enthusiastic founding committee of student leaders across various academic years.' },
+              { num: '03', title: 'Formal Submission', desc: 'Submit the formal chapter establishment request through the YES-J institutional portal.' },
+              { num: '04', title: 'Charter Verification', desc: 'Receive official YES-J chapter charter, orientation toolkits, and launch your first campus initiative.' }
+            ].map((step, idx) => (
+              <div key={idx} style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '2.25rem 1.75rem', borderRadius: '0.75rem', position: 'relative' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--primary-blue)', marginBottom: '0.75rem' }}>{step.num}</div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.5rem' }}>{step.title}</h3>
+                <p style={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.6 }}>{step.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ textAlign: 'center' }}>
+            <Link to="/chapters#start-chapter" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem', boxShadow: '0 8px 20px rgba(2, 132, 199, 0.25)' }}>
+              START A CHAPTER &rarr;
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* 11. INTERACTIVE FAQ ACCORDION */}
       <section style={{ backgroundColor: '#F8FAFC', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
