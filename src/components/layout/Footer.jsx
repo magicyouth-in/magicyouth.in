@@ -10,7 +10,7 @@ export default function Footer() {
         {/* BRAND & IDENTITY */}
         <div>
           <h3 style={{ color: 'white', fontSize: '1.25rem', fontWeight: 900, marginBottom: '1rem' }}>
-            MAGIC Youth
+            MAGIC <span style={{ color: 'var(--primary-pink)' }}>Youth</span>
           </h3>
           <p style={{ color: '#64748B', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '1rem' }}>
             Men and Women Aiming at Greater Initiatives for Change.

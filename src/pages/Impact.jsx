@@ -47,7 +47,9 @@ export default function Impact() {
     <main className="home-wrapper">
       <section className="page-header-section" style={{ backgroundColor: '#0F172A', padding: '6rem 1.5rem', color: 'white' }}>
         <div className="page-header-content" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>Our Impact</div>
+          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>
+            <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Our Impact
+          </div>
           <h1 className="page-header-title" style={{ color: 'white', fontSize: '3.5rem', letterSpacing: '-0.02em', marginBottom: '1rem' }}>
             From student formation to community action.
           </h1>

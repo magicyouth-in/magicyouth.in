@@ -36,7 +36,9 @@ export default function About() {
     <main className="home-wrapper">
       <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
         <div className="page-header-content" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>Institutional Identity</div>
+          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>
+            <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Institutional Identity
+          </div>
           <h1 className="page-header-title" style={{ color: 'var(--text-primary)', fontSize: '3rem' }}>About MAGIC Youth</h1>
           <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)' }}>
             A campus-based movement forming young people as agents of conscience, compassion, and commitment.

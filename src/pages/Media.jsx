@@ -74,7 +74,9 @@ export default function Media() {
     <main className="home-wrapper">
       <section className="page-header-section" style={{ backgroundColor: '#0F172A', padding: '6rem 1.5rem', color: 'white' }}>
         <div className="page-header-content" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>Media Center</div>
+          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>
+            <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Media Center
+          </div>
           <h1 className="page-header-title" style={{ color: 'white', fontSize: '3rem' }}>MAGIC IN STORIES</h1>
           <p className="page-header-subtitle" style={{ color: '#94A3B8' }}>
             Authentic photography and official publications from our chapters.

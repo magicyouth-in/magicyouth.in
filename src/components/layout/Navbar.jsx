@@ -38,7 +38,9 @@ export default function Navbar() {
         <Link to="/" className="navbar-brand">
           <img src="/assets/magic-logo.png" alt="MAGIC Logo" className="navbar-logo" />
           <div className="navbar-title" style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary-blue)' }}>MAGIC Youth</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--primary-blue)' }}>
+              MAGIC <span style={{ color: 'var(--primary-pink)' }}>Youth</span>
+            </span>
             <span style={{ fontSize: '0.65rem', color: '#64748B', fontWeight: 700, letterSpacing: '0.05em' }}>A YES-J YOUTH WING</span>
           </div>
         </Link>
