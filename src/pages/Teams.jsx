@@ -23,16 +23,16 @@ export default function Teams() {
       let fetchedYears = [];
 
       if (unitsData.success) {
-        fetchedUnits = unitsData.data;
+        fetchedUnits = unitsData.data || [];
         setUnits(fetchedUnits);
       }
       if (yearsData.success) {
-        fetchedYears = yearsData.data;
+        fetchedYears = yearsData.data || [];
         setAcademicYears(fetchedYears);
       }
 
       if (teamsData.success) {
-        const teamsWithMembers = await Promise.all(teamsData.data.map(async (t) => {
+        const teamsWithMembers = await Promise.all((teamsData.data || []).map(async (t) => {
           try {
             const mRes = await fetch(`/api/teams/${t._id}/members`);
             const mData = await mRes.json();
@@ -43,17 +43,6 @@ export default function Teams() {
         }));
         
         setTeams(teamsWithMembers);
-
-        // ALWAYS default to ALIET if exists
-        const alietUnit = fetchedUnits.find(u => u.name.toUpperCase().includes('ALIET') || u.shortName === 'ALIET');
-        if (alietUnit) {
-          setSelectedUnit(alietUnit._id);
-        }
-
-        const currentYear = fetchedYears.find(y => y.isCurrent);
-        if (currentYear) {
-          setSelectedYear(currentYear._id);
-        }
       }
       setLoading(false);
     })
@@ -63,11 +52,22 @@ export default function Teams() {
     });
   }, []);
 
+  const uniqueYears = Array.from(
+    new Set(academicYears.map(y => y.year).filter(Boolean))
+  ).sort((a, b) => b.localeCompare(a));
+
   const filteredTeams = teams.filter(t => {
-    const unitMatch = selectedUnit === 'All' || (t.unitId && t.unitId._id === selectedUnit);
-    const yearMatch = selectedYear === 'All' || (t.academicYearId && t.academicYearId._id === selectedYear);
+    const unitMatch = selectedUnit === 'All' || (t.unitId && (t.unitId._id === selectedUnit || t.unitId.id === selectedUnit));
+    const yearMatch = selectedYear === 'All' || (t.academicYearId && t.academicYearId.year === selectedYear);
     return unitMatch && yearMatch;
   });
+
+  const getTeamDisplayName = (team) => {
+    const rawUnit = team.unitId?.shortName || team.unitId?.name || 'CAMPUS';
+    // Remove duplicate occurrences of "MAGIC YOUTH" or "MAGIC" at the end of unit name
+    const cleanCampus = rawUnit.replace(/\s*MAGIC(\s*YOUTH)?\s*$/i, '').trim();
+    return cleanCampus ? `${cleanCampus} MAGIC YOUTH TEAM` : 'MAGIC YOUTH TEAM';
+  };
 
   const fadeUp = {
     hidden: { opacity: 0, y: 20 },
@@ -94,19 +94,38 @@ export default function Teams() {
       </section>
 
       <section className="inner-section" style={{ backgroundColor: 'white' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', marginBottom: '4rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-secondary)', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-            <Filter size={16} color="var(--primary-blue)" />
-            <select value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)} style={{ background: 'none', border: 'none', outline: 'none', fontWeight: 600, color: 'var(--text-primary)' }}>
+        {/* FILTERS */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', alignItems: 'center', marginBottom: '3.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#FFFFFF', padding: '0.6rem 1.25rem', borderRadius: '999px', border: '1.5px solid var(--border-color)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+            <Filter size={15} style={{ color: 'var(--primary-blue)' }} />
+            <select 
+              value={selectedUnit} 
+              onChange={(e) => setSelectedUnit(e.target.value)} 
+              style={{ background: 'transparent', border: 'none', outline: 'none', fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', cursor: 'pointer' }}
+            >
               <option value="All">All Campuses</option>
-              {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+              {units.map(u => {
+                const cleanName = u.name.replace(/\s*MAGIC(\s*YOUTH)?\s*$/i, '').trim();
+                return (
+                  <option key={u._id || u.id} value={u._id || u.id}>
+                    {cleanName ? `${cleanName} MAGIC YOUTH` : u.name}
+                  </option>
+                );
+              })}
             </select>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--bg-secondary)', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-            <Filter size={16} color="var(--primary-blue)" />
-            <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} style={{ background: 'none', border: 'none', outline: 'none', fontWeight: 600, color: 'var(--text-primary)' }}>
-              <option value="All">All Years</option>
-              {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#FFFFFF', padding: '0.6rem 1.25rem', borderRadius: '999px', border: '1.5px solid var(--border-color)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+            <span style={{ color: 'var(--primary-pink)', fontSize: '0.75rem', fontWeight: 900 }}>●</span>
+            <select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(e.target.value)} 
+              style={{ background: 'transparent', border: 'none', outline: 'none', fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', cursor: 'pointer' }}
+            >
+              <option value="All">All Academic Years</option>
+              {uniqueYears.map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -116,22 +135,22 @@ export default function Teams() {
             <Loader2 size={48} className="animate-spin" color="var(--primary-blue)" />
           </div>
         ) : filteredTeams.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-            No leadership teams found for the selected campus and year.
+          <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', maxWidth: '600px', margin: '0 auto', color: 'var(--text-secondary)' }}>
+            <p style={{ margin: 0, fontSize: '0.95rem' }}>No leadership teams found for the selected campus and year.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5rem', maxWidth: '1200px', margin: '0 auto' }}>
             {filteredTeams.map((team, i) => (
-              <motion.article key={team._id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: i * 0.1 }}>
+              <motion.article key={team._id || team.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: i * 0.1 }}>
                 <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                    {team.academicYearId?.isCurrent ? 'Current Team' : 'Past Team'}
+                  <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: team.academicYearId?.isCurrent ? 'var(--primary-blue)' : '#64748B', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                    <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> {team.academicYearId?.isCurrent ? 'CURRENT TEAM' : 'PAST TEAM'}
                   </div>
-                  <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.5rem', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
-                    {team.unitId?.shortName || team.unitId?.name} MAGIC YOUTH TEAM
+                  <h2 style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.5rem', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
+                    {getTeamDisplayName(team)}
                   </h2>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>
-                    {team.academicYearId?.year} • {team.name}
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', fontWeight: 600 }}>
+                    {team.academicYearId?.year ? `${team.academicYearId.year} • ` : ''}{team.name || 'Executive Body'}
                   </div>
                 </div>
 
@@ -145,22 +164,26 @@ export default function Teams() {
                       if (group.length === 0) return null;
                       return (
                         <div style={{ marginBottom: '4rem' }}>
-                          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '2rem', textAlign: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>{title}</h3>
+                          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2rem', textAlign: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <span style={{ color: 'var(--primary-pink)' }}>●</span> {title}
+                          </h3>
                           <div className="programs-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2rem' }}>
                             {group.map((member) => (
-                              <div key={member._id} style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '0.5rem', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                                <div style={{ width: '120px', height: '120px', borderRadius: '50%', marginBottom: '1.5rem', overflow: 'hidden', border: '3px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                              <div key={member._id || member.id} style={{ backgroundColor: 'var(--bg-secondary)', border: '1.5px solid var(--border-color)', borderRadius: '0.75rem', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }}>
+                                <div style={{ width: '120px', height: '120px', borderRadius: '50%', marginBottom: '1.5rem', overflow: 'hidden', border: '3px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
                                   {member.photo ? (
                                     <img src={member.photo} alt={member.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   ) : (
-                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#E2E8F0', color: 'var(--primary-blue)', fontWeight: 800, fontSize: '1.5rem', letterSpacing: '0.05em' }}>
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0F9FF', color: 'var(--primary-blue)', fontWeight: 800, fontSize: '1.5rem', letterSpacing: '0.05em' }}>
                                       {getInitials(member.name)}
                                     </div>
                                   )}
                                 </div>
-                                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{member.name}</h3>
-                                <p style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>{member.position}</p>
-                                {member.course && <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{member.course}</p>}
+                                <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{member.name}</h4>
+                                <p style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                                  {member.position}
+                                </p>
+                                {member.department && <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>{member.department}</p>}
                               </div>
                             ))}
                           </div>
@@ -177,7 +200,9 @@ export default function Teams() {
                     );
                   })()
                 ) : (
-                  <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No members found in this team.</p>
+                  <div style={{ textAlign: 'center', padding: '3rem 1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', maxWidth: '600px', margin: '0 auto' }}>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0 }}>No members are currently listed for this team roster.</p>
+                  </div>
                 )}
               </motion.article>
             ))}
@@ -187,3 +212,4 @@ export default function Teams() {
     </main>
   );
 }
+
