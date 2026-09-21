@@ -106,38 +106,28 @@ export default function Home() {
   ];
 
   const whatWeDoList = [
-    { title: 'Community Engagement', desc: 'Direct outreach, rural immersion, and grassroots social solidarity programs.', icon: Heart },
-    { title: 'Education & Literacy', desc: 'Remedial teaching, academic mentoring, and educational equity initiatives.', icon: BookOpen },
-    { title: 'Leadership Development', desc: 'Capacity-building workshops, ethical leadership labs, and peer mentorship.', icon: Compass },
+    { title: 'Leadership Formation', desc: 'Capacity-building workshops, ethical leadership labs, and peer mentoring.', icon: Compass },
+    { title: 'Community Engagement', desc: 'Direct outreach, rural immersion, and grassroots social solidarity initiatives.', icon: Heart },
     { title: 'Social Awareness', desc: 'Campaigns on human rights, constitutional values, and civic responsibility.', icon: Globe },
-    { title: 'Environmental Action', desc: 'Campus sustainability, tree planting, zero-waste drives, and climate action.', icon: Leaf },
-    { title: 'Youth Participation', desc: 'Student-led campus councils, debates, cultural expression, and collective action.', icon: Users }
+    { title: 'Environmental Action', desc: 'Campus sustainability, clean-up drives, tree planting, and climate advocacy.', icon: Leaf }
   ];
 
   const faqs = [
     {
-      q: 'Who can join MAGIC Youth?',
-      a: 'Any student enrolled in higher education institutions or colleges who is passionate about social justice, personal growth, and community action can join MAGIC Youth.'
+      q: 'What is MAGIC Youth and how is it connected to YES-J?',
+      a: 'MAGIC Youth (Men and Women Aiming at Greater Initiatives for Change) is the collegiate youth movement operating under the institutional umbrella of YES-J (Youth Empowering Service – Jesuits).'
     },
     {
-      q: 'How can I join MAGIC Youth?',
-      a: 'You can join through your campus MAGIC chapter or register directly through our online "Join Us" portal. Our campus coordinators will connect you with ongoing initiatives.'
+      q: 'Who can join MAGIC Youth and how do I register?',
+      a: 'Any student enrolled in higher education institutions can join. You can connect with your campus chapter or register directly through our online Join Us portal.'
     },
     {
-      q: 'How can I start a MAGIC chapter at my institution?',
-      a: 'Starting a chapter involves a 4-step institutional process: securing faculty sponsorship, mobilizing a student core committee, submitting a formal chapter request, and receiving YES-J charter verification.'
+      q: 'How can an institution start a MAGIC chapter?',
+      a: 'Colleges can start an official chapter by identifying a faculty mentor, forming a founding student committee, and submitting a formal request for YES-J charter verification.'
     },
     {
-      q: 'What activities does MAGIC Youth conduct?',
-      a: 'MAGIC Youth conducts community engagement projects, leadership camps, social awareness campaigns, environmental sustainability drives, educational tutoring for underprivileged children, and regional youth conventions.'
-    },
-    {
-      q: 'Can students participate without an existing campus chapter?',
-      a: 'Yes! Individual students can participate in regional YES-J conventions, open social action drives, online leadership workshops, and can take the initiative to start a chapter on their campus.'
-    },
-    {
-      q: 'How can institutions collaborate with YES-J / MAGIC Youth?',
-      a: 'Colleges and universities can collaborate through institutional partnerships, faculty-led community outreach programs, and co-hosting regional youth leadership summits.'
+      q: 'What kind of activities do student members lead?',
+      a: 'Student members organize remedial tutoring (Project Shiksha), environmental action (Green Footprints), leadership summits (MAGIS), and grassroots social innovation projects.'
     }
   ];
 
@@ -427,12 +417,10 @@ export default function Home() {
               </h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {[
-                  'Understand social realities and structural challenges',
-                  'Think critically with conscience and conviction',
-                  'Engage empathetically with grassroots communities',
-                  'Take concrete, organized, and constructive action',
-                  'Develop collaborative student leadership skills',
-                  'Carry lifelong social responsibility beyond college'
+                  'Understand social realities through direct grassroots engagement',
+                  'Think critically with conscience, compassion, and conviction',
+                  'Lead organized student initiatives for community empowerment',
+                  'Cultivate enduring social responsibility and ethical leadership'
                 ].map((item, i) => (
                   <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.5 }}>
                     <CheckCircle2 size={18} style={{ color: 'var(--primary-blue)', flexShrink: 0, marginTop: '2px' }} />
@@ -584,7 +572,7 @@ export default function Home() {
             {[
               { name: 'Project Shiksha', tag: 'Education Outreach', desc: 'Providing academic support, literacy campaigns, and mentoring for underprivileged students.', icon: BookOpen },
               { name: 'Green Footprints', tag: 'Environment', desc: 'Promoting eco-conservation, campus clean drives, and climate awareness initiatives.', icon: Leaf },
-              { name: 'MAGIS / Yuvotsavaalu', tag: 'Youth Gathering', desc: 'Annual convention celebrating student culture, social reflection, and solidarity.', icon: Sparkles },
+              { name: 'MAGIS / YES-J Yuvotsavaalu', tag: 'Youth Gathering', desc: 'Annual convention celebrating student culture, social reflection, and solidarity.', icon: Sparkles },
               { name: 'Elevate X', tag: 'Social Innovation', desc: 'Student-led social entrepreneurship incubation addressing grassroots challenges.', icon: Rocket }
             ].map((prog, i) => {
               const IconComp = prog.icon;
@@ -613,7 +601,7 @@ export default function Home() {
                     </p>
                   </div>
                   <Link to="/programs" style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.875rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                    Learn More &rarr;
+                    Explore &rarr;
                   </Link>
                 </motion.div>
               );
@@ -746,8 +734,8 @@ export default function Home() {
           </div>
 
           <div style={{ textAlign: 'center' }}>
-            <Link to="/chapters" className="btn-primary" style={{ backgroundColor: 'var(--primary-pink)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem' }}>
-              Explore Chapters & Start One &rarr;
+            <Link to="/chapters#start-chapter" className="btn-primary" style={{ backgroundColor: 'var(--primary-pink)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem' }}>
+              START A CHAPTER &rarr;
             </Link>
           </div>
         </div>
