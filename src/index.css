@@ -90,22 +90,21 @@ p {
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.75rem;
-  background-image: var(--gradient-brand);
   background-color: var(--primary-blue);
   color: #FFFFFF !important;
   font-weight: 700;
   border-radius: 9999px;
   border: none;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   cursor: pointer;
   text-decoration: none;
   box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
 }
 
 .btn-primary:hover {
+  background-color: var(--primary-blue-hover);
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(2, 132, 199, 0.35);
-  filter: brightness(1.05);
 }
 
 .btn-secondary {

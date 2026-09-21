@@ -44,7 +44,7 @@ export default function Stories() {
       {/* Header */}
       <section style={{ backgroundColor: '#0F172A', color: 'white', padding: '6rem 1.5rem 4rem', textAlign: 'center' }}>
         <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
-          <div style={{ color: 'var(--primary-pink)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+          <div style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
             Voices & Impact
           </div>
           <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '1.5rem' }}>
@@ -70,7 +70,7 @@ export default function Stories() {
               transition={{ delay: idx * 0.1 }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-pink)', textTransform: 'uppercase', letterSpacing: '0.1em', backgroundColor: '#FFE4E6', padding: '0.35rem 0.85rem', borderRadius: '999px' }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em', backgroundColor: '#F0F9FF', padding: '0.35rem 0.85rem', borderRadius: '999px' }}>
                   {story.category}
                 </span>
                 <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--primary-blue)' }}>
@@ -117,7 +117,7 @@ export default function Stories() {
           <p style={{ color: '#94A3B8', fontSize: '1.1rem', marginBottom: '2rem' }}>
             Submit your student leadership or community engagement reflection to the editorial team.
           </p>
-          <Link to="/contact" className="btn-primary" style={{ backgroundColor: 'var(--primary-pink)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800 }}>
+          <Link to="/contact" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, boxShadow: '0 8px 20px rgba(2, 132, 199, 0.35)' }}>
             Submit a Story &rarr;
           </Link>
         </div>

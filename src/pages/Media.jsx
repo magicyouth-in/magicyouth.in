@@ -104,7 +104,7 @@ export default function Media() {
                     <FileText size={48} opacity={0.5} />
                   </div>
                   <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-pink)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-blue)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
                       {mag.academicYearId?.year || 'Publication'}
                     </div>
                     <h3 style={{ fontSize: '1.5rem', fontWeight: 900, margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>{mag.title}</h3>

@@ -48,7 +48,7 @@ export default function About() {
       <section className="inner-section" style={{ backgroundColor: 'white' }}>
         <div className="content-grid" style={{ alignItems: 'center' }}>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-pink)', marginBottom: '0.5rem' }}>01</div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>01</div>
             <h2 className="section-title" style={{ textAlign: 'left', marginBottom: '1.5rem' }}>Our Core Story</h2>
             <p style={{ fontSize: '1.125rem', color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: '1rem' }}>
               <strong>Men and Women Aiming at Greater Initiatives for Change (MAGIC)</strong> is YES-J's student youth wing inside educational institutions.
@@ -66,7 +66,7 @@ export default function About() {
       {/* 02 THE POWER OF MAGIC YOUTH */}
       <section className="inner-section" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
         <div className="section-header" style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 4rem' }}>
-          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-pink)', marginBottom: '0.5rem' }}>02</div>
+          <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>02</div>
           <h2 className="section-title">The Power of MAGIC Youth</h2>
         </div>
         <div className="programs-grid">
@@ -88,7 +88,7 @@ export default function About() {
       <section className="inner-section" style={{ backgroundColor: '#0F172A', color: 'white' }}>
         <div className="content-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '4rem' }}>
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-pink)', marginBottom: '0.5rem' }}>03</div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>03</div>
             <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '1.5rem' }}>Our Foundation</h2>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
               <Library size={24} color="var(--primary-blue)" style={{ marginTop: '0.25rem' }} />
@@ -100,10 +100,10 @@ export default function About() {
           </motion.div>
           
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.2 }}>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-pink)', marginBottom: '0.5rem' }}>04</div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>04</div>
             <h2 style={{ fontSize: '2rem', fontWeight: 900, marginBottom: '1.5rem' }}>Our Headquarters</h2>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem' }}>
-              <MapPin size={24} color="var(--primary-pink)" style={{ marginTop: '0.25rem' }} />
+              <MapPin size={24} color="var(--primary-blue)" style={{ marginTop: '0.25rem' }} />
               <div>
                 <h4 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '0.5rem' }}>YES-J Institutional Base</h4>
                 <p style={{ color: '#94A3B8', lineHeight: 1.6, marginBottom: '1rem' }}>MAGIC Youth coordinates its regional campus units centrally through the YES-J headquarters in Vijayawada, Andhra Pradesh, India.</p>
@@ -118,7 +118,7 @@ export default function About() {
       {stories.length > 0 && (
         <section className="inner-section" style={{ backgroundColor: 'white' }}>
           <div className="section-header" style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 4rem' }}>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-pink)', marginBottom: '0.5rem' }}>05</div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>05</div>
             <h2 className="section-title">Impact Stories</h2>
           </div>
           <div className="content-grid" style={{ gridTemplateColumns: '1fr', maxWidth: '800px', margin: '0 auto' }}>
@@ -138,7 +138,7 @@ export default function About() {
       {documents.length > 0 && (
         <section className="inner-section" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
           <div className="section-header" style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 4rem' }}>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-pink)', marginBottom: '0.5rem' }}>06</div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>06</div>
             <h2 className="section-title">Transparency & Accountability</h2>
           </div>
           <div className="content-grid">

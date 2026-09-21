@@ -34,7 +34,7 @@ export default function Chapters() {
       {/* Header */}
       <section style={{ backgroundColor: '#0F172A', color: 'white', padding: '6rem 1.5rem 4rem', textAlign: 'center' }}>
         <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
-          <div style={{ color: 'var(--primary-pink)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+          <div style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
             Campus Network
           </div>
           <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '1.5rem' }}>
@@ -77,7 +77,7 @@ export default function Chapters() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                       <Building2 size={24} style={{ color: 'var(--primary-blue)' }} />
-                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-pink)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                         {unit.code || 'Campus Chapter'}
                       </div>
                     </div>
@@ -122,7 +122,7 @@ export default function Chapters() {
       <section id="start-chapter" style={{ backgroundColor: '#0B1120', color: 'white', padding: '6rem 1.5rem' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-            <div style={{ color: 'var(--primary-pink)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+            <div style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
               Institutional Expansion
             </div>
             <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 3rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '1rem' }}>
@@ -165,7 +165,7 @@ export default function Chapters() {
                 variants={fadeUp}
                 transition={{ delay: idx * 0.1 }}
               >
-                <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--primary-pink)', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--primary-blue)', marginBottom: '1rem' }}>
                   {item.step}
                 </div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'white', marginBottom: '0.75rem' }}>
@@ -186,7 +186,7 @@ export default function Chapters() {
               Are you a student leader or faculty member ready to charter a MAGIC Youth unit on your campus? Contact our expansion coordinators today.
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link to="/contact" className="btn-primary" style={{ backgroundColor: 'var(--primary-pink)', color: 'white', padding: '1rem 2.25rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem' }}>
+              <Link to="/contact" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.25rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem', boxShadow: '0 8px 20px rgba(2, 132, 199, 0.35)' }}>
                 Submit Chapter Inquiry &rarr;
               </Link>
             </div>

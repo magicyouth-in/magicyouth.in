@@ -122,7 +122,7 @@ export default function Teams() {
             {filteredTeams.map((team, i) => (
               <motion.article key={team._id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: i * 0.1 }}>
                 <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-pink)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                     {team.academicYearId?.isCurrent ? 'Current Team' : 'Past Team'}
                   </div>
                   <h2 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.5rem', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>

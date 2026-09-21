@@ -90,7 +90,7 @@
   left: 0;
   right: 0;
   height: 2.5px;
-  background: linear-gradient(90deg, var(--primary-blue) 0%, var(--primary-pink) 100%);
+  background: var(--primary-blue);
   border-radius: 2px;
 }
 
@@ -104,7 +104,6 @@
   display: none;
   align-items: center;
   justify-content: center;
-  background-image: linear-gradient(135deg, #0284C7 0%, #E11D48 100%);
   background-color: var(--primary-blue);
   color: #FFFFFF !important;
   font-weight: 700;
@@ -124,9 +123,9 @@
 }
 
 .navbar-join-btn:hover {
+  background-color: var(--primary-blue-hover);
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(225, 29, 72, 0.35);
-  filter: brightness(1.08);
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
 }
 
 .navbar-mobile-toggle {

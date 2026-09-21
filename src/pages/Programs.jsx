@@ -36,7 +36,7 @@ export default function Programs() {
       name: 'Green Footprints',
       category: 'Environmental Sustainability',
       icon: Leaf,
-      color: '#10B981',
+      color: 'var(--primary-blue)',
       tagline: 'Empowering campus youth to champion climate action and ecological stewardship.',
       description: 'Green Footprints translates environmental awareness into concrete conservation practices, turning campuses into zero-waste models and organizing community reforestation and conservation drives.',
       objectives: [
@@ -56,7 +56,7 @@ export default function Programs() {
       name: 'MAGIS / YES-J Yuvotsavaalu',
       category: 'Youth Cultural & Leadership Gathering',
       icon: Sparkles,
-      color: 'var(--primary-pink)',
+      color: 'var(--primary-blue)',
       tagline: 'An annual celebration of youth solidarity, critical reflection, and cultural energy.',
       description: 'MAGIS / YES-J Yuvotsavaalu brings together hundreds of student leaders across colleges for intensive days of cultural expression, social analysis workshops, leadership labs, and solidarity building.',
       objectives: [
@@ -76,7 +76,7 @@ export default function Programs() {
       name: 'Elevate X',
       category: 'Social Innovation & Entrepreneurship',
       icon: Rocket,
-      color: '#8B5CF6',
+      color: 'var(--primary-blue)',
       tagline: 'Incubating student-designed solutions to grassroots community challenges.',
       description: 'Elevate X provides a structured innovation sandbox where student changemakers design, prototype, and pilot sustainable solutions for local social, educational, and environmental challenges.',
       objectives: [
@@ -98,7 +98,7 @@ export default function Programs() {
       {/* Header */}
       <section style={{ backgroundColor: '#0F172A', color: 'white', padding: '6rem 1.5rem 4rem', textAlign: 'center' }}>
         <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
-          <div style={{ color: 'var(--primary-pink)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+          <div style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
             Action Pathways
           </div>
           <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '1.5rem' }}>
@@ -130,7 +130,7 @@ export default function Programs() {
                     <IconComp size={28} style={{ color: prog.color }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-pink)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                       {prog.category}
                     </div>
                     <h2 style={{ fontSize: 'clamp(1.75rem, 3vw, 2.25rem)', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
@@ -169,7 +169,7 @@ export default function Programs() {
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                       {prog.activities.map((act, i) => (
                         <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.5 }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--primary-pink)', marginTop: '8px', flexShrink: 0 }} />
+                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--primary-blue)', marginTop: '8px', flexShrink: 0 }} />
                           <span>{act}</span>
                         </li>
                       ))}
@@ -178,10 +178,10 @@ export default function Programs() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.75rem 1.75rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '0.9375rem' }}>
+                  <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.75rem 1.75rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '0.9375rem', boxShadow: '0 8px 20px rgba(2, 132, 199, 0.3)' }}>
                     Get Involved in {prog.name} &rarr;
                   </Link>
-                  <Link to="/impact" className="btn-outline" style={{ padding: '0.75rem 1.75rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '0.9375rem' }}>
+                  <Link to="/impact" className="btn-outline" style={{ padding: '0.75rem 1.75rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '0.9375rem', color: 'var(--primary-blue)', borderColor: 'var(--border-color)' }}>
                     View Event Highlights
                   </Link>
                 </div>
@@ -200,8 +200,8 @@ export default function Programs() {
           <p style={{ color: '#94A3B8', fontSize: '1.1rem', marginBottom: '2rem' }}>
             Join your campus MAGIC chapter and begin driving initiatives in your community.
           </p>
-          <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-pink)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800 }}>
-            Become a Change Agent
+          <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, boxShadow: '0 8px 20px rgba(2, 132, 199, 0.35)' }}>
+            Become a Change Agent &rarr;
           </Link>
         </div>
       </section>

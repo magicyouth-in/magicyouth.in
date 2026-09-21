@@ -46,7 +46,7 @@
   transition: color 0.2s;
 }
 .footer-link:hover {
-  color: var(--primary-pink);
+  color: var(--primary-blue);
 }
 .footer-bottom {
   max-width: 1200px;

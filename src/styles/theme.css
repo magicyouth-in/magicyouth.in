@@ -160,4 +160,4 @@ img[loading="lazy"] { content-visibility: auto; }
 
 
 .btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.75rem; background-color: var(--primary-blue); color: white; font-weight: 800; border-radius: 9999px; text-decoration: none; transition: all 0.3s ease; border: none; cursor: pointer; }
-.btn-primary:hover { background-color: var(--primary-pink); transform: translateY(-2px); }
+.btn-primary:hover { background-color: var(--primary-blue-hover); transform: translateY(-2px); }

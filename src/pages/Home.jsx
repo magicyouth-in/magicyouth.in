@@ -185,7 +185,7 @@ export default function Home() {
             </div>
             
             <h1 className="intro-headline">
-              Men and Women Aiming at <span style={{ color: 'var(--primary-pink)' }}>Greater Initiatives</span> for Change
+              Men and Women Aiming at <span style={{ color: 'var(--primary-blue)' }}>Greater Initiatives</span> for Change
             </h1>
             
             <p className="intro-subtitle">
@@ -197,7 +197,6 @@ export default function Home() {
                 to="/join" 
                 className="btn-primary" 
                 style={{ 
-                  backgroundImage: 'var(--gradient-brand)',
                   backgroundColor: 'var(--primary-blue)', 
                   color: 'white', 
                   padding: '1rem 2.5rem', 
@@ -205,7 +204,7 @@ export default function Home() {
                   textDecoration: 'none', 
                   fontWeight: 800, 
                   fontSize: '1rem', 
-                  boxShadow: '0 10px 25px rgba(2, 132, 199, 0.4)' 
+                  boxShadow: '0 10px 25px rgba(2, 132, 199, 0.35)' 
                 }}
               >
                 JOIN MAGIC &rarr;
@@ -257,7 +256,7 @@ export default function Home() {
               Organizational Hierarchy
             </div>
             <h3 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-              OUR <span style={{ color: 'var(--primary-pink)' }}>STRUCTURE</span>
+              OUR <span style={{ color: 'var(--primary-blue)' }}>STRUCTURE</span>
             </h3>
           </div>
 
@@ -301,9 +300,9 @@ export default function Home() {
                 <Sparkles size={30} />
               </div>
               <div className="structure-content">
-                <div className="structure-level-tag" style={{ color: 'var(--primary-pink)', fontWeight: 900 }}>LEVEL 02 &bull; CENTRAL MOVEMENT</div>
+                <div className="structure-level-tag" style={{ color: 'var(--primary-blue)', fontWeight: 900 }}>LEVEL 02 &bull; CENTRAL MOVEMENT</div>
                 <div className="structure-name">
-                  MAGIC YOUTH <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary-pink)', marginLeft: '0.5rem' }}>(Men and Women Aiming at Greater Initiatives for Change)</span>
+                  MAGIC YOUTH <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>(Men and Women Aiming at Greater Initiatives for Change)</span>
                 </div>
                 <p className="structure-description">
                   A campus-based youth movement under YES-J that organizes, forms, and mentors college students into active, empathetic leaders for societal change.
@@ -313,7 +312,7 @@ export default function Home() {
 
             {/* Connector */}
             <div className="structure-connector-line">
-              <ArrowDown size={18} style={{ color: 'var(--primary-pink)', position: 'absolute', bottom: '-2px', background: 'white', borderRadius: '50%' }} />
+              <ArrowDown size={18} style={{ color: 'var(--primary-blue)', position: 'absolute', bottom: '-2px', background: 'white', borderRadius: '50%' }} />
             </div>
 
             {/* Level 03: EDUCATIONAL INSTITUTIONS */}
@@ -325,7 +324,7 @@ export default function Home() {
               variants={fadeUp}
               transition={{ delay: 0.2 }}
             >
-              <div className="structure-badge" style={{ backgroundColor: '#FFE4E6', color: 'var(--primary-pink)' }}>
+              <div className="structure-badge" style={{ backgroundColor: '#F1F5F9', color: 'var(--primary-blue)' }}>
                 <Building size={28} />
               </div>
               <div className="structure-content">
@@ -370,7 +369,7 @@ export default function Home() {
       <section className="vision-mission-compact">
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto 3rem' }}>
-            <div style={{ color: 'var(--primary-pink)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+            <div style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
               Purpose & Calling
             </div>
             <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.65rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
@@ -388,7 +387,7 @@ export default function Home() {
               variants={fadeUp}
             >
               <div>
-                <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-pink)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
                   OUR VISION
                 </div>
                 <h3 style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.4, marginBottom: '1.25rem' }}>
@@ -437,7 +436,7 @@ export default function Home() {
       <section className="programs-section" style={{ backgroundColor: '#0F172A', color: 'white', padding: '6rem 1.5rem' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-            <div className="section-eyebrow" style={{ color: 'var(--primary-pink)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+            <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
               The Transformative Process
             </div>
             <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'white', letterSpacing: '-0.02em' }}>
@@ -456,7 +455,7 @@ export default function Home() {
                 onClick={() => setActiveJourney(idx)}
                 style={{
                   backgroundColor: activeJourney === idx ? '#1E293B' : 'rgba(30, 41, 59, 0.5)',
-                  border: activeJourney === idx ? '2px solid var(--primary-pink)' : '1px solid #334155',
+                  border: activeJourney === idx ? '2px solid var(--primary-blue)' : '1px solid #334155',
                   padding: '1.5rem',
                   borderRadius: '0.75rem',
                   textAlign: 'left',
@@ -464,7 +463,7 @@ export default function Home() {
                   transition: 'all 0.25s ease'
                 }}
               >
-                <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: activeJourney === idx ? 'var(--primary-pink)' : '#64748B', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: activeJourney === idx ? 'var(--primary-blue)' : '#64748B', marginBottom: '0.5rem' }}>
                   PHASE {step.num}
                 </div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'white', marginBottom: '0.35rem' }}>
@@ -493,7 +492,7 @@ export default function Home() {
               gap: '1rem'
             }}
           >
-            <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-pink)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+            <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
               Phase {journeySteps[activeJourney].num} &bull; Detailed Overview
             </div>
             <h3 style={{ fontSize: '2rem', fontWeight: 900, color: 'white' }}>
@@ -526,7 +525,7 @@ export default function Home() {
               const IconComp = item.icon;
               return (
                 <motion.div 
-                  key={idx}
+                  key={idx} 
                   style={{ backgroundColor: 'white', padding: '2.5rem 2rem', borderRadius: '1rem', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }}
                   initial="hidden"
                   whileInView="visible"
@@ -535,8 +534,8 @@ export default function Home() {
                   transition={{ delay: idx * 0.08 }}
                   whileHover={{ y: -4, boxShadow: '0 12px 30px rgba(0,0,0,0.06)' }}
                 >
-                  <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', backgroundColor: idx % 2 === 0 ? '#E0F2FE' : '#FFE4E6', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                    <IconComp size={24} style={{ color: idx % 2 === 0 ? 'var(--primary-blue)' : 'var(--primary-pink)' }} />
+                  <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', backgroundColor: '#F0F9FF', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                    <IconComp size={24} style={{ color: 'var(--primary-blue)' }} />
                   </div>
                   <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
                     {item.title}
@@ -556,14 +555,14 @@ export default function Home() {
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '3.5rem' }}>
             <div>
-              <div className="section-eyebrow" style={{ color: 'var(--primary-pink)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+              <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
                 Key Initiatives
               </div>
               <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
                 Flagship Programs
               </h2>
             </div>
-            <Link to="/programs" className="btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
+            <Link to="/programs" className="btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: 'var(--primary-blue)', borderColor: 'var(--border-color)' }}>
               View All Programs <ArrowRight size={16} />
             </Link>
           </div>
@@ -580,17 +579,17 @@ export default function Home() {
                 <motion.div 
                   key={i} 
                   style={{ backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', padding: '2.5rem 1.75rem', borderRadius: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  variants={fadeUp}
+                  initial="hidden" 
+                  whileInView="visible" 
+                  viewport={{ once: true }} 
+                  variants={fadeUp} 
                   transition={{ delay: i * 0.1 }}
                 >
                   <div>
                     <div style={{ width: '42px', height: '42px', borderRadius: '0.5rem', backgroundColor: 'white', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
                       <IconComp size={20} style={{ color: 'var(--primary-blue)' }} />
                     </div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-pink)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>
                       {prog.tag}
                     </div>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
@@ -627,7 +626,7 @@ export default function Home() {
                 />
               </motion.div>
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.2 }}>
-                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-pink)', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>
                   {recentEvents[0].academicYear || recentEvents[0].event_date || 'Campus Engagement'}
                 </div>
                 <h3 style={{ fontSize: 'clamp(1.75rem, 3vw, 2.25rem)', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.25, marginBottom: '1rem' }}>
@@ -651,7 +650,7 @@ export default function Home() {
       <section style={{ backgroundColor: 'white', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-            <div className="section-eyebrow" style={{ color: 'var(--primary-pink)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+            <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
               Student Voices
             </div>
             <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
@@ -680,10 +679,10 @@ export default function Home() {
               <motion.div 
                 key={i} 
                 style={{ backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', padding: '2.5rem', borderRadius: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true }}
-                variants={fadeUp}
+                initial="hidden" 
+                whileInView="visible" 
+                viewport={{ once: true }} 
+                variants={fadeUp} 
                 transition={{ delay: i * 0.1 }}
               >
                 <p style={{ color: 'var(--text-primary)', fontSize: '1.05rem', lineHeight: 1.7, fontStyle: 'italic', marginBottom: '2rem' }}>
@@ -707,7 +706,7 @@ export default function Home() {
       <section style={{ backgroundColor: '#0B1120', color: 'white', padding: '6rem 1.5rem' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-            <div className="section-eyebrow" style={{ color: 'var(--primary-pink)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+            <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
               Campus Expansion
             </div>
             <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'white', letterSpacing: '-0.02em' }}>
@@ -726,7 +725,7 @@ export default function Home() {
               { num: '04', title: 'Charter Verification', desc: 'Receive official YES-J chapter charter, orientation toolkits, and launch your first campus initiative.' }
             ].map((step, idx) => (
               <div key={idx} style={{ backgroundColor: '#1E293B', border: '1px solid #334155', padding: '2rem 1.5rem', borderRadius: '0.75rem', position: 'relative' }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--primary-pink)', marginBottom: '0.75rem' }}>{step.num}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--primary-blue)', marginBottom: '0.75rem' }}>{step.num}</div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'white', marginBottom: '0.5rem' }}>{step.title}</h3>
                 <p style={{ color: '#94A3B8', fontSize: '0.875rem', lineHeight: 1.6 }}>{step.desc}</p>
               </div>
@@ -734,7 +733,7 @@ export default function Home() {
           </div>
 
           <div style={{ textAlign: 'center' }}>
-            <Link to="/chapters#start-chapter" className="btn-primary" style={{ backgroundColor: 'var(--primary-pink)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem' }}>
+            <Link to="/chapters#start-chapter" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem', boxShadow: '0 8px 20px rgba(2, 132, 199, 0.35)' }}>
               START A CHAPTER &rarr;
             </Link>
           </div>
@@ -755,7 +754,7 @@ export default function Home() {
             </motion.div>
 
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: 0.1 }}>
-              <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--primary-pink)', marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--primary-blue)', marginBottom: '0.25rem' }}>
                 {stats.events !== null && stats.events > 0 ? stats.events : 'Youth'}
               </div>
               <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -855,7 +854,7 @@ export default function Home() {
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} style={{ maxWidth: '850px', margin: '0 auto' }}>
           <h2 style={{ fontSize: 'clamp(2.25rem, 4.5vw, 3.25rem)', fontWeight: 900, marginBottom: '1.5rem', color: 'white', lineHeight: 1.15 }}>
             Young people can be more than participants.<br/>
-            <span style={{ color: 'var(--primary-pink)' }}>They can become agents of change.</span>
+            <span style={{ color: 'var(--primary-blue)' }}>They can become agents of change.</span>
           </h2>
           <p style={{ fontSize: '1.2rem', marginBottom: '2.5rem', maxWidth: '640px', margin: '0 auto 2.5rem', color: '#94A3B8', lineHeight: 1.6 }}>
             Join MAGIC Youth today and be part of an inspiring campus journey rooted in YES-J's transformative mission.
@@ -865,7 +864,6 @@ export default function Home() {
               to="/join" 
               className="btn-primary" 
               style={{ 
-                backgroundImage: 'var(--gradient-brand)',
                 backgroundColor: 'var(--primary-blue)', 
                 color: 'white', 
                 padding: '1.1rem 2.75rem', 
@@ -873,7 +871,7 @@ export default function Home() {
                 textDecoration: 'none', 
                 fontWeight: 800, 
                 fontSize: '1.05rem', 
-                boxShadow: '0 10px 25px rgba(2, 132, 199, 0.4)' 
+                boxShadow: '0 10px 25px rgba(2, 132, 199, 0.35)' 
               }}
             >
               JOIN MAGIC &rarr;

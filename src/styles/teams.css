@@ -115,7 +115,7 @@
 .member-card:hover {
   transform: translateY(-8px);
 }
-.member-card:hover .member-name { color: var(--primary-pink); }
+.member-card:hover .member-name { color: var(--primary-blue); }
 
 .member-photo-box {
   aspect-ratio: 3 / 4;
@@ -218,5 +218,5 @@
   color: #6B7280;
 }
 
-.team-member-card:hover h3 { color: var(--primary-pink); }
+.team-member-card:hover h3 { color: var(--primary-blue); }
 .team-member-card:hover .team-member-role { color: var(--primary-blue); font-weight: 600; }

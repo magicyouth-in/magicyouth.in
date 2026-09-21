@@ -15,7 +15,7 @@ export default function Footer() {
           <p style={{ color: '#64748B', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '1rem' }}>
             Men and Women Aiming at Greater Initiatives for Change.
           </p>
-          <div style={{ fontSize: '0.8125rem', color: 'var(--primary-pink)', fontWeight: 700 }}>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--primary-blue)', fontWeight: 700 }}>
             Under YES-J Umbrella
           </div>
         </div>

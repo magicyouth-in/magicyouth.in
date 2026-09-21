@@ -47,7 +47,7 @@ export default function Impact() {
     <main className="home-wrapper">
       <section className="page-header-section" style={{ backgroundColor: '#0F172A', padding: '6rem 1.5rem', color: 'white' }}>
         <div className="page-header-content" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <div className="section-eyebrow" style={{ color: 'var(--primary-pink)' }}>Our Impact</div>
+          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>Our Impact</div>
           <h1 className="page-header-title" style={{ color: 'white', fontSize: '3.5rem', letterSpacing: '-0.02em', marginBottom: '1rem' }}>
             From student formation to community action.
           </h1>
@@ -112,7 +112,7 @@ export default function Impact() {
                   <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, textTransform: 'uppercase' }}>
                       {event.unitId && <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}><Users size={16} /> {event.unitId.name}</span>}
-                      {event.location && <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary-pink)' }}><MapPin size={16} /> {event.location}</span>}
+                      {event.location && <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--primary-blue)' }}><MapPin size={16} /> {event.location}</span>}
                     </div>
                     
                     <h3 style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.2, letterSpacing: '-0.02em' }}>{event.title}</h3>

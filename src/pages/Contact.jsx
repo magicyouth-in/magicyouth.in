@@ -60,7 +60,7 @@ export default function Contact() {
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', margin: 0 }}>Interested in joining MAGIC or contributing to campus initiatives?</p>
                 </div>
                 <div style={{ padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-                  <h4 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--primary-pink)', marginBottom: '0.5rem' }}>Faculty & Institutions</h4>
+                  <h4 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>Faculty & Institutions</h4>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', margin: 0 }}>Interested in collaboration or student formation programs?</p>
                 </div>
                 <div style={{ padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
@@ -136,7 +136,7 @@ export default function Contact() {
       {/* WHAT HAPPENS NEXT TIMELINE */}
       <section style={{ backgroundColor: '#0F172A', padding: '6rem 1.5rem', color: 'white' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div className="section-eyebrow" style={{ color: 'var(--primary-pink)' }}>The Process</div>
+          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>The Process</div>
           <h2 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '4rem' }}>What Happens Next</h2>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', borderLeft: '2px solid #334155', paddingLeft: '2rem' }}>
@@ -148,7 +148,7 @@ export default function Contact() {
             ].map((step, i) => (
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: i * 0.1 }} style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', left: '-2.65rem', top: '0.25rem', width: '1rem', height: '1rem', backgroundColor: 'var(--primary-blue)', borderRadius: '50%', border: '3px solid #0F172A' }}></div>
-                <div style={{ color: 'var(--primary-pink)', fontWeight: 800, fontSize: '0.875rem', marginBottom: '0.25rem' }}>{step.num}</div>
+                <div style={{ color: 'var(--primary-blue)', fontWeight: 800, fontSize: '0.875rem', marginBottom: '0.25rem' }}>{step.num}</div>
                 <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>{step.title}</h3>
                 <p style={{ color: '#94A3B8', fontSize: '1rem' }}>{step.desc}</p>
               </motion.div>
