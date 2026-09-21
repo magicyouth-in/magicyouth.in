@@ -275,9 +275,9 @@ export default function Home() {
               </div>
               <div className="structure-content">
                 <div className="structure-level-tag">LEVEL 01 &bull; APEX UMBRELLA</div>
-                <div className="structure-name">YES-J (Youth Empowering Service – Jesuits)</div>
+                <div className="structure-name">YES-J</div>
                 <p className="structure-description">
-                  The Jesuit youth ministry umbrella providing institutional vision, ethical leadership values, and spiritual grounding in conscience, compassion, and commitment.
+                  Youth Empowering Service – Jesuits. The apex institutional body providing vision, leadership formation, and ethical guidance.
                 </p>
               </div>
             </motion.div>
@@ -300,12 +300,10 @@ export default function Home() {
                 <Sparkles size={30} />
               </div>
               <div className="structure-content">
-                <div className="structure-level-tag" style={{ color: 'var(--primary-blue)', fontWeight: 900 }}>LEVEL 02 &bull; CENTRAL MOVEMENT</div>
-                <div className="structure-name">
-                  MAGIC YOUTH <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>(Men and Women Aiming at Greater Initiatives for Change)</span>
-                </div>
+                <div className="structure-level-tag" style={{ color: 'var(--primary-blue)', fontWeight: 900 }}>LEVEL 02 &bull; YOUTH MOVEMENT</div>
+                <div className="structure-name">MAGIC YOUTH</div>
                 <p className="structure-description">
-                  A campus-based youth movement under YES-J that organizes, forms, and mentors college students into active, empathetic leaders for societal change.
+                  Men and Women Aiming at Greater Initiatives for Change. The official student youth wing under YES-J coordinating campus chapters.
                 </p>
               </div>
             </motion.div>
@@ -328,10 +326,10 @@ export default function Home() {
                 <Building size={28} />
               </div>
               <div className="structure-content">
-                <div className="structure-level-tag">LEVEL 03 &bull; CAMPUS COLLABORATION</div>
+                <div className="structure-level-tag">LEVEL 03 &bull; CAMPUS PARTNERS</div>
                 <div className="structure-name">EDUCATIONAL INSTITUTIONS</div>
                 <p className="structure-description">
-                  Colleges and higher education campuses across Andhra Pradesh and Telangana where institutional MAGIC chapters and faculty mentors operate.
+                  Colleges and higher education institutions hosting chartered MAGIC Youth chapters and faculty mentorship.
                 </p>
               </div>
             </motion.div>
@@ -357,7 +355,7 @@ export default function Home() {
                 <div className="structure-level-tag">LEVEL 04 &bull; ACTIVE FORMATION</div>
                 <div className="structure-name">STUDENT AGENTS OF CHANGE</div>
                 <p className="structure-description">
-                  Young people who experience grassroots reality, reflect critically with conscience, participate in community initiatives, and lead lasting transformation.
+                  Empowered student leaders formed in conscience, compassion, and commitment to drive transformative community initiatives.
                 </p>
               </div>
             </motion.div>
