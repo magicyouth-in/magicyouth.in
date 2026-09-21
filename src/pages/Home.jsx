@@ -379,22 +379,22 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
             {/* Vision Card */}
             <motion.div 
-              style={{ backgroundColor: '#0F172A', color: 'white', padding: '2.75rem 2.25rem', borderRadius: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 10px 25px rgba(15,23,42,0.1)' }}
+              style={{ backgroundColor: '#FFFFFF', border: '1.5px solid var(--border-color)', padding: '2.5rem 2.25rem', borderRadius: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
               initial="hidden" 
               whileInView="visible" 
               viewport={{ once: true }} 
               variants={fadeUp}
             >
               <div>
-                <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
                   OUR VISION
                 </div>
-                <h3 style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.4, marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0F172A', lineHeight: 1.4, marginBottom: '1rem' }}>
                   "A just, equal, and compassionate society where young people lead meaningful change."
                 </h3>
               </div>
-              <p style={{ color: '#94A3B8', fontSize: '0.975rem', lineHeight: 1.7, margin: 0 }}>
-                Envisioning a generation of formed student leaders who embody empathy, critical social awareness, and institutional responsibility for community welfare.
+              <p style={{ color: '#475569', fontSize: '0.95rem', lineHeight: 1.7, margin: 0 }}>
+                Envisioning formed student leaders who embody empathy, critical social awareness, and institutional responsibility for community welfare.
               </p>
             </motion.div>
 
