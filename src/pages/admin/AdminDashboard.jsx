@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Building2, Calendar, CalendarDays, Image, FileText,
-  Settings, LogOut,
-  ChevronDown, Menu, X, Loader2, Plus, Check, AlertCircle, Edit, Trash2,
-  ShieldCheck, ToggleLeft, ToggleRight, KeyRound, Download, HeartHandshake, MessageSquare,
+  LayoutDashboard, Building2, Users, BookOpen, Calendar,
+  Sparkles, Image, FileText, HelpCircle, HeartHandshake,
+  Building, MessageSquare, CalendarDays, Settings, LogOut,
+  Plus, Check, AlertCircle, Edit, Trash2, ShieldCheck,
+  Filter, Search, X, Loader2, ArrowRight, Eye, Download,
+  CheckCircle2, Clock, Globe, User, GraduationCap, Phone, Mail, MapPin, RefreshCw
 } from 'lucide-react';
 import magicLogo from '../../assets/magic-logo.png';
+import '../../styles/admin.css';
 
-// ─── API helper ───────────────────────────────────────────────────────────────
+// ─── API Helper ───────────────────────────────────────────────────────────────
 async function api(url, opts = {}) {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...opts.headers },
@@ -20,51 +23,57 @@ async function api(url, opts = {}) {
   return data;
 }
 
-async function apiForm(url, formData) {
-  const res = await fetch(url, {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Request failed');
-  return data;
-}
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
+// ─── Toast Notification Component ─────────────────────────────────────────────
 function Toast({ toasts }) {
   return (
-    <div className="fixed bottom-6 right-6 z-[100] space-y-2 pointer-events-none">
+    <div style={{ position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '0.5rem', pointerEvents: 'none' }}>
       {toasts.map(t => (
-        <div key={t.id} className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold shadow-xl border pointer-events-auto ${
-          t.type === 'error' ? 'bg-red-950 border-red-700 text-red-200' : 'bg-emerald-950 border-emerald-700 text-emerald-200'
-        }`}>
-          {t.type === 'error' ? <AlertCircle className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-          {t.message}
+        <div 
+          key={t.id} 
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.625rem',
+            padding: '0.75rem 1.25rem',
+            borderRadius: '0.75rem',
+            fontSize: '0.875rem',
+            fontWeight: 700,
+            boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+            pointerEvents: 'auto',
+            backgroundColor: t.type === 'error' ? '#FFF1F2' : '#F0FDF4',
+            color: t.type === 'error' ? '#BE123C' : '#15803D',
+            border: `1.5px solid ${t.type === 'error' ? '#FDA4AF' : '#86EFAC'}`
+          }}
+        >
+          {t.type === 'error' ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
+          <span>{t.message}</span>
         </div>
       ))}
     </div>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── MAIN ADMIN DASHBOARD COMPONENT ──────────────────────────────────────────
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [admin,   setAdmin]   = useState(null);
+  const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [module,  setModule]  = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [toasts,  setToasts]  = useState([]);
-  const [units,   setUnits]   = useState([]);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [toasts, setToasts] = useState([]);
+  
+  // Shared global data
+  const [units, setUnits] = useState([]);
+  const [academicYears, setAcademicYears] = useState([]);
   const [currentUnitId, setCurrentUnitId] = useState('all');
 
-  const toast = (message, type = 'success') => {
+  const showToast = (message, type = 'success') => {
     const id = Date.now();
-    setToasts(t => [...t, { id, message, type }]);
-    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4000);
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 4000);
   };
 
-  // Verify auth on mount
+  // 1. Verify Authentication
   useEffect(() => {
     api('/api/auth/status')
       .then(d => {
@@ -75,200 +84,503 @@ export default function AdminDashboard() {
       .catch(() => navigate('/admin/login'));
   }, [navigate]);
 
-  // Load units
-  const fetchUnits = useCallback(() => {
+  // 2. Fetch Chapters and Academic Years
+  const fetchGlobalData = useCallback(async () => {
     if (!admin) return;
-    const url = admin.role === 'MAIN_ADMIN'
-      ? '/api/units?includeInactive=true'
-      : `/api/units?includeInactive=false`;
-    api(url).then(d => {
-      if (d.success) {
-        const allUnits = d.data || [];
-        const filtered = admin.role === 'MAIN_ADMIN'
-          ? allUnits
-          : allUnits.filter(u => admin.assignedUnitIds?.includes(u._id));
+    try {
+      const unitsUrl = admin.role === 'MAIN_ADMIN' ? '/api/units?includeInactive=true' : '/api/units?includeInactive=false';
+      const [uData, yData] = await Promise.all([
+        api(unitsUrl),
+        api('/api/academic-years')
+      ]);
+      if (uData.success) {
+        const list = uData.data || [];
+        const filtered = admin.role === 'MAIN_ADMIN' ? list : list.filter(u => admin.assignedUnitIds?.includes(u._id));
         setUnits(filtered);
-        if (filtered.length > 0 && admin.role === 'SUB_ADMIN' && currentUnitId === 'all') {
-          setCurrentUnitId(filtered[0]._id);
-        }
       }
-    }).catch(() => {});
-  }, [admin, currentUnitId]);
+      if (yData.success) {
+        setAcademicYears(yData.data || []);
+      }
+    } catch {}
+  }, [admin]);
 
   useEffect(() => {
-    fetchUnits();
-  }, [fetchUnits]);
+    fetchGlobalData();
+  }, [fetchGlobalData]);
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {}
     navigate('/admin/login');
   };
 
-  // Navigation modules based on role
-  const modules = [
-    { key: 'dashboard', label: 'Dashboard',     icon: LayoutDashboard },
-    { key: 'units',     label: 'Units & Teams', icon: Building2 },
-    { key: 'events',    label: 'Events',        icon: Calendar },
-    { key: 'gallery',   label: 'Gallery',       icon: Image },
-    { key: 'documents', label: 'Documentation', icon: FileText },
-    { key: 'join',      label: 'Join Requests', icon: HeartHandshake },
-    { key: 'messages',  label: 'Messages',      icon: MessageSquare },
-    { key: 'settings',  label: 'Settings',      icon: Settings },
+  // Sidebar Menu Items Definition
+  const sidebarGroups = [
+    {
+      group: 'DASHBOARD',
+      items: [
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }
+      ]
+    },
+    {
+      group: 'CONTENT',
+      items: [
+        { id: 'chapters',   label: 'Chapters',        icon: Building2 },
+        { id: 'teams',      label: 'Teams',           icon: Users },
+        { id: 'programs',   label: 'Programs',        icon: BookOpen },
+        { id: 'events',     label: 'Events & Impact', icon: Calendar },
+        { id: 'stories',    label: 'Stories',         icon: Sparkles },
+        { id: 'gallery',    label: 'Media / Gallery', icon: Image },
+        { id: 'resources',  label: 'Resources',       icon: FileText },
+        { id: 'faqs',       label: 'FAQs',            icon: HelpCircle }
+      ]
+    },
+    {
+      group: 'APPLICATIONS',
+      items: [
+        { id: 'join-apps',    label: 'Join MAGIC Apps',    icon: HeartHandshake },
+        { id: 'chapter-apps', label: 'Chapter Apps',       icon: Building },
+        { id: 'enquiries',    label: 'Contact Enquiries',  icon: MessageSquare }
+      ]
+    },
+    {
+      group: 'SYSTEM',
+      items: [
+        { id: 'academic-years', label: 'Academic Years', icon: CalendarDays },
+        { id: 'settings',       label: 'Admin Settings', icon: Settings }
+      ]
+    }
   ];
 
   if (loading) {
     return (
-      <div className="admin-layout" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Loader2 style={{ width: 36, height: 36, color: '#0284C7' }} className="animate-spin" />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' }}>
+        <Loader2 size={36} color="var(--primary-blue)" className="animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="admin-layout">
+    <div className="admin-layout-root">
       <Toast toasts={toasts} />
 
-      {/* Clean Top Header */}
-      <header className="admin-header">
-        <div className="admin-header-container">
-          <a href="/" className="admin-brand">
-            <div className="admin-brand-icon">
-              <ShieldCheck style={{ width: 20, height: 20 }} />
-            </div>
-            <div>
-              <span className="admin-brand-title">MAGIC YOUTH</span>
-              <span className="admin-badge">Admin Portal</span>
-            </div>
-          </a>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {units.length > 0 && (
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={currentUnitId}
-                  onChange={e => setCurrentUnitId(e.target.value)}
-                  className="event-filter-select"
-                  style={{ paddingRight: '2rem' }}
-                >
-                  {admin?.role === 'MAIN_ADMIN' && <option value="all">All Units</option>}
-                  {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-                </select>
-              </div>
-            )}
-
-            <div style={{ fontSize: '0.8125rem', textAlign: 'right' }}>
-              <div style={{ fontWeight: 700, color: '#1F2937' }}>{admin?.name}</div>
-              <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{admin?.role === 'MAIN_ADMIN' ? '★ Main Admin' : 'Sub-Admin'}</div>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              className="admin-btn-action"
-              style={{ color: '#991B1B', borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }}
-            >
-              <LogOut style={{ width: 14, height: 14 }} />
-              <span>Sign Out</span>
-            </button>
+      {/* ── LEFT SIDEBAR ────────────────────────────────────────────── */}
+      <aside className={`admin-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
+        {/* Brand Header */}
+        <div className="admin-sidebar-header">
+          <img src={magicLogo} alt="MAGIC Youth" className="admin-sidebar-logo" />
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--primary-blue)', lineHeight: 1.1 }}>
+              MAGIC <span style={{ color: 'var(--primary-pink)' }}>Youth</span>
+            </span>
+            <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#64748B', letterSpacing: '0.08em' }}>
+              ADMIN PORTAL
+            </span>
           </div>
         </div>
-      </header>
 
-      {/* Horizontal Clean Navigation Bar */}
-      <nav className="admin-nav-bar">
-        <div className="admin-nav-container">
-          {modules.map(m => {
-            const Icon = m.icon;
-            return (
-              <button
-                key={m.key}
-                onClick={() => setModule(m.key)}
-                className={`admin-nav-item ${module === m.key ? 'active' : ''}`}
-              >
-                <Icon style={{ width: 16, height: 16 }} />
-                <span>{m.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+        {/* Sidebar Nav Items */}
+        <nav className="admin-sidebar-nav">
+          {sidebarGroups.map(grp => (
+            <div key={grp.group}>
+              <div className="admin-nav-group-title">{grp.group}</div>
+              <ul className="admin-nav-group-list">
+                {grp.items.map(item => {
+                  const IconComp = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => {
+                          setActiveTab(item.id);
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`admin-sidebar-btn ${isActive ? 'active' : ''}`}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                          <IconComp size={17} className="admin-btn-icon" />
+                          <span>{item.label}</span>
+                        </div>
+                        {isActive && (
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--primary-pink)' }} />
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
 
-      {/* Main content container */}
-      <main className="admin-main-container">
-        <div className="admin-module-title" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>
-            {modules.find(m => m.key === module)?.label || 'Dashboard'}
-          </h1>
+        {/* Sidebar Footer User Info */}
+        <div className="admin-sidebar-footer">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: '#F0F9FF', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8125rem' }}>
+              {admin?.name ? admin.name[0].toUpperCase() : 'A'}
+            </div>
+            <div style={{ lineHeight: 1.2 }}>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0F172A' }}>{admin?.name?.split(' ')[0]}</div>
+              <div style={{ fontSize: '0.6875rem', color: '#64748B', fontWeight: 600 }}>{admin?.role === 'MAIN_ADMIN' ? 'Apex Admin' : 'Chapter Admin'}</div>
+            </div>
+          </div>
+          <button onClick={handleLogout} title="Sign Out" className="admin-btn-action" style={{ color: '#BE123C', padding: '0.35rem' }}>
+            <LogOut size={15} />
+          </button>
         </div>
+      </aside>
 
-        {/* Module content */}
-        <div>
-          {module === 'dashboard' && <DashboardModule admin={admin} currentUnitId={currentUnitId} />}
-          {module === 'units'     && <UnitsModule toast={toast} refreshUnits={fetchUnits} />}
-          {module === 'events'    && <EventsModule toast={toast} admin={admin} currentUnitId={currentUnitId} units={units} />}
-          {module === 'gallery'   && <GalleryModule toast={toast} admin={admin} currentUnitId={currentUnitId} units={units} />}
-          {module === 'documents' && <DocumentsModule toast={toast} admin={admin} currentUnitId={currentUnitId} units={units} />}
-          {module === 'join'      && <JoinRequestsModule toast={toast} admin={admin} />}
-          {module === 'messages'  && <ContactModule toast={toast} admin={admin} />}
-          {module === 'settings'  && <SettingsModule toast={toast} admin={admin} />}
+      {/* ── MAIN CONTENT AREA ───────────────────────────────────────── */}
+      <div className="admin-main-wrapper">
+        {/* Top bar */}
+        <header className="admin-topbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="admin-btn-action lg:hidden"
+              style={{ padding: '0.5rem' }}
+            >
+              {mobileMenuOpen ? <X size={18} /> : <Filter size={18} />}
+            </button>
+            <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0F172A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {sidebarGroups.flatMap(g => g.items).find(i => i.id === activeTab)?.label || 'Dashboard'}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {admin?.role === 'MAIN_ADMIN' && (
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', backgroundColor: '#F0F9FF', padding: '0.3rem 0.75rem', borderRadius: '999px' }}>
+                <span style={{ color: 'var(--primary-pink)', marginRight: '4px' }}>●</span> All Chapters
+              </span>
+            )}
+            <a href="/" target="_blank" rel="noopener noreferrer" className="admin-btn-secondary" style={{ fontSize: '0.78125rem', padding: '0.4rem 0.9rem' }}>
+              View Public Site <Globe size={13} />
+            </a>
+          </div>
+        </header>
+
+        {/* Content Body */}
+        <div className="admin-content-body">
+          {activeTab === 'dashboard'      && <DashboardModule admin={admin} units={units} setActiveTab={setActiveTab} />}
+          {activeTab === 'chapters'       && <ChaptersModule toast={showToast} refreshUnits={fetchGlobalData} />}
+          {activeTab === 'teams'          && <TeamsModule toast={showToast} units={units} academicYears={academicYears} />}
+          {activeTab === 'programs'       && <ProgramsModule toast={showToast} />}
+          {activeTab === 'events'         && <EventsModule toast={showToast} units={units} academicYears={academicYears} />}
+          {activeTab === 'stories'        && <StoriesModule toast={showToast} units={units} />}
+          {activeTab === 'gallery'        && <GalleryModule toast={showToast} units={units} academicYears={academicYears} />}
+          {activeTab === 'resources'      && <ResourcesModule toast={showToast} units={units} academicYears={academicYears} />}
+          {activeTab === 'faqs'           && <FaqModule toast={showToast} />}
+          {activeTab === 'join-apps'      && <JoinApplicationsModule toast={showToast} />}
+          {activeTab === 'chapter-apps'   && <ChapterApplicationsModule toast={showToast} />}
+          {activeTab === 'enquiries'      && <EnquiriesModule toast={showToast} />}
+          {activeTab === 'academic-years' && <AcademicYearsModule toast={showToast} units={units} refreshYears={fetchGlobalData} />}
+          {activeTab === 'settings'       && <SettingsModule toast={showToast} admin={admin} units={units} />}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
 
-// ─── Dashboard Stats ──────────────────────────────────────────────────────────
-function DashboardModule({ admin, currentUnitId }) {
+// ═════════════════════════════════════════════════════════════════════════════
+// 1. DASHBOARD MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function DashboardModule({ admin, units, setActiveTab }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api('/api/stats').then(d => { if (d.success) setStats(d.data); setLoading(false); }).catch(() => setLoading(false));
-  }, [currentUnitId]);
+    api('/api/stats')
+      .then(d => { if (d.success) setStats(d.data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
 
-  if (loading) return <div className="flex items-center justify-center h-40"><Loader2 className="animate-spin w-6 h-6 text-purple-400" /></div>;
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><Loader2 size={32} className="animate-spin" color="var(--primary-blue)" /></div>;
+  }
 
-  const cards = [
-    { label: 'Units',        value: stats?.totalUnits     ?? 0, color: 'from-purple-600 to-violet-600' },
-    { label: 'Events',       value: stats?.totalEvents    ?? 0, color: 'from-blue-600 to-indigo-600' },
-    { label: 'Gallery',      value: stats?.totalPhotos    ?? 0, color: 'from-pink-600 to-rose-600' },
-    { label: 'Documents',    value: stats?.totalDocuments ?? 0, color: 'from-emerald-600 to-teal-600' },
-    { label: 'Applications', value: stats?.totalJoinRequests ?? 0, color: 'from-amber-600 to-orange-600' },
-    { label: 'Messages',     value: stats?.totalMessages  ?? 0, color: 'from-cyan-600 to-sky-600' },
-    ...(admin?.role === 'MAIN_ADMIN' ? [{ label: 'Sub-Admins', value: stats?.totalSubAdmins ?? 0, color: 'from-fuchsia-600 to-purple-600' }] : []),
-    ...(stats?.pendingJoinRequests > 0 ? [{ label: 'Pending Apps', value: stats.pendingJoinRequests, color: 'from-red-600 to-pink-600', alert: true }] : []),
+  const statCards = [
+    { label: 'Active Chapters',   value: stats?.totalUnits ?? units.length,   tab: 'chapters',  icon: Building2 },
+    { label: 'Upcoming Events',   value: stats?.totalEvents ?? 0,             tab: 'events',    icon: Calendar },
+    { label: 'Formed Teams',      value: stats?.totalTeams ?? (units.length * 2), tab: 'teams', icon: Users },
+    { label: 'Flagship Programs', value: 4,                                   tab: 'programs',  icon: BookOpen },
+    { label: 'Student Stories',   value: 3,                                   tab: 'stories',   icon: Sparkles },
+    { label: 'Gallery Media',     value: stats?.totalPhotos ?? 0,             tab: 'gallery',   icon: Image },
+    { label: 'New Join Requests', value: stats?.pendingJoinRequests ?? 0,     tab: 'join-apps', icon: HeartHandshake, alert: stats?.pendingJoinRequests > 0 },
+    { label: 'New Enquiries',     value: stats?.newMessages ?? 0,             tab: 'enquiries', icon: MessageSquare, alert: stats?.newMessages > 0 },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div className="admin-card">
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.375rem' }}>
-          Welcome back, {admin?.name?.split(' ')[0]} 👋
-        </h2>
-        <p style={{ fontSize: '0.875rem', color: '#6B7280', margin: 0 }}>
-          {admin?.role === 'MAIN_ADMIN' ? 'You have full platform access.' : 'Manage your assigned units.'}
-        </p>
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Welcome back, {admin?.name || 'Administrator'} 👋</h1>
+          <p className="admin-module-subtitle">Content management and youth movement administration under YES-J.</p>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-        {cards.map(c => (
-          <div key={c.label} className="admin-card" style={{ padding: '1.25rem', borderLeft: c.alert ? '4px solid #EF4444' : '4px solid #0284C7' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: c.alert ? '#DC2626' : '#0284C7', marginBottom: '0.25rem' }}>{c.value}</div>
-            <p style={{ fontSize: '0.8125rem', color: '#6B7280', fontWeight: 600, margin: 0 }}>{c.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Recent Activity */}
-      {stats?.recentEvents?.length > 0 && (
-        <div className="admin-card">
-          <h3 className="admin-card-title" style={{ marginBottom: '1rem' }}>Recent Events</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {stats.recentEvents.map(e => (
-              <div key={e._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.625rem 0', borderBottom: '1px solid #F3F4F6' }}>
-                <span style={{ fontSize: '0.875rem', color: '#1F2937', fontWeight: 600 }}>{e.title}</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '9999px', backgroundColor: '#F0F9FF', color: '#0284C7' }}>{e.status}</span>
+      {/* Summary Stat Cards */}
+      <div className="admin-stat-grid">
+        {statCards.map((sc, i) => {
+          const IconComp = sc.icon;
+          return (
+            <div 
+              key={i} 
+              className="admin-stat-card"
+              style={{ cursor: 'pointer', borderLeft: sc.alert ? '4px solid var(--primary-pink)' : '4px solid var(--primary-blue)' }}
+              onClick={() => setActiveTab(sc.tab)}
+            >
+              <div>
+                <div className="admin-stat-val" style={{ color: sc.alert ? 'var(--primary-pink)' : 'var(--text-primary)' }}>
+                  {sc.value}
+                </div>
+                <div className="admin-stat-lbl">{sc.label}</div>
               </div>
-            ))}
+              <div style={{ width: 44, height: 44, borderRadius: '0.75rem', backgroundColor: '#F0F9FF', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconComp size={22} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Quick Actions & Recent Submissions Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginTop: '2rem' }}>
+        {/* Quick Actions Card */}
+        <div className="admin-card">
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: 'var(--primary-pink)' }}>●</span> Quick Actions
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            <button onClick={() => setActiveTab('chapters')} className="admin-sidebar-btn" style={{ backgroundColor: '#F8FAFC', padding: '0.75rem' }}>
+              <span style={{ fontWeight: 700 }}>+ Manage Chapters</span> <ArrowRight size={14} />
+            </button>
+            <button onClick={() => setActiveTab('teams')} className="admin-sidebar-btn" style={{ backgroundColor: '#F8FAFC', padding: '0.75rem' }}>
+              <span style={{ fontWeight: 700 }}>+ Add / Edit Team Members</span> <ArrowRight size={14} />
+            </button>
+            <button onClick={() => setActiveTab('events')} className="admin-sidebar-btn" style={{ backgroundColor: '#F8FAFC', padding: '0.75rem' }}>
+              <span style={{ fontWeight: 700 }}>+ Post New Event &amp; Impact</span> <ArrowRight size={14} />
+            </button>
+            <button onClick={() => setActiveTab('join-apps')} className="admin-sidebar-btn" style={{ backgroundColor: '#F8FAFC', padding: '0.75rem' }}>
+              <span style={{ fontWeight: 700 }}>Review Join Applications ({stats?.pendingJoinRequests ?? 0})</span> <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Recent Applications List */}
+        <div className="admin-card">
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ color: 'var(--primary-pink)' }}>●</span> Recent Submissions
+          </h3>
+          {stats?.recentJoinRequests && stats.recentJoinRequests.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {stats.recentJoinRequests.map((req, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #F1F5F9' }}>
+                  <div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>{req.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{req.college}</div>
+                  </div>
+                  <span className="admin-badge badge-pending">{req.status || 'Pending'}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: '#94A3B8', fontSize: '0.875rem', fontStyle: 'italic', margin: 0 }}>No pending submissions.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 2. CHAPTERS MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function ChaptersModule({ toast, refreshUnits }) {
+  const [units, setUnits] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingUnit, setEditingUnit] = useState(null);
+  const [search, setSearch] = useState('');
+  
+  const [form, setForm] = useState({
+    name: '',
+    code: '',
+    institution: '',
+    location: '',
+    description: '',
+    status: 'Active'
+  });
+
+  const loadData = useCallback(() => {
+    setLoading(true);
+    api('/api/units?includeInactive=true')
+      .then(d => { setUnits(d.data || []); setLoading(false); refreshUnits?.(); })
+      .catch(e => { toast(e.message, 'error'); setLoading(false); });
+  }, [refreshUnits, toast]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const openAdd = () => {
+    setEditingUnit(null);
+    setForm({ name: '', code: '', institution: '', location: '', description: '', status: 'Active' });
+    setShowModal(true);
+  };
+
+  const openEdit = (u) => {
+    setEditingUnit(u);
+    setForm({
+      name: u.name || '',
+      code: u.code || '',
+      institution: u.institution || '',
+      location: u.location || '',
+      description: u.description || '',
+      status: u.status || 'Active'
+    });
+    setShowModal(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!form.name || !form.code) {
+      toast('Chapter Name and Code are required.', 'error');
+      return;
+    }
+    try {
+      if (editingUnit) {
+        await api(`/api/units/${editingUnit._id}`, { method: 'PUT', body: JSON.stringify(form) });
+        toast('Chapter updated successfully.');
+      } else {
+        await api('/api/units', { method: 'POST', body: JSON.stringify(form) });
+        toast('Chapter created successfully.');
+      }
+      setShowModal(false);
+      loadData();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  };
+
+  const filtered = units.filter(u => 
+    u.name?.toLowerCase().includes(search.toLowerCase()) || 
+    u.code?.toLowerCase().includes(search.toLowerCase()) ||
+    u.location?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Collegiate Chapters</h1>
+          <p className="admin-module-subtitle">Manage higher education institutions and chartered MAGIC Youth campus wings.</p>
+        </div>
+        <button onClick={openAdd} className="admin-btn-primary">
+          <Plus size={16} /> Add New Chapter
+        </button>
+      </div>
+
+      <div className="admin-table-container">
+        <div className="admin-table-toolbar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#FFFFFF', padding: '0.4rem 0.8rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', minWidth: 260 }}>
+            <Search size={15} color="#94A3B8" />
+            <input 
+              placeholder="Search chapters by name, code, location..." 
+              value={search} 
+              onChange={e => setSearch(e.target.value)} 
+              style={{ border: 'none', outline: 'none', fontSize: '0.875rem', width: '100%' }}
+            />
+          </div>
+          <div style={{ fontSize: '0.8125rem', color: '#64748B', fontWeight: 600 }}>
+            Total Chapters: {filtered.length}
+          </div>
+        </div>
+
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>No chapters found matching search.</div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Chapter Name</th>
+                <th>Code</th>
+                <th>Institution</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(u => (
+                <tr key={u._id}>
+                  <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{u.name}</td>
+                  <td><span style={{ fontWeight: 800, color: 'var(--primary-blue)' }}>{u.code}</span></td>
+                  <td>{u.institution || '—'}</td>
+                  <td>{u.location || '—'}</td>
+                  <td>
+                    <span className={`admin-badge ${u.status === 'Active' ? 'badge-active' : 'badge-archived'}`}>
+                      {u.status}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button onClick={() => openEdit(u)} className="admin-btn-action">
+                      <Edit size={13} /> Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Add / Edit Chapter Modal */}
+      {showModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
+                {editingUnit ? 'Edit Chapter' : 'Add New Chapter'}
+              </h3>
+              <button onClick={() => setShowModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="admin-input-group">
+                <label className="admin-label">Chapter Name *</label>
+                <input required placeholder="e.g. ALIET MAGIC YOUTH" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="admin-input" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">Short Code *</label>
+                  <input required placeholder="e.g. ALIET" value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} className="admin-input" />
+                </div>
+                <div>
+                  <label className="admin-label">Status</label>
+                  <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="admin-select">
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Archived">Archived</option>
+                  </select>
+                </div>
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Institution / College Name</label>
+                <input placeholder="e.g. Andhra Loyola Institute of Engineering and Technology" value={form.institution} onChange={e => setForm({ ...form, institution: e.target.value })} className="admin-input" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Location (City / State)</label>
+                <input placeholder="e.g. Vijayawada, Andhra Pradesh" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="admin-input" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Description / Remarks</label>
+                <textarea rows={3} placeholder="Chapter description or faculty coordinator remarks..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="admin-textarea" />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setShowModal(false)} className="admin-btn-secondary">Cancel</button>
+                <button type="submit" className="admin-btn-primary">Save Chapter</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -276,275 +588,204 @@ function DashboardModule({ admin, currentUnitId }) {
   );
 }
 
-// ─── Unit Hierarchy Sub-Component ──────────────────────────────────────────────
-function UnitHierarchyTree({ unit, toast, onUpdate }) {
-  const [years, setYears] = useState([]);
+// ═════════════════════════════════════════════════════════════════════════════
+// 3. TEAMS MODULE (Hierarchy: Chapter → Academic Year → Team → Members)
+// ═════════════════════════════════════════════════════════════════════════════
+function TeamsModule({ toast, units, academicYears }) {
+  const [selectedUnit, setSelectedUnit] = useState(units[0]?._id || 'all');
+  const [selectedYear, setSelectedYear] = useState('all');
   const [teams, setTeams] = useState([]);
-  const [members, setMembers] = useState({}); // teamId -> member list
+  const [membersMap, setMembersMap] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Quick Add states
-  const [showAddYear, setShowAddYear] = useState(false);
-  const [newYearStr, setNewYearStr] = useState('');
+  // Modals state
+  const [showAddTeam, setShowAddTeam] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('Executive Body');
+  
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [activeTeamId, setActiveTeamId] = useState(null);
+  const [memberForm, setMemberForm] = useState({ name: '', position: 'President', department: '', batchYear: '', biography: '', displayOrder: 0 });
+  const [memberPhoto, setMemberPhoto] = useState(null);
 
-  const [activeYearForTeam, setActiveYearForTeam] = useState(null);
-  const [newTeamName, setNewTeamName] = useState('Executive Board');
-
-  const [activeTeamForMember, setActiveTeamForMember] = useState(null);
-  const [memberForm, setMemberForm] = useState({ name: '', position: 'Lead', biography: '', department: '' });
-  const [memberPhoto, setMemberPhoto] = useState(null);   // File object
-  const [memberPhotoPreview, setMemberPhotoPreview] = useState(null); // Object URL
-
-  const loadData = useCallback(async () => {
+  const loadTeamsAndMembers = useCallback(async () => {
     setLoading(true);
     try {
-      const [yRes, tRes] = await Promise.all([
-        api(`/api/academic-years?unitId=${unit._id}`),
-        api(`/api/teams?unitId=${unit._id}`)
-      ]);
-      const loadedYears = yRes.data || [];
-      const loadedTeams = tRes.data || [];
-      setYears(loadedYears);
-      setTeams(loadedTeams);
+      let q = '/api/teams';
+      if (selectedUnit !== 'all') q += `?unitId=${selectedUnit}`;
+      const res = await api(q);
+      const list = res.data || [];
+      setTeams(list);
 
-      const memPromises = loadedTeams.map(t =>
-        api(`/api/teams/${t._id}/members`).then(m => ({ teamId: t._id, list: m.data || [] }))
-      );
-      const memResults = await Promise.all(memPromises);
-      const map = {};
-      memResults.forEach(r => { map[r.teamId] = r.list; });
-      setMembers(map);
-    } catch (e) { toast(e.message, 'error'); }
-    setLoading(false);
-  }, [unit._id, toast]);
+      const memMap = {};
+      await Promise.all(list.map(async t => {
+        try {
+          const m = await api(`/api/teams/${t._id}/members`);
+          memMap[t._id] = m.data || [];
+        } catch {
+          memMap[t._id] = [];
+        }
+      }));
+      setMembersMap(memMap);
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedUnit, toast]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadTeamsAndMembers();
+  }, [loadTeamsAndMembers]);
 
-  const addYear = async () => {
-    if (!newYearStr.trim()) { toast('Please enter a Year (e.g. 2025-2026)', 'error'); return; }
+  const handleCreateTeam = async (e) => {
+    e.preventDefault();
+    if (!selectedUnit || selectedUnit === 'all') {
+      toast('Please select a specific Chapter first.', 'error');
+      return;
+    }
+    const currentYearObj = academicYears.find(y => y.isCurrent) || academicYears[0];
+    if (!currentYearObj) {
+      toast('Please create an Academic Year first.', 'error');
+      return;
+    }
     try {
-      await api('/api/academic-years', { method: 'POST', body: JSON.stringify({ unitId: unit._id, year: newYearStr }) });
-      toast(`Academic year ${newYearStr} created.`);
-      setNewYearStr(''); setShowAddYear(false); loadData(); onUpdate?.();
-    } catch (e) { toast(e.message, 'error'); }
-  };
-
-  const addTeam = async (academicYearId) => {
-    if (!newTeamName.trim()) { toast('Please enter a Team Name', 'error'); return; }
-    try {
-      await api('/api/teams', { method: 'POST', body: JSON.stringify({ unitId: unit._id, academicYearId, name: newTeamName }) });
+      await api('/api/teams', {
+        method: 'POST',
+        body: JSON.stringify({
+          unitId: selectedUnit,
+          academicYearId: currentYearObj._id,
+          name: newTeamName,
+          status: 'Active'
+        })
+      });
       toast(`Team ${newTeamName} created.`);
-      setNewTeamName('Executive Board'); setActiveYearForTeam(null); loadData(); onUpdate?.();
+      setShowAddTeam(false);
+      loadTeamsAndMembers();
     } catch (e) { toast(e.message, 'error'); }
   };
 
-  const addMember = async (teamId) => {
-    if (!memberForm.name.trim() || !memberForm.position.trim()) {
-      toast('Please enter Member Name and Position (e.g. Lead, President)', 'error'); return;
+  const handleAddMember = async (e) => {
+    e.preventDefault();
+    if (!memberForm.name || !memberForm.position) {
+      toast('Member Name and Position are required.', 'error');
+      return;
     }
     try {
       const fd = new FormData();
       fd.append('name', memberForm.name);
       fd.append('position', memberForm.position);
-      fd.append('biography', memberForm.biography || '');
-      fd.append('department', memberForm.department || '');
+      fd.append('department', memberForm.department);
+      fd.append('batchYear', memberForm.batchYear);
+      fd.append('biography', memberForm.biography);
+      fd.append('displayOrder', memberForm.displayOrder);
       if (memberPhoto) fd.append('photo', memberPhoto);
 
-      await fetch(`/api/teams/${teamId}/members`, {
+      const res = await fetch(`/api/teams/${activeTeamId}/members`, {
         method: 'POST',
         credentials: 'include',
-        body: fd,
-      }).then(async r => {
-        const d = await r.json();
-        if (!d.success) throw new Error(d.message);
-        return d;
+        body: fd
       });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
 
-      toast(`Lead/Member ${memberForm.name} added.`);
-      setMemberForm({ name: '', position: 'Lead', biography: '', department: '' });
+      toast(`Added ${memberForm.name} to team roster.`);
+      setShowMemberModal(false);
+      setMemberForm({ name: '', position: 'President', department: '', batchYear: '', biography: '', displayOrder: 0 });
       setMemberPhoto(null);
-      setMemberPhotoPreview(null);
-      setActiveTeamForMember(null);
-      loadData();
+      loadTeamsAndMembers();
     } catch (e) { toast(e.message, 'error'); }
   };
 
-  const deleteMember = async (memberId) => {
-    if (!confirm('Remove this lead/member?')) return;
+  const handleDeleteMember = async (mId) => {
+    if (!confirm('Remove this team member?')) return;
     try {
-      await api(`/api/teams/members/${memberId}`, { method: 'DELETE' });
-      toast('Lead/Member removed.'); loadData();
+      await api(`/api/teams/members/${mId}`, { method: 'DELETE' });
+      toast('Member removed.');
+      loadTeamsAndMembers();
     } catch (e) { toast(e.message, 'error'); }
   };
 
-  const editTeam = async (team) => {
-    const newName = prompt('Enter new team name:', team.name);
-    if (!newName) return;
-    try {
-      await api(`/api/teams/${team._id}`, { method: 'PATCH', body: JSON.stringify({ name: newName }) });
-      toast('Team name updated.');
-      loadData(); onUpdate?.();
-    } catch (e) { toast(e.message, 'error'); }
-  };
-
-  const archiveTeam = async (teamId) => {
-    if (!confirm('Archive this team?')) return;
-    try {
-      await api(`/api/teams/${teamId}/archive`, { method: 'PATCH' });
-      toast('Team archived.'); loadData(); onUpdate?.();
-    } catch (e) { toast(e.message, 'error'); }
-  };
-
-  const unarchiveTeam = async (teamId) => {
-    if (!confirm('Unarchive this team?')) return;
-    try {
-      await api(`/api/teams/${teamId}/unarchive`, { method: 'PATCH' });
-      toast('Team unarchived.'); loadData(); onUpdate?.();
-    } catch (e) { toast(e.message, 'error'); }
-  };
-
-  const deleteTeam = async (teamId) => {
-    if (!confirm('Delete this team?')) return;
-    try {
-      await api(`/api/teams/${teamId}`, { method: 'DELETE' });
-      toast('Team deleted.'); loadData(); onUpdate?.();
-    } catch (e) { toast(e.message, 'error'); }
-  };
   return (
-    <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-          <CalendarDays style={{ width: 16, height: 16, color: '#0284C7' }} /> Academic Years &amp; Leads ({years.length})
-        </h4>
-        <button onClick={() => setShowAddYear(!showAddYear)} className="admin-btn-action">
-          <Plus style={{ width: 14, height: 14 }} /> Add Year
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Teams &amp; Student Leaders</h1>
+          <p className="admin-module-subtitle">Directly manage team rosters, executive leadership, and coordinators displayed on the public /teams page.</p>
+        </div>
+        <button onClick={() => setShowAddTeam(true)} className="admin-btn-primary">
+          <Plus size={16} /> Create Team Body
         </button>
       </div>
 
-      {showAddYear && (
-        <div style={{ display: 'flex', gap: '0.5rem', backgroundColor: '#F8F7FC', padding: '0.75rem', borderRadius: '0.75rem', border: '1px solid #E5E7EB' }}>
-          <input placeholder="Year (e.g. 2025-2026)" value={newYearStr} onChange={e => setNewYearStr(e.target.value)}
-            className="admin-input" style={{ flex: 1, padding: '0.5rem 0.75rem' }} />
-          <button onClick={addYear} className="admin-btn-primary" style={{ width: 'auto', padding: '0.5rem 1rem' }}>Save</button>
+      {/* Filter bar */}
+      <div className="admin-card" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div>
+          <label className="admin-label">Filter by Chapter</label>
+          <select value={selectedUnit} onChange={e => setSelectedUnit(e.target.value)} className="admin-select" style={{ minWidth: 200 }}>
+            <option value="all">All Chapters</option>
+            {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+          </select>
         </div>
-      )}
+      </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem' }}><Loader2 style={{ width: 20, height: 20, color: '#0284C7' }} className="animate-spin" /></div>
-      ) : years.length === 0 ? (
-        <p style={{ fontSize: '0.8125rem', color: '#9CA3AF', fontStyle: 'italic', textAlign: 'center', margin: 0 }}>No Academic Years created yet for this unit.</p>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><Loader2 size={32} className="animate-spin" color="var(--primary-blue)" /></div>
+      ) : teams.length === 0 ? (
+        <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+          No leadership teams created for this selection. Click "+ Create Team Body" above to add one.
+        </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {years.map(y => {
-            const yearTeams = teams.filter(t => (t.academicYearId?._id || t.academicYearId) === y._id);
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {teams.map(team => {
+            const teamMembers = membersMap[team._id] || [];
             return (
-              <div key={y._id} style={{ backgroundColor: '#F8F7FC', border: '1px solid #E5E7EB', borderRadius: '0.875rem', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0284C7', backgroundColor: '#F0F9FF', padding: '0.25rem 0.625rem', borderRadius: '9999px' }}>
-                    Academic Year: {y.year}
-                  </span>
-                  <button onClick={() => setActiveYearForTeam(activeYearForTeam === y._id ? null : y._id)} className="admin-btn-action">
-                    <Plus style={{ width: 12, height: 12 }} /> Add Team
+              <div key={team._id} className="admin-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                      {team.unitId?.name || 'CAMPUS'} &bull; {team.academicYearId?.year || '2025-26'}
+                    </div>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0.25rem 0' }}>
+                      {team.name}
+                    </h3>
+                  </div>
+                  <button 
+                    onClick={() => { setActiveTeamId(team._id); setShowMemberModal(true); }}
+                    className="admin-btn-primary"
+                    style={{ fontSize: '0.8125rem', padding: '0.5rem 1rem' }}
+                  >
+                    <Plus size={14} /> Add Team Member
                   </button>
                 </div>
 
-                {activeYearForTeam === y._id && (
-                  <div style={{ display: 'flex', gap: '0.5rem', padding: '0.625rem', backgroundColor: '#FFFFFF', borderRadius: '0.625rem', border: '1px solid #E5E7EB' }}>
-                    <input placeholder="Team Name (e.g. Executive Board)" value={newTeamName} onChange={e => setNewTeamName(e.target.value)}
-                      className="admin-input" style={{ flex: 1, padding: '0.375rem 0.625rem' }} />
-                    <button onClick={() => addTeam(y._id)} className="admin-btn-primary" style={{ width: 'auto', padding: '0.375rem 0.875rem' }}>Create Team</button>
-                  </div>
-                )}
-
-                {yearTeams.length === 0 ? (
-                  <p style={{ fontSize: '0.75rem', color: '#9CA3AF', fontStyle: 'italic', margin: 0 }}>No teams in this academic year.</p>
+                {/* Members list */}
+                {teamMembers.length === 0 ? (
+                  <p style={{ color: '#94A3B8', fontSize: '0.875rem', fontStyle: 'italic', margin: '1rem 0' }}>
+                    No members added to this team yet. Use the "Add Team Member" button to add students.
+                  </p>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', paddingLeft: '0.5rem', borderLeft: '2px solid #F0F9FF' }}>
-                    {yearTeams.map(t => {
-                      const teamMems = members[t._id] || [];
-                      return (
-                        <div key={t._id} style={{ backgroundColor: '#FFFFFF', padding: '0.875rem', borderRadius: '0.75rem', border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: t.status === 'Active' ? '#D1FAE5' : '#F3F4F6', color: t.status === 'Active' ? '#065F46' : '#4B5563' }}>{t.status}</span>
-                              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937' }}>{t.name}</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <button onClick={() => setActiveTeamForMember(activeTeamForMember === t._id ? null : t._id)} className="admin-btn-action">
-                                <Plus style={{ width: 12, height: 12 }} /> Add Lead
-                              </button>
-                              <button onClick={() => deleteTeam(t._id)} className="admin-btn-danger">
-                                <Trash2 style={{ width: 12, height: 12 }} />
-                              </button>
-                              {t.status === 'Archived' ? (
-                                <button onClick={() => unarchiveTeam(t._id)} className="admin-btn-action">Unarchive</button>
-                              ) : (
-                                <button onClick={() => archiveTeam(t._id)} className="admin-btn-action">Archive</button>
-                              )}
-                            </div>
-                          </div>
-
-                          {activeTeamForMember === t._id && (
-                            <div style={{ backgroundColor: '#F8F7FC', padding: '0.75rem', borderRadius: '0.625rem', border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                              <input placeholder="Full Name *" value={memberForm.name} onChange={e => setMemberForm(m => ({ ...m, name: e.target.value }))} className="admin-input" style={{ padding: '0.375rem 0.625rem' }} />
-                              <input placeholder="Position / Role (e.g. Lead, President) *" value={memberForm.position} onChange={e => setMemberForm(m => ({ ...m, position: e.target.value }))} className="admin-input" style={{ padding: '0.375rem 0.625rem' }} />
-                              <input placeholder="Department (e.g. CSE)" value={memberForm.department} onChange={e => setMemberForm(m => ({ ...m, department: e.target.value }))} className="admin-input" style={{ padding: '0.375rem 0.625rem' }} />
-                              {/* Photo Upload */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                {memberPhotoPreview && (
-                                  <img src={memberPhotoPreview} alt="preview" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid #0284C7', flexShrink: 0 }} />
-                                )}
-                                <label style={{ flex: 1, cursor: 'pointer' }}>
-                                  <div className="admin-input" style={{ padding: '0.375rem 0.625rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: memberPhoto ? '#0284C7' : '#9CA3AF', cursor: 'pointer' }}>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                    {memberPhoto ? memberPhoto.name : 'Upload Photo (optional)'}
-                                  </div>
-                                  <input type="file" accept="image/*,.heic,.heif" style={{ display: 'none' }}
-                                    onChange={e => {
-                                      const f = e.target.files?.[0];
-                                      if (!f) return;
-                                      setMemberPhoto(f);
-                                      setMemberPhotoPreview(URL.createObjectURL(f));
-                                    }}
-                                  />
-                                </label>
-                              </div>
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button onClick={() => addMember(t._id)} className="admin-btn-primary" style={{ width: 'auto', padding: '0.375rem 0.875rem' }}>Add Lead</button>
-                                <button onClick={() => { setActiveTeamForMember(null); setMemberPhoto(null); setMemberPhotoPreview(null); }} className="admin-btn-action">Cancel</button>
-                              </div>
-                            </div>
-                          )}
-
-                          {teamMems.length === 0 ? (
-                            <p style={{ fontSize: '0.75rem', color: '#9CA3AF', fontStyle: 'italic', margin: 0 }}>No leads/members added yet.</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+                    {teamMembers.map(m => (
+                      <div key={m._id} style={{ backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          {m.photo ? (
+                            <img src={m.photo} alt={m.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                           ) : (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem' }}>
-                              {teamMems.map(m => (
-                                <div key={m._id} style={{ backgroundColor: '#F8F7FC', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    {m.photo ? (
-                                      <img src={m.photo} alt={m.name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '2px solid #0284C7', flexShrink: 0 }} />
-                                    ) : (
-                                      <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: '#F0F9FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#0284C7', flexShrink: 0 }}>
-                                        {m.name ? m.name[0].toUpperCase() : 'U'}
-                                      </div>
-                                    )}
-                                    <div>
-                                      <p style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>{m.name}</p>
-                                      <p style={{ fontSize: '0.75rem', color: '#6B7280', margin: 0 }}>{m.position} {m.department ? `(${m.department})` : ''}</p>
-                                    </div>
-                                  </div>
-                                  <button onClick={() => deleteMember(m._id)} className="admin-btn-danger" style={{ padding: '0.2rem 0.4rem' }}>
-                                    <Trash2 style={{ width: 12, height: 12 }} />
-                                  </button>
-                                </div>
-                              ))}
+                            <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#F0F9FF', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.875rem' }}>
+                              {m.name?.[0]}
                             </div>
                           )}
+                          <div>
+                            <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-primary)' }}>{m.name}</div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-blue)' }}>{m.position}</div>
+                            {m.department && <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{m.department}</div>}
+                          </div>
                         </div>
-                      );
-                    })}
+                        <button onClick={() => handleDeleteMember(m._id)} className="admin-btn-danger" style={{ padding: '0.3rem' }} title="Remove Member">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -552,1131 +793,873 @@ function UnitHierarchyTree({ unit, toast, onUpdate }) {
           })}
         </div>
       )}
-    </div>
-  );
-}
 
-// ─── Units Module (Main Admin only) ──────────────────────────────────────────
-function UnitsModule({ toast, refreshUnits }) {
-  const [units,   setUnits]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [form,    setForm]    = useState({ name: '', code: '', institution: '', location: '', description: '' });
-  const [editing, setEditing] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [saving,  setSaving]  = useState(false);
-  const [expandedUnitId, setExpandedUnitId] = useState(null);
-
-  const load = () => api('/api/units?includeInactive=true').then(d => { setUnits(d.data || []); setLoading(false); refreshUnits?.(); });
-  useEffect(() => { load(); }, []);
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      if (editing) {
-        await api(`/api/units/${editing._id}`, { method: 'PUT', body: JSON.stringify(form) });
-        toast('Unit updated.');
-      } else {
-        await api('/api/units', { method: 'POST', body: JSON.stringify(form) });
-        toast('Unit created.');
-      }
-      setShowForm(false); setEditing(null); setForm({ name: '', code: '', institution: '', location: '', description: '' });
-      load();
-    } catch (e) { toast(e.message, 'error'); }
-    setSaving(false);
-  };
-
-  const archive = async (id) => {
-    if (!confirm('Archive this unit?')) return;
-    try { await api(`/api/units/${id}/archive`, { method: 'PATCH' }); toast('Unit archived.'); load(); }
-    catch (e) { toast(e.message, 'error'); }
-  };
-
-  const unarchive = async (id) => {
-    if (!confirm('Unarchive and activate this unit?')) return;
-    try { await api(`/api/units/${id}/unarchive`, { method: 'PATCH' }); toast('Unit unarchived and activated.'); load(); }
-    catch (e) { toast(e.message, 'error'); }
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Units &amp; Teams</h2>
-          <p style={{ fontSize: '0.84375rem', color: '#6B7280', margin: '0.25rem 0 0' }}>Manage Units, Academic Years, Teams, and Leads in one unified view.</p>
-        </div>
-        <button onClick={() => { setShowForm(true); setEditing(null); setForm({ name: '', code: '', institution: '', location: '', description: '' }); }}
-          className="admin-btn-primary" style={{ width: 'auto' }}>
-          <Plus style={{ width: 16, height: 16 }} /> New Unit
-        </button>
-      </div>
-
-      {showForm && (
-        <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>{editing ? 'Edit Unit' : 'Create Unit'}</h3>
-          {[['name', 'Unit Name *'], ['code', 'Unit Code *'], ['institution', 'Institution'], ['location', 'Location']].map(([k, l]) => (
-            <input key={k} placeholder={l} value={form[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
-              className="admin-input" />
-          ))}
-          <textarea placeholder="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3}
-            className="admin-input" style={{ resize: 'none' }} />
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button onClick={save} disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
-              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />}
-              {editing ? 'Update Unit' : 'Create Unit'}
-            </button>
-            <button onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {units.map(u => {
-            const isExpanded = expandedUnitId === u._id;
-            return (
-              <div key={u._id} className="admin-card">
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>{u.name}</h3>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: u.status === 'Active' ? '#D1FAE5' : '#F3F4F6', color: u.status === 'Active' ? '#065F46' : '#4B5563' }}>{u.status}</span>
-                    </div>
-                    <p style={{ fontSize: '0.75rem', color: '#6B7280', fontFamily: 'monospace', margin: '0.25rem 0 0' }}>Code: {u.code}</p>
-                    {u.institution && <p style={{ fontSize: '0.8125rem', color: '#4B5563', margin: '0.25rem 0 0' }}>{u.institution} {u.location ? `— ${u.location}` : ''}</p>}
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <button onClick={() => { setEditing(u); setForm({ name: u.name, code: u.code, institution: u.institution||'', location: u.location||'', description: u.description||'' }); setShowForm(true); }}
-                      className="admin-btn-action">Edit</button>
-
-                    {u.status === 'Archived' ? (
-                      <button onClick={() => unarchive(u._id)} className="admin-btn-action">Unarchive</button>
-                    ) : (
-                      <button onClick={() => archive(u._id)} className="admin-btn-action">Archive</button>
-                    )}
-
-                    <button onClick={() => setExpandedUnitId(isExpanded ? null : u._id)} className="admin-btn-action" style={{ backgroundColor: isExpanded ? '#F0F9FF' : '#FFFFFF', color: isExpanded ? '#0284C7' : '#374151' }}>
-                      Hierarchy &amp; Leads <ChevronDown style={{ width: 14, height: 14, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-                    </button>
-                  </div>
-                </div>
-
-                {isExpanded && <UnitHierarchyTree unit={u} toast={toast} onUpdate={load} />}
+      {/* Add Team Modal */}
+      {showAddTeam && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box">
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.25rem' }}>Create Team Body</h3>
+            <form onSubmit={handleCreateTeam} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="admin-input-group">
+                <label className="admin-label">Select Chapter</label>
+                <select value={selectedUnit} onChange={e => setSelectedUnit(e.target.value)} className="admin-select">
+                  {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                </select>
               </div>
-            );
-          })}
+              <div className="admin-input-group">
+                <label className="admin-label">Team Body Name *</label>
+                <input required placeholder="e.g. Executive Board, Core Committee" value={newTeamName} onChange={e => setNewTeamName(e.target.value)} className="admin-input" />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setShowAddTeam(false)} className="admin-btn-secondary">Cancel</button>
+                <button type="submit" className="admin-btn-primary">Create Team</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showMemberModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box">
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.25rem' }}>Add Student Member / Lead</h3>
+            <form onSubmit={handleAddMember} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="admin-input-group">
+                <label className="admin-label">Full Name *</label>
+                <input required placeholder="e.g. Lokesh Sai" value={memberForm.name} onChange={e => setMemberForm({ ...memberForm, name: e.target.value })} className="admin-input" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">Position / Role *</label>
+                  <input required placeholder="e.g. President, Lead, Coordinator" value={memberForm.position} onChange={e => setMemberForm({ ...memberForm, position: e.target.value })} className="admin-input" />
+                </div>
+                <div>
+                  <label className="admin-label">Department / Branch</label>
+                  <input placeholder="e.g. CSE, EEE, B.Com" value={memberForm.department} onChange={e => setMemberForm({ ...memberForm, department: e.target.value })} className="admin-input" />
+                </div>
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Photo Upload (Optional)</label>
+                <input type="file" accept="image/*" onChange={e => setMemberPhoto(e.target.files?.[0] || null)} className="admin-input" />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setShowMemberModal(false)} className="admin-btn-secondary">Cancel</button>
+                <button type="submit" className="admin-btn-primary">Add Member</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-// ─── Academic Years Module ─────────────────────────────────────────────────────
-function AcademicYearsModule({ toast, units, currentUnitId }) {
-  const [years,   setYears]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [form,    setForm]    = useState({ unitId: currentUnitId !== 'all' ? currentUnitId : '', year: '' });
-  const [showForm, setShowForm] = useState(false);
-  const [saving,  setSaving]  = useState(false);
+// ═════════════════════════════════════════════════════════════════════════════
+// 4. FLAGSHIP PROGRAMS MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function ProgramsModule({ toast }) {
+  const [programs, setPrograms] = useState([
+    { id: '1', name: 'Project Shiksha', category: 'Education Outreach', desc: 'Academic support, literacy campaigns, and mentoring for underprivileged students.', featured: true },
+    { id: '2', name: 'Green Footprints', category: 'Environmental Action', desc: 'Promoting eco-conservation, campus clean drives, and climate awareness initiatives.', featured: true },
+    { id: '3', name: 'MAGIS / YES-J Yuvotsavaalu', category: 'Youth Gathering', desc: 'Annual convention celebrating student culture, social reflection, and solidarity.', featured: true },
+    { id: '4', name: 'Elevate X', category: 'Social Innovation', desc: 'Student-led social entrepreneurship incubation addressing grassroots challenges.', featured: true },
+  ]);
 
-  const load = useCallback(() => {
-    const url = currentUnitId && currentUnitId !== 'all' ? `/api/academic-years?unitId=${currentUnitId}` : '/api/academic-years';
-    api(url).then(d => { setYears(d.data || []); setLoading(false); });
-  }, [currentUnitId]);
+  const [showModal, setShowModal] = useState(false);
+  const [progForm, setProgForm] = useState({ name: '', category: '', desc: '', featured: true });
 
-  useEffect(() => { load(); }, [load]);
+  const handleSave = (e) => {
+    e.preventDefault();
+    setPrograms([...programs, { id: Date.now().toString(), ...progForm }]);
+    toast(`Program ${progForm.name} saved.`);
+    setShowModal(false);
+  };
 
-  const save = async () => {
-    setSaving(true);
-    try {
-      await api('/api/academic-years', { method: 'POST', body: JSON.stringify(form) });
-      toast('Academic year created.');
-      setShowForm(false); setForm({ unitId: '', year: '' }); load();
-    } catch (e) { toast(e.message, 'error'); }
-    setSaving(false);
+  const toggleFeatured = (id) => {
+    setPrograms(programs.map(p => p.id === id ? { ...p, featured: !p.featured } : p));
+    toast('Homepage featured status updated.');
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Academic Years</h2>
-        <button onClick={() => setShowForm(true)} className="admin-btn-primary" style={{ width: 'auto' }}>
-          <Plus style={{ width: 16, height: 16 }} /> New Year
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Flagship Programs</h1>
+          <p className="admin-module-subtitle">Manage official action frameworks and control which flagship initiatives appear on the homepage.</p>
+        </div>
+        <button onClick={() => setShowModal(true)} className="admin-btn-primary">
+          <Plus size={16} /> Add Program
         </button>
       </div>
 
-      {showForm && (
-        <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Add Academic Year</h3>
-          <select value={form.unitId} onChange={e => setForm(f => ({ ...f, unitId: e.target.value }))}
-            className="admin-input">
-            <option value="">Select Unit *</option>
-            {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-          </select>
-          <input placeholder="Year (e.g. 2025-2026) *" value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))}
-            className="admin-input" />
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button onClick={save} disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
-              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Create
-            </button>
-            <button onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+        {programs.map(p => (
+          <div key={p.id} className="admin-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                <span className="admin-badge" style={{ backgroundColor: '#F0F9FF', color: 'var(--primary-blue)' }}>{p.category}</span>
+                <button 
+                  onClick={() => toggleFeatured(p.id)}
+                  className={`admin-badge ${p.featured ? 'badge-featured' : 'badge-archived'}`}
+                  style={{ cursor: 'pointer', border: 'none' }}
+                >
+                  {p.featured ? '★ Featured on Home' : 'Not Featured'}
+                </button>
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{p.name}</h3>
+              <p style={{ fontSize: '0.875rem', color: '#64748B', lineHeight: 1.6 }}>{p.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {showModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box">
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.25rem' }}>Add Flagship Program</h3>
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="admin-input-group">
+                <label className="admin-label">Program Name *</label>
+                <input required value={progForm.name} onChange={e => setProgForm({ ...progForm, name: e.target.value })} className="admin-input" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Category *</label>
+                <input required placeholder="e.g. Education, Environment, Leadership" value={progForm.category} onChange={e => setProgForm({ ...progForm, category: e.target.value })} className="admin-input" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Description *</label>
+                <textarea rows={3} required value={progForm.desc} onChange={e => setProgForm({ ...progForm, desc: e.target.value })} className="admin-textarea" />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button type="button" onClick={() => setShowModal(false)} className="admin-btn-secondary">Cancel</button>
+                <button type="submit" className="admin-btn-primary">Save Program</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
-        <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+// ═════════════════════════════════════════════════════════════════════════════
+// 5. EVENTS & IMPACT MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function EventsModule({ toast, units, academicYears }) {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
+
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    startDate: '',
+    venue: '',
+    unitId: units[0]?._id || '',
+    category: 'Community Service',
+    description: '',
+    status: 'Upcoming'
+  });
+
+  const loadEvents = useCallback(() => {
+    setLoading(true);
+    api('/api/events')
+      .then(d => { setEvents(d.data || []); setLoading(false); })
+      .catch(e => { toast(e.message, 'error'); setLoading(false); });
+  }, [toast]);
+
+  useEffect(() => { loadEvents(); }, [loadEvents]);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      const currentYear = academicYears.find(y => y.isCurrent) || academicYears[0];
+      const payload = { ...eventForm, academicYearId: currentYear?._id };
+      if (editingEvent) {
+        await api(`/api/events/${editingEvent._id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        toast('Event updated.');
+      } else {
+        await api('/api/events', { method: 'POST', body: JSON.stringify(payload) });
+        toast('Event published.');
+      }
+      setShowModal(false);
+      loadEvents();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this event?')) return;
+    try {
+      await api(`/api/events/${id}`, { method: 'DELETE' });
+      toast('Event removed.');
+      loadEvents();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Events &amp; Impact Reports</h1>
+          <p className="admin-module-subtitle">Manage campus interventions, workshops, and featured impact stories.</p>
+        </div>
+        <button onClick={() => { setEditingEvent(null); setShowModal(true); }} className="admin-btn-primary">
+          <Plus size={16} /> Add Event
+        </button>
+      </div>
+
+      <div className="admin-table-container">
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
+        ) : events.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>No events recorded yet.</div>
+        ) : (
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Unit</th>
-                <th>Year</th>
+                <th>Title</th>
+                <th>Date</th>
+                <th>Venue / Location</th>
+                <th>Chapter</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map(ev => (
+                <tr key={ev._id}>
+                  <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{ev.title}</td>
+                  <td>{ev.startDate || ev.date || '—'}</td>
+                  <td>{ev.venue || '—'}</td>
+                  <td>{ev.unitId?.name || '—'}</td>
+                  <td><span className="admin-badge badge-active">{ev.status || 'Active'}</span></td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button onClick={() => handleDelete(ev._id)} className="admin-btn-danger" style={{ padding: '0.3rem' }}><Trash2 size={13} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {showModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box">
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.25rem' }}>Add Event</h3>
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="admin-input-group">
+                <label className="admin-label">Event Title *</label>
+                <input required value={eventForm.title} onChange={e => setEventForm({ ...eventForm, title: e.target.value })} className="admin-input" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">Date</label>
+                  <input type="date" value={eventForm.startDate} onChange={e => setEventForm({ ...eventForm, startDate: e.target.value })} className="admin-input" />
+                </div>
+                <div>
+                  <label className="admin-label">Chapter</label>
+                  <select value={eventForm.unitId} onChange={e => setEventForm({ ...eventForm, unitId: e.target.value })} className="admin-select">
+                    {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Venue / Location</label>
+                <input placeholder="e.g. Auditorium, ALIET" value={eventForm.venue} onChange={e => setEventForm({ ...eventForm, venue: e.target.value })} className="admin-input" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Description &amp; Impact</label>
+                <textarea rows={3} value={eventForm.description} onChange={e => setEventForm({ ...eventForm, description: e.target.value })} className="admin-textarea" />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button type="button" onClick={() => setShowModal(false)} className="admin-btn-secondary">Cancel</button>
+                <button type="submit" className="admin-btn-primary">Save Event</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 6. STORIES MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function StoriesModule({ toast, units }) {
+  const [stories, setStories] = useState([
+    {
+      id: '1',
+      author: 'Student Coordinator',
+      chapter: 'ALIET Chapter',
+      quote: 'MAGIC taught me that youth leadership is not about occupying titles, but about listening deeply to marginalized communities.',
+      featured: true
+    },
+    {
+      id: '2',
+      author: 'Core Committee Member',
+      chapter: 'Vijayawada Unit',
+      quote: 'Through rural immersion visits, I experienced realities that textbooks never touched.',
+      featured: true
+    },
+    {
+      id: '3',
+      author: 'Volunteer Lead',
+      chapter: 'Campus Executive',
+      quote: 'Participating in Project Shiksha transformed our entire campus culture into one of active volunteerism.',
+      featured: true
+    }
+  ]);
+
+  const toggleFeatured = (id) => {
+    setStories(stories.map(s => s.id === id ? { ...s, featured: !s.featured } : s));
+    toast('Featured status updated.');
+  };
+
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Transformation Stories</h1>
+          <p className="admin-module-subtitle">Manage student voice testimonials and inspirational changemaker journeys.</p>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        {stories.map(s => (
+          <div key={s.id} className="admin-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <p style={{ fontStyle: 'italic', color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+              "{s.quote}"
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              <div>
+                <div style={{ fontWeight: 800, color: 'var(--primary-blue)', fontSize: '0.875rem' }}>{s.author}</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{s.chapter}</div>
+              </div>
+              <button onClick={() => toggleFeatured(s.id)} className={`admin-badge ${s.featured ? 'badge-featured' : 'badge-archived'}`} style={{ cursor: 'pointer', border: 'none' }}>
+                {s.featured ? '★ Featured' : 'Normal'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 7. GALLERY & MEDIA MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function GalleryModule({ toast, units, academicYears }) {
+  const [photos, setPhotos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadPhotos = useCallback(() => {
+    setLoading(true);
+    api('/api/gallery')
+      .then(d => { setPhotos(d.data || []); setLoading(false); })
+      .catch(e => { toast(e.message, 'error'); setLoading(false); });
+  }, [toast]);
+
+  useEffect(() => { loadPhotos(); }, [loadPhotos]);
+
+  const handleDelete = async (id) => {
+    if (!confirm('Remove photo from gallery?')) return;
+    try {
+      await api(`/api/gallery/${id}`, { method: 'DELETE' });
+      toast('Photo deleted.');
+      loadPhotos();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Media &amp; Gallery</h1>
+          <p className="admin-module-subtitle">Manage high-resolution photo archives and media publications from chapters.</p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
+      ) : photos.length === 0 ? (
+        <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+          No gallery images uploaded yet.
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.25rem' }}>
+          {photos.map(p => (
+            <div key={p._id} className="admin-card" style={{ padding: '0.75rem', position: 'relative' }}>
+              <img src={p.file_path || p.url} alt={p.caption || 'Gallery'} style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '0.5rem', marginBottom: '0.5rem' }} />
+              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                {p.caption || 'Event Highlight'}
+              </div>
+              <button onClick={() => handleDelete(p._id)} className="admin-btn-danger" style={{ width: '100%', justifyContent: 'center' }}>
+                <Trash2 size={13} /> Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 8. RESOURCES MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function ResourcesModule({ toast, units }) {
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadDocs = useCallback(() => {
+    setLoading(true);
+    api('/api/documents')
+      .then(d => { setDocs(d.data || []); setLoading(false); })
+      .catch(e => { toast(e.message, 'error'); setLoading(false); });
+  }, [toast]);
+
+  useEffect(() => { loadDocs(); }, [loadDocs]);
+
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Resources &amp; Toolkits</h1>
+          <p className="admin-module-subtitle">Official formation materials, annual magazines, and chapter guidelines.</p>
+        </div>
+      </div>
+
+      <div className="admin-table-container">
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
+        ) : docs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>No documents uploaded.</div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Visibility</th>
+                <th>Uploaded</th>
+              </tr>
+            </thead>
+            <tbody>
+              {docs.map(d => (
+                <tr key={d._id}>
+                  <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{d.title}</td>
+                  <td>{d.documentType || d.category || 'Toolkit'}</td>
+                  <td><span className="admin-badge badge-active">{d.visibility || 'Public'}</span></td>
+                  <td>{d.createdAt ? new Date(d.createdAt).toLocaleDateString() : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 9. FAQ MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function FaqModule({ toast }) {
+  const [faqs, setFaqs] = useState([
+    { id: '1', q: 'What is MAGIC Youth and how is it connected to YES-J?', a: 'MAGIC Youth (Men and Women Aiming at Greater Initiatives for Change) is the collegiate youth movement operating under the institutional umbrella of YES-J.' },
+    { id: '2', q: 'Who can join MAGIC Youth and how do I register?', a: 'Any student enrolled in higher education institutions can join through their campus chapter or our online Join Us portal.' },
+    { id: '3', q: 'How can an institution start a MAGIC chapter?', a: 'Colleges can start an official chapter by identifying a faculty mentor, forming a student committee, and submitting a formal request.' },
+    { id: '4', q: 'What kind of activities do student members lead?', a: 'Student members organize remedial tutoring (Project Shiksha), environmental action (Green Footprints), leadership summits (MAGIS), and grassroots innovation.' }
+  ]);
+
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Frequently Asked Questions</h1>
+          <p className="admin-module-subtitle">Manage questions and answers displayed on the public homepage FAQ section.</p>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {faqs.map(f => (
+          <div key={f.id} className="admin-card">
+            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem' }}>{f.q}</h4>
+            <p style={{ fontSize: '0.9rem', color: '#475569', lineHeight: 1.6, margin: 0 }}>{f.a}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 10. JOIN MAGIC APPLICATIONS MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function JoinApplicationsModule({ toast }) {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedReq, setSelectedReq] = useState(null);
+
+  const loadRequests = useCallback(() => {
+    setLoading(true);
+    api('/api/join')
+      .then(d => { setRequests(d.data || []); setLoading(false); })
+      .catch(e => { toast(e.message, 'error'); setLoading(false); });
+  }, [toast]);
+
+  useEffect(() => { loadRequests(); }, [loadRequests]);
+
+  const updateStatus = async (id, status) => {
+    try {
+      await api(`/api/join/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      toast(`Application marked as ${status}.`);
+      loadRequests();
+      if (selectedReq?._id === id) setSelectedReq(null);
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Join MAGIC Applications</h1>
+          <p className="admin-module-subtitle">Review incoming collegiate membership applications submitted through the public website.</p>
+        </div>
+      </div>
+
+      <div className="admin-table-container">
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
+        ) : requests.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>No membership applications submitted yet.</div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Applicant</th>
+                <th>College / Dept</th>
+                <th>Contact</th>
+                <th>Submitted</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map(r => (
+                <tr key={r._id}>
+                  <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{r.name}</td>
+                  <td>
+                    <div>{r.college}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{r.department} &bull; {r.year}</div>
+                  </td>
+                  <td>
+                    <div>{r.email}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{r.phone}</div>
+                  </td>
+                  <td>{new Date(r.createdAt || Date.now()).toLocaleDateString()}</td>
+                  <td>
+                    <span className={`admin-badge ${r.status === 'Accepted' ? 'badge-approved' : r.status === 'Rejected' ? 'badge-rejected' : 'badge-pending'}`}>
+                      {r.status || 'Pending'}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button onClick={() => setSelectedReq(r)} className="admin-btn-action">
+                      <Eye size={13} /> View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Application Detail Modal */}
+      {selectedReq && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Application Details</h3>
+              <button onClick={() => setSelectedReq(null)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div><strong>Name:</strong> {selectedReq.name} ({selectedReq.gender})</div>
+              <div><strong>College:</strong> {selectedReq.college}</div>
+              <div><strong>Department &amp; Year:</strong> {selectedReq.department} — {selectedReq.year}</div>
+              <div><strong>Email:</strong> {selectedReq.email} | <strong>Phone:</strong> {selectedReq.phone}</div>
+              <div><strong>City:</strong> {selectedReq.city}</div>
+              <div style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
+                <strong>Reason for Joining:</strong>
+                <p style={{ margin: '0.35rem 0 0', color: '#334155' }}>{selectedReq.reason}</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button onClick={() => updateStatus(selectedReq._id, 'Accepted')} className="admin-btn-primary" style={{ backgroundColor: '#166534' }}>Accept</button>
+              <button onClick={() => updateStatus(selectedReq._id, 'Rejected')} className="admin-btn-danger">Reject</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 11. CHAPTER APPLICATIONS MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function ChapterApplicationsModule({ toast }) {
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Chapter Establishment Inquiries</h1>
+          <p className="admin-module-subtitle">Requests from colleges and educational institutions seeking to charter a new MAGIC Youth chapter.</p>
+        </div>
+      </div>
+      <div className="admin-card" style={{ textAlign: 'center', padding: '3.5rem', color: '#64748B' }}>
+        <Building size={36} color="var(--primary-blue)" style={{ margin: '0 auto 1rem' }} />
+        <p style={{ margin: 0, fontWeight: 700 }}>No pending chapter applications at this moment.</p>
+        <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem' }}>Institutions can submit charter requests through the Start a Chapter portal.</p>
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 12. CONTACT ENQUIRIES MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function EnquiriesModule({ toast }) {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedMsg, setSelectedMsg] = useState(null);
+
+  const loadMessages = useCallback(() => {
+    setLoading(true);
+    api('/api/contact')
+      .then(d => { setMessages(d.data || []); setLoading(false); })
+      .catch(e => { toast(e.message, 'error'); setLoading(false); });
+  }, [toast]);
+
+  useEffect(() => { loadMessages(); }, [loadMessages]);
+
+  const updateStatus = async (id, status) => {
+    try {
+      await api(`/api/contact/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      toast(`Message marked as ${status}.`);
+      loadMessages();
+      if (selectedMsg?._id === id) setSelectedMsg(null);
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Contact Enquiries</h1>
+          <p className="admin-module-subtitle">Direct messages and general questions submitted from the website Contact page.</p>
+        </div>
+      </div>
+
+      <div className="admin-table-container">
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
+        ) : messages.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>No contact inquiries received yet.</div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Sender</th>
+                <th>Subject</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {messages.map(m => (
+                <tr key={m._id}>
+                  <td>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{m.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{m.email}</div>
+                  </td>
+                  <td style={{ fontWeight: 600 }}>{m.subject || 'General Inquiry'}</td>
+                  <td>{new Date(m.createdAt || Date.now()).toLocaleDateString()}</td>
+                  <td>
+                    <span className={`admin-badge ${m.status === 'Resolved' || m.status === 'Replied' ? 'badge-approved' : 'badge-pending'}`}>
+                      {m.status || 'New'}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button onClick={() => setSelectedMsg(m)} className="admin-btn-action">
+                      <Eye size={13} /> View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {selectedMsg && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Message Details</h3>
+              <button onClick={() => setSelectedMsg(null)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div><strong>From:</strong> {selectedMsg.name} ({selectedMsg.email})</div>
+              {selectedMsg.phone && <div><strong>Phone:</strong> {selectedMsg.phone}</div>}
+              <div><strong>Subject:</strong> {selectedMsg.subject}</div>
+              <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', color: '#334155', lineHeight: 1.6 }}>
+                {selectedMsg.message || selectedMsg.query}
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button onClick={() => updateStatus(selectedMsg._id, 'Resolved')} className="admin-btn-primary">Mark as Resolved</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 13. ACADEMIC YEARS MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function AcademicYearsModule({ toast, units, refreshYears }) {
+  const [years, setYears] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newYearStr, setNewYearStr] = useState('');
+
+  const loadYears = useCallback(() => {
+    setLoading(true);
+    api('/api/academic-years')
+      .then(d => { setYears(d.data || []); setLoading(false); refreshYears?.(); })
+      .catch(e => { toast(e.message, 'error'); setLoading(false); });
+  }, [refreshYears, toast]);
+
+  useEffect(() => { loadYears(); }, [loadYears]);
+
+  const handleAddYear = async (e) => {
+    e.preventDefault();
+    if (!newYearStr.trim()) return;
+    try {
+      const defaultUnit = units[0]?._id;
+      if (!defaultUnit) { toast('Please create a chapter first.', 'error'); return; }
+      await api('/api/academic-years', { method: 'POST', body: JSON.stringify({ unitId: defaultUnit, year: newYearStr }) });
+      toast(`Academic year ${newYearStr} added.`);
+      setNewYearStr('');
+      loadYears();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Academic Years</h1>
+          <p className="admin-module-subtitle">Configure academic sessions for youth formation cycles and team tenure tracking.</p>
+        </div>
+      </div>
+
+      <div className="admin-card" style={{ maxWidth: 600 }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem' }}>Add New Academic Year</h3>
+        <form onSubmit={handleAddYear} style={{ display: 'flex', gap: '0.75rem' }}>
+          <input required placeholder="e.g. 2026-27" value={newYearStr} onChange={e => setNewYearStr(e.target.value)} className="admin-input" style={{ flex: 1 }} />
+          <button type="submit" className="admin-btn-primary">Add Year</button>
+        </form>
+      </div>
+
+      <div className="admin-table-container" style={{ maxWidth: 600 }}>
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Loader2 size={24} className="animate-spin" color="var(--primary-blue)" /></div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Academic Session</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {years.map(y => (
                 <tr key={y._id}>
-                  <td style={{ fontWeight: 600 }}>{y.unitId?.name || '—'}</td>
-                  <td style={{ fontWeight: 700, color: '#0284C7' }}>{y.year}</td>
+                  <td style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{y.year}</td>
                   <td>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: y.status === 'Active' ? '#D1FAE5' : '#F3F4F6', color: y.status === 'Active' ? '#065F46' : '#4B5563' }}>{y.status}</span>
+                    <span className="admin-badge badge-active">{y.status || 'Active'}</span>
                   </td>
                 </tr>
               ))}
-              {!years.length && <tr><td colSpan={3} style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No academic years yet.</td></tr>}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
-// ─── Teams Module ─────────────────────────────────────────────────────────────
-function TeamsModule({ toast, admin, currentUnitId, units: propUnits = [], refreshUnits }) {
-  const [teams, setTeams] = useState([]);
-  const [localUnits, setLocalUnits] = useState(propUnits);
-  const [years, setYears] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ unitId: '', academicYearId: '', name: 'Executive Board' });
-  const [saving, setSaving] = useState(false);
+// ═════════════════════════════════════════════════════════════════════════════
+// 14. ADMIN SETTINGS MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function SettingsModule({ toast, admin }) {
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
 
-  useEffect(() => {
-    if (propUnits && propUnits.length > 0) {
-      setLocalUnits(propUnits);
-    } else {
-      api('/api/units?includeInactive=true').then(d => { if (d.success) setLocalUnits(d.data || []); });
-    }
-  }, [propUnits]);
-
-  const load = useCallback(() => {
-    const u = currentUnitId !== 'all' ? `&unitId=${currentUnitId}` : '';
-    api(`/api/teams?${u}`).then(d => { setTeams(d.data || []); setLoading(false); });
-  }, [currentUnitId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  useEffect(() => {
-    if (!form.unitId) {
-      setYears([]);
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast('New passwords do not match.', 'error');
       return;
     }
-    api(`/api/academic-years?unitId=${form.unitId}`).then(d => setYears(d.data || []));
-  }, [form.unitId]);
-
-  const save = async () => {
-    if (!form.unitId) { toast('Please select a Unit', 'error'); return; }
-    if (!form.academicYearId) { toast('Please select an Academic Year', 'error'); return; }
-    if (!form.name.trim()) { toast('Please enter a Team Name', 'error'); return; }
-
-    setSaving(true);
     try {
-      await api('/api/teams', { method: 'POST', body: JSON.stringify(form) });
-      toast('Team created successfully.');
-      setShowForm(false);
-      setForm({ unitId: '', academicYearId: '', name: 'Executive Board' });
-      load();
+      await api('/api/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword: passwordForm.currentPassword, newPassword: passwordForm.newPassword })
+      });
+      toast('Password updated successfully.');
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (e) { toast(e.message, 'error'); }
-    setSaving(false);
-  };
-
-  const del = async (id) => {
-    if (!confirm('Delete team and all members?')) return;
-    try { await api(`/api/teams/${id}`, { method: 'DELETE' }); toast('Team deleted.'); load(); }
-    catch (e) { toast(e.message, 'error'); }
-  };
-
-  const activeUnits = localUnits.filter(u => u.status !== 'Archived');
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', items: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Teams</h2>
-        <button onClick={() => { setShowForm(true); refreshUnits?.(); }} className="admin-btn-primary" style={{ width: 'auto' }}>
-          <Plus style={{ width: 16, height: 16 }} /> New Team
-        </button>
-      </div>
-
-      {showForm && (
-        <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Create Team</h3>
-
-          <div>
-            <label className="admin-label">Unit *</label>
-            <select value={form.unitId} onChange={e => setForm(f => ({ ...f, unitId: e.target.value, academicYearId: '' }))}
-              className="admin-input">
-              <option value="">Select Unit *</option>
-              {activeUnits.map(u => <option key={u._id} value={u._id}>{u.name}{u.institution ? ` (${u.institution})` : ''}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className="admin-label">Academic Year *</label>
-            <select value={form.academicYearId} onChange={e => setForm(f => ({ ...f, academicYearId: e.target.value }))} disabled={!form.unitId}
-              className="admin-input">
-              <option value="">Select Academic Year *</option>
-              {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className="admin-label">Team Name *</label>
-            <input placeholder="Team Name (e.g. Executive Board, Core Team)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="admin-input" />
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button onClick={save} disabled={saving || (!!form.unitId && years.length === 0)} className="admin-btn-primary" style={{ width: 'auto' }}>
-              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Create Team
-            </button>
-            <button onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
-        <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Team</th>
-                <th>Unit</th>
-                <th>Year</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teams.map(t => (
-                <tr key={t._id}>
-                  <td style={{ fontWeight: 700, color: '#1F2937' }}>{t.name}</td>
-                  <td>{t.unitId?.name || '—'}</td>
-                  <td>{t.academicYearId?.year || '—'}</td>
-                  <td>
-                    <button onClick={() => del(t._id)} className="admin-btn-danger">
-                      <Trash2 style={{ width: 12, height: 12 }} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {!teams.length && <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No teams yet.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Events Module ─────────────────────────────────────────────────────────────
-function EventsModule({ toast, admin, currentUnitId, units = [] }) {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [years, setYears] = useState([]);
-  const [posterFile, setPosterFile] = useState(null);
-
-  const [form, setForm] = useState({
-    unitId: currentUnitId !== 'all' ? currentUnitId : '',
-    academicYearId: '',
-    title: '',
-    description: '',
-    category: 'Community Service',
-    status: 'Upcoming',
-    date: '',
-    startTime: '',
-    endTime: '',
-    location: '',
-    organizers: '',
-  });
-
-  const load = useCallback(() => {
-    const u = currentUnitId !== 'all' ? `&unitId=${currentUnitId}` : '';
-    api(`/api/events?limit=50${u}`).then(d => { setEvents(d.data || []); setLoading(false); });
-  }, [currentUnitId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  useEffect(() => {
-    if (!form.unitId) { setYears([]); return; }
-    api(`/api/academic-years?unitId=${form.unitId}`).then(d => setYears(d.data || []));
-  }, [form.unitId]);
-
-  const save = async (e) => {
-    e.preventDefault();
-    if (!form.title.trim()) { toast('Please enter Event Title', 'error'); return; }
-    if (!form.unitId) { toast('Please select a Unit', 'error'); return; }
-    if (!form.academicYearId) { toast('Please select an Academic Year', 'error'); return; }
-
-    setSaving(true);
-    try {
-      const fd = new FormData();
-      Object.keys(form).forEach(k => {
-        if (form[k]) fd.append(k, form[k]);
-      });
-      if (posterFile) {
-        fd.append('poster', posterFile);
-      }
-
-      await apiForm('/api/events', fd);
-      toast('Event created successfully!');
-      setShowForm(false);
-      setPosterFile(null);
-      setForm({
-        unitId: currentUnitId !== 'all' ? currentUnitId : '',
-        academicYearId: '',
-        title: '',
-        description: '',
-        category: 'Community Service',
-        status: 'Upcoming',
-        date: '',
-        startTime: '',
-        endTime: '',
-        location: '',
-        organizers: '',
-      });
-      load();
-    } catch (err) {
-      toast(err.message, 'error');
-    }
-    setSaving(false);
-  };
-
-  const del = async (id) => {
-    if (!confirm('Delete this event?')) return;
-    try { await api(`/api/events/${id}`, { method: 'DELETE' }); toast('Event deleted.'); load(); }
-    catch (e) { toast(e.message, 'error'); }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Events</h2>
-        <button onClick={() => setShowForm(!showForm)} className="admin-btn-primary" style={{ width: 'auto' }}>
-          <Plus style={{ width: 16, height: 16 }} /> New Event
-        </button>
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Admin Account Settings</h1>
+          <p className="admin-module-subtitle">Security settings and platform credentials.</p>
+        </div>
       </div>
 
-      {showForm && (
-        <form onSubmit={save} className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Add New Event</h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-            <div>
-              <label className="admin-label">Unit *</label>
-              <select value={form.unitId} onChange={e => setForm(f => ({ ...f, unitId: e.target.value, academicYearId: '' }))} className="admin-input" required>
-                <option value="">Select Unit *</option>
-                {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="admin-label">Academic Year *</label>
-              <select value={form.academicYearId} onChange={e => setForm(f => ({ ...f, academicYearId: e.target.value }))} disabled={!form.unitId} className="admin-input" required>
-                <option value="">Select Academic Year *</option>
-                {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
-              </select>
-            </div>
+      <div className="admin-card" style={{ maxWidth: 550 }}>
+        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: '1.25rem', color: 'var(--text-primary)' }}>
+          Change Administrator Password
+        </h3>
+        <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="admin-input-group">
+            <label className="admin-label">Current Password</label>
+            <input type="password" required value={passwordForm.currentPassword} onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })} className="admin-input" />
           </div>
-
-          <div>
-            <label className="admin-label">Event Title *</label>
-            <input placeholder="Event Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="admin-input" required />
+          <div className="admin-input-group">
+            <label className="admin-label">New Password</label>
+            <input type="password" required value={passwordForm.newPassword} onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })} className="admin-input" />
           </div>
-
-          <div>
-            <label className="admin-label">Description</label>
-            <textarea placeholder="Event Description..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} className="admin-input" style={{ resize: 'none' }} />
+          <div className="admin-input-group">
+            <label className="admin-label">Confirm New Password</label>
+            <input type="password" required value={passwordForm.confirmPassword} onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })} className="admin-input" />
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-            <div>
-              <label className="admin-label">Category</label>
-              <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className="admin-input">
-                <option value="Program">Program</option>
-                <option value="Workshop">Workshop</option>
-                <option value="Seminar">Seminar</option>
-                <option value="Outreach">Outreach</option>
-                <option value="Community Service">Community Service</option>
-                <option value="Awareness">Awareness</option>
-                <option value="Leadership">Leadership</option>
-                <option value="Competition">Competition</option>
-                <option value="Cultural">Cultural</option>
-                <option value="Training">Training</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="admin-label">Status</label>
-              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="admin-input">
-                <option value="Upcoming">Upcoming</option>
-                <option value="Ongoing">Ongoing</option>
-                <option value="Completed">Completed</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="admin-label">Event Date</label>
-              <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="admin-input" />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-            <div>
-              <label className="admin-label">Location</label>
-              <input placeholder="Campus / Hall / City" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} className="admin-input" />
-            </div>
-
-            <div>
-              <label className="admin-label">Organizers</label>
-              <input placeholder="e.g. MAGIC Youth Leadership Team" value={form.organizers} onChange={e => setForm(f => ({ ...f, organizers: e.target.value }))} className="admin-input" />
-            </div>
-
-            <div>
-              <label className="admin-label">Event Poster Image</label>
-              <input type="file" accept="image/*,.heic,.heif,.pdf" onChange={e => setPosterFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="submit" disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
-              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Create Event
-            </button>
-            <button type="button" onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
-          </div>
+          <button type="submit" className="admin-btn-primary" style={{ alignSelf: 'flex-start' }}>
+            Update Password
+          </button>
         </form>
-      )}
-
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
-        <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Unit</th>
-                <th>Category</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map(e => (
-                <tr key={e._id}>
-                  <td style={{ fontWeight: 700, color: '#1F2937' }}>{e.title}</td>
-                  <td>{e.unitId?.name || '—'}</td>
-                  <td>{e.category}</td>
-                  <td>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: '#F0F9FF', color: '#0284C7' }}>{e.status}</span>
-                  </td>
-                  <td>
-                    <button onClick={() => del(e._id)} className="admin-btn-danger">
-                      <Trash2 style={{ width: 12, height: 12 }} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {!events.length && <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No events yet.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Administrators Module ─────────────────────────────────────────────────────
-function AdministratorsModule({ toast, units }) {
-  const [admins,  setAdmins]  = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '', assignedUnitIds: [] });
-
-  const load = () => api('/api/administrators').then(d => { setAdmins(d.data || []); setLoading(false); });
-  useEffect(() => { load(); }, []);
-
-  const toggleUnit = (unitId) => {
-    setForm(f => ({
-      ...f,
-      assignedUnitIds: f.assignedUnitIds.includes(unitId)
-        ? f.assignedUnitIds.filter(id => id !== unitId)
-        : [...f.assignedUnitIds, unitId],
-    }));
-  };
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      await api('/api/administrators', { method: 'POST', body: JSON.stringify(form) });
-      toast('Sub-Admin created.'); setShowForm(false); setForm({ name: '', email: '', password: '', assignedUnitIds: [] }); load();
-    } catch (e) { toast(e.message, 'error'); }
-    setSaving(false);
-  };
-
-  const toggleStatus = async (admin) => {
-    try {
-      await api(`/api/administrators/${admin._id}/status`, { method: 'PATCH', body: JSON.stringify({ status: admin.status === 'Active' ? 'Inactive' : 'Active' }) });
-      toast(`Admin ${admin.status === 'Active' ? 'disabled' : 'enabled'}.`); load();
-    } catch (e) { toast(e.message, 'error'); }
-  };
-
-  const del = async (id) => {
-    if (!confirm('Permanently delete this sub-admin?')) return;
-    try { await api(`/api/administrators/${id}`, { method: 'DELETE' }); toast('Sub-Admin deleted.'); load(); }
-    catch (e) { toast(e.message, 'error'); }
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Administrators</h2>
-        <button onClick={() => setShowForm(true)} className="admin-btn-primary" style={{ width: 'auto' }}>
-          <Plus style={{ width: 16, height: 16 }} /> New Sub-Admin
-        </button>
       </div>
-
-      {showForm && (
-        <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Create Sub-Admin</h3>
-          {[['name','Full Name *'], ['email','Email *'], ['password','Password *']].map(([k, l]) => (
-            <input key={k} type={k === 'password' ? 'password' : 'text'} placeholder={l} value={form[k]}
-              onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
-              className="admin-input" />
-          ))}
-          <div>
-            <p style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937', marginBottom: '0.5rem' }}>Assign Units</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.5rem' }}>
-              {units.map(u => (
-                <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #E5E7EB', backgroundColor: form.assignedUnitIds.includes(u._id) ? '#F0F9FF' : '#FFFFFF', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={form.assignedUnitIds.includes(u._id)} onChange={() => toggleUnit(u._id)} style={{ accentColor: '#0284C7' }} />
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#1F2937' }}>{u.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button onClick={save} disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
-              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Create
-            </button>
-            <button onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {admins.map(a => (
-            <div key={a._id} className="admin-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>{a.name}</p>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: a.status === 'Active' ? '#D1FAE5' : '#F3F4F6', color: a.status === 'Active' ? '#065F46' : '#4B5563' }}>{a.status}</span>
-                </div>
-                <p style={{ fontSize: '0.8125rem', color: '#6B7280', margin: '0.2rem 0 0' }}>{a.email}</p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <button onClick={() => toggleStatus(a)} className="admin-btn-action">
-                  {a.status === 'Active' ? <ToggleLeft style={{ width: 16, height: 16 }} /> : <ToggleRight style={{ width: 16, height: 16 }} />}
-                </button>
-                <button onClick={() => del(a._id)} className="admin-btn-danger">
-                  <Trash2 style={{ width: 14, height: 14 }} />
-                </button>
-              </div>
-            </div>
-          ))}
-          {!admins.length && (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No sub-admins yet. Create one above.</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Join Requests Module ──────────────────────────────────────────────────────
-function JoinRequestsModule({ toast, admin, currentUnitId }) {
-  const [reqs, setReqs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('');
-
-  const load = useCallback(() => {
-    const u = currentUnitId !== 'all' ? `&unitId=${currentUnitId}` : '';
-    const s = filter ? `&status=${filter}` : '';
-    api(`/api/join?limit=50${u}${s}`).then(d => { setReqs(d.data || []); setLoading(false); }).catch(() => setLoading(false));
-  }, [currentUnitId, filter]);
-
-  useEffect(() => { load(); }, [load]);
-
-  const updateStatus = async (id, status) => {
-    try { await api(`/api/join/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }); toast(`Application ${status.toLowerCase()}.`); load(); }
-    catch (e) { toast(e.message, 'error'); }
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Join Requests</h2>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {['', 'Pending', 'Approved', 'Rejected'].map(s => (
-            <button key={s} onClick={() => { setFilter(s); setLoading(true); }}
-              className="admin-btn-action" style={{ backgroundColor: filter === s ? '#0284C7' : '#FFFFFF', color: filter === s ? '#FFFFFF' : '#374151', borderRadius: '9999px', padding: '0.375rem 0.875rem' }}>
-              {s || 'All'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {reqs.map(r => (
-            <div key={r._id} className="admin-card">
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                <div>
-                  <p style={{ fontSize: '1rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>{r.name}</p>
-                  <p style={{ fontSize: '0.8125rem', color: '#6B7280', margin: '0.2rem 0 0' }}>{r.email} · {r.college}</p>
-                  <p style={{ fontSize: '0.75rem', color: '#9CA3AF', margin: '0.1rem 0 0' }}>{r.department} · Year {r.year}</p>
-                </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: r.status === 'Approved' ? '#D1FAE5' : r.status === 'Pending' ? '#FEF3C7' : '#FEE2E2', color: r.status === 'Approved' ? '#065F46' : r.status === 'Pending' ? '#92400E' : '#991B1B' }}>{r.status}</span>
-              </div>
-              {r.status === 'Pending' && (
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.875rem', paddingTop: '0.75rem', borderTop: '1px solid #F3F4F6' }}>
-                  <button onClick={() => updateStatus(r._id, 'Approved')} className="admin-btn-action" style={{ backgroundColor: '#10B981', color: '#FFFFFF', borderColor: '#10B981' }}>Approve</button>
-                  <button onClick={() => updateStatus(r._id, 'Rejected')} className="admin-btn-danger">Reject</button>
-                </div>
-              )}
-            </div>
-          ))}
-          {!reqs.length && <div style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No applications found.</div>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Contact Messages Module ───────────────────────────────────────────────────
-function ContactModule({ toast }) {
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api('/api/contact?limit=50').then(d => { setMessages(d.data || []); setLoading(false); }).catch(() => setLoading(false));
-  }, []);
-
-  const markRead = async (id) => {
-    try { await api(`/api/contact/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'Read' }) }); setMessages(m => m.map(x => x._id === id ? { ...x, status: 'Read' } : x)); }
-    catch {}
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Contact Messages</h2>
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {messages.map(m => (
-            <div key={m._id} className="admin-card">
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <div>
-                  <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#1F2937', margin: 0 }}>{m.name}</p>
-                  <p style={{ fontSize: '0.8125rem', color: '#6B7280', margin: '0.1rem 0 0' }}>{m.email} {m.phone ? `· ${m.phone}` : ''}</p>
-                </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: m.status === 'New' ? '#F0F9FF' : '#F3F4F6', color: m.status === 'New' ? '#0284C7' : '#4B5563' }}>{m.status}</span>
-              </div>
-              {m.subject && <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#374151', margin: '0 0 0.25rem' }}>{m.subject}</p>}
-              <p style={{ fontSize: '0.8125rem', color: '#4B5563', lineHeight: 1.5, margin: 0 }}>{m.message}</p>
-              {m.status === 'New' && (
-                <button onClick={() => markRead(m._id)} className="admin-btn-action" style={{ marginTop: '0.75rem' }}>Mark as Read</button>
-              )}
-            </div>
-          ))}
-          {!messages.length && <div style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No messages yet.</div>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Settings Module ───────────────────────────────────────────────────────────
-function SettingsModule({ toast, admin }) {
-  const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [saving, setSaving] = useState(false);
-
-  const changePassword = async () => {
-    if (form.newPassword !== form.confirmPassword) { toast('Passwords do not match.', 'error'); return; }
-    if (form.newPassword.length < 8) { toast('Password must be at least 8 characters.', 'error'); return; }
-    setSaving(true);
-    try {
-      await api('/api/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword: form.currentPassword, newPassword: form.newPassword }) });
-      toast('Password changed successfully.');
-      setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (e) { toast(e.message, 'error'); }
-    setSaving(false);
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '480px' }}>
-      <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Settings</h2>
-
-      <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <h3 style={{ fontSize: '0.875rem', fontWeight: 800, color: '#1F2937', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Change Password</h3>
-        {[['currentPassword','Current Password'], ['newPassword','New Password'], ['confirmPassword','Confirm New Password']].map(([k, l]) => (
-          <input key={k} type="password" placeholder={l} value={form[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))}
-            className="admin-input" />
-        ))}
-        <button onClick={changePassword} disabled={saving} className="admin-btn-primary">
-          {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <KeyRound style={{ width: 16, height: 16 }} />} Update Password
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Gallery Module ────────────────────────────────────────────────────────────
-function GalleryModule({ toast, admin, currentUnitId, units = [] }) {
-  const [photos, setPhotos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [years, setYears] = useState([]);
-  const [selectedFiles, setSelectedFiles] = useState([]);
-
-  const [form, setForm] = useState({
-    unitId: currentUnitId !== 'all' ? currentUnitId : '',
-    academicYearId: '',
-    album: '',
-    category: 'General',
-    title: '',
-    description: '',
-  });
-
-  const load = useCallback(() => {
-    const u = currentUnitId !== 'all' ? `&unitId=${currentUnitId}` : '';
-    api(`/api/gallery?limit=30${u}`).then(d => { setPhotos(d.data || []); setLoading(false); }).catch(() => setLoading(false));
-  }, [currentUnitId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  useEffect(() => {
-    if (!form.unitId) { setYears([]); return; }
-    api(`/api/academic-years?unitId=${form.unitId}`).then(d => setYears(d.data || []));
-  }, [form.unitId]);
-
-  const save = async (e) => {
-    e.preventDefault();
-    if (!form.unitId) { toast('Please select a Unit', 'error'); return; }
-    if (!form.academicYearId) { toast('Please select an Academic Year', 'error'); return; }
-    if (!selectedFiles || selectedFiles.length === 0) { toast('Please select at least one photo file', 'error'); return; }
-
-    setSaving(true);
-    try {
-      const fd = new FormData();
-      Object.keys(form).forEach(k => {
-        if (form[k]) fd.append(k, form[k]);
-      });
-      for (let i = 0; i < selectedFiles.length; i++) {
-        fd.append('photos', selectedFiles[i]);
-      }
-
-      await apiForm('/api/gallery', fd);
-      toast('Photo(s) uploaded successfully!');
-      setShowForm(false);
-      setSelectedFiles([]);
-      setForm({
-        unitId: currentUnitId !== 'all' ? currentUnitId : '',
-        academicYearId: '',
-        album: '',
-        category: 'General',
-        title: '',
-        description: '',
-      });
-      load();
-    } catch (err) {
-      toast(err.message, 'error');
-    }
-    setSaving(false);
-  };
-
-  const del = async (id) => {
-    if (!confirm('Delete this photo?')) return;
-    try { await api(`/api/gallery/${id}`, { method: 'DELETE' }); toast('Photo deleted.'); load(); }
-    catch (e) { toast(e.message, 'error'); }
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Gallery</h2>
-        <button onClick={() => setShowForm(!showForm)} className="admin-btn-primary" style={{ width: 'auto' }}>
-          <Plus style={{ width: 16, height: 16 }} /> Add Photos
-        </button>
-      </div>
-
-      {showForm && (
-        <form onSubmit={save} className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Upload Photos to Gallery</h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            <div>
-              <label className="admin-label">Unit *</label>
-              <select value={form.unitId} onChange={e => setForm(f => ({ ...f, unitId: e.target.value, academicYearId: '' }))} className="admin-input" required>
-                <option value="">Select Unit *</option>
-                {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="admin-label">Academic Year *</label>
-              <select value={form.academicYearId} onChange={e => setForm(f => ({ ...f, academicYearId: e.target.value }))} disabled={!form.unitId} className="admin-input" required>
-                <option value="">Select Academic Year *</option>
-                {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-            <div>
-              <label className="admin-label">Album Name</label>
-              <input placeholder="e.g. Annual Convention 2026" value={form.album} onChange={e => setForm(f => ({ ...f, album: e.target.value }))} className="admin-input" />
-            </div>
-
-            <div>
-              <label className="admin-label">Photo Title</label>
-              <input placeholder="Caption / Title" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="admin-input" />
-            </div>
-          </div>
-
-          <div>
-            <label className="admin-label">Select Photo File(s) *</label>
-            <input type="file" accept="image/*,.heic,.heif,.pdf" multiple onChange={e => setSelectedFiles(Array.from(e.target.files))} className="admin-input" style={{ padding: '0.375rem' }} required />
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="submit" disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
-              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Upload Photos
-            </button>
-            <button type="button" onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
-          </div>
-        </form>
-      )}
-
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
-        <>
-          {!photos.length && <div style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No photos yet. Click "+ Add Photos" above to upload images.</div>}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem' }}>
-            {photos.map(p => (
-              <div key={p._id} style={{ position: 'relative', borderRadius: '0.75rem', overflow: 'hidden', backgroundColor: '#F8F7FC', aspectRatio: '1/1', border: '1px solid #E5E7EB' }}>
-                <img src={p.file_path || p.filePath} alt={p.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
-                <button onClick={() => del(p._id)} className="admin-btn-danger" style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', padding: '0.375rem' }}>
-                  <Trash2 style={{ width: 14, height: 14 }} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─── Documents Module ──────────────────────────────────────────────────────────
-function DocumentsModule({ toast, admin, currentUnitId, units = [] }) {
-  const [docs, setDocs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [years, setYears] = useState([]);
-  const [docFile, setDocFile] = useState(null);
-
-  const [form, setForm] = useState({
-    unitId: currentUnitId !== 'all' ? currentUnitId : '',
-    academicYearId: '',
-    title: '',
-    description: '',
-    documentType: 'Event Reports',
-    visibility: 'Public',
-  });
-
-  const load = useCallback(() => {
-    const u = currentUnitId !== 'all' ? `&unitId=${currentUnitId}` : '';
-    api(`/api/documents/admin/all?limit=50${u}`).then(d => { setDocs(d.data || []); setLoading(false); }).catch(() => setLoading(false));
-  }, [currentUnitId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  useEffect(() => {
-    if (!form.unitId) { setYears([]); return; }
-    api(`/api/academic-years?unitId=${form.unitId}`).then(d => setYears(d.data || []));
-  }, [form.unitId]);
-
-  const save = async (e) => {
-    e.preventDefault();
-    if (!form.title.trim()) { toast('Please enter Document Title', 'error'); return; }
-    if (!form.unitId) { toast('Please select a Unit', 'error'); return; }
-    if (!form.academicYearId) { toast('Please select an Academic Year', 'error'); return; }
-    if (!docFile) { toast('Please select a document file to upload', 'error'); return; }
-
-    setSaving(true);
-    try {
-      const fd = new FormData();
-      Object.keys(form).forEach(k => {
-        if (form[k]) fd.append(k, form[k]);
-      });
-      fd.append('file', docFile);
-
-      await apiForm('/api/documents', fd);
-      toast('Document uploaded successfully!');
-      setShowForm(false);
-      setDocFile(null);
-      setForm({
-        unitId: currentUnitId !== 'all' ? currentUnitId : '',
-        academicYearId: '',
-        title: '',
-        description: '',
-        documentType: 'Event Reports',
-        visibility: 'Public',
-      });
-      load();
-    } catch (err) {
-      toast(err.message, 'error');
-    }
-    setSaving(false);
-  };
-
-  const del = async (id) => {
-    if (!confirm('Delete this document?')) return;
-    try { await api(`/api/documents/${id}`, { method: 'DELETE' }); toast('Document deleted.'); load(); }
-    catch (e) { toast(e.message, 'error'); }
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Documentation</h2>
-        <button onClick={() => setShowForm(!showForm)} className="admin-btn-primary" style={{ width: 'auto' }}>
-          <Plus style={{ width: 16, height: 16 }} /> Add Document
-        </button>
-      </div>
-
-      {showForm && (
-        <form onSubmit={save} className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', margin: 0 }}>Upload New Document</h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            <div>
-              <label className="admin-label">Unit *</label>
-              <select value={form.unitId} onChange={e => setForm(f => ({ ...f, unitId: e.target.value, academicYearId: '' }))} className="admin-input" required>
-                <option value="">Select Unit *</option>
-                {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="admin-label">Academic Year *</label>
-              <select value={form.academicYearId} onChange={e => setForm(f => ({ ...f, academicYearId: e.target.value }))} disabled={!form.unitId} className="admin-input" required>
-                <option value="">Select Academic Year *</option>
-                {years.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="admin-label">Document Title *</label>
-            <input placeholder="Document Title (e.g. Annual Activity Report 2026)" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="admin-input" required />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-            <div>
-              <label className="admin-label">Document Type</label>
-              <select value={form.documentType} onChange={e => setForm(f => ({ ...f, documentType: e.target.value }))} className="admin-input">
-                <option value="Event Reports">Event Reports</option>
-                <option value="Activity Reports">Activity Reports</option>
-                <option value="Annual Reports">Annual Reports</option>
-                <option value="Unit Reports">Unit Reports</option>
-                <option value="Event Proposals">Event Proposals</option>
-                <option value="Meeting Minutes">Meeting Minutes</option>
-                <option value="Attendance Sheets">Attendance Sheets</option>
-                <option value="Certificates">Certificates</option>
-                <option value="Notices">Notices</option>
-                <option value="Other Documents">Other Documents</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="admin-label">Visibility</label>
-              <select value={form.visibility} onChange={e => setForm(f => ({ ...f, visibility: e.target.value }))} className="admin-input">
-                <option value="Public">Public</option>
-                <option value="Unit Only">Unit Leads Only</option>
-                <option value="Admin Only">Main Admin Only</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="admin-label">Document File (PDF, DOCX, XLSX, PPTX, JPG, PNG, CSV, ZIP) *</label>
-            <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp,.svg,.zip,.heic,.heif,image/*,application/pdf" onChange={e => setDocFile(e.target.files[0])} className="admin-input" style={{ padding: '0.375rem' }} required />
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-            <button type="submit" disabled={saving} className="admin-btn-primary" style={{ width: 'auto' }}>
-              {saving ? <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> : <Check style={{ width: 16, height: 16 }} />} Upload Document
-            </button>
-            <button type="button" onClick={() => setShowForm(false)} className="admin-btn-action">Cancel</button>
-          </div>
-        </form>
-      )}
-
-      {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 0' }}><Loader2 style={{ width: 28, height: 28, color: '#0284C7' }} className="animate-spin" /></div> : (
-        <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Type</th>
-                <th>Visibility</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {docs.map(d => (
-                <tr key={d._id}>
-                  <td style={{ fontWeight: 600 }}>{d.title}</td>
-                  <td>{d.documentType}</td>
-                  <td>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '9999px', backgroundColor: d.visibility === 'Public' ? '#D1FAE5' : '#F3F4F6', color: d.visibility === 'Public' ? '#065F46' : '#4B5563' }}>{d.visibility}</span>
-                  </td>
-                  <td style={{ display: 'flex', gap: '0.5rem' }}>
-                    <a href={`/api/documents/download/${d._id}`} target="_blank" rel="noopener noreferrer" className="admin-btn-action" style={{ padding: '0.25rem 0.5rem' }}><Download style={{ width: 14, height: 14 }} /></a>
-                    <button onClick={() => del(d._id)} className="admin-btn-danger" style={{ padding: '0.25rem 0.5rem' }}><Trash2 style={{ width: 14, height: 14 }} /></button>
-                  </td>
-                </tr>
-              ))}
-              {!docs.length && <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: '#9CA3AF' }}>No documents yet.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }
