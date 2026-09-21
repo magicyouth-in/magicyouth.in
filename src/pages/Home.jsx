@@ -207,14 +207,15 @@ export default function Home() {
                 to="/join" 
                 className="btn-primary" 
                 style={{ 
-                  backgroundColor: 'var(--primary-pink)', 
+                  backgroundImage: 'var(--gradient-brand)',
+                  backgroundColor: 'var(--primary-blue)', 
                   color: 'white', 
                   padding: '1rem 2.5rem', 
                   borderRadius: '999px', 
                   textDecoration: 'none', 
                   fontWeight: 800, 
                   fontSize: '1rem', 
-                  boxShadow: '0 10px 25px rgba(225, 29, 72, 0.4)' 
+                  boxShadow: '0 10px 25px rgba(2, 132, 199, 0.4)' 
                 }}
               >
                 JOIN MAGIC &rarr;
@@ -240,95 +241,191 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. ROOTED IN VALUES. DRIVEN BY YOUTH (WHO WE ARE & YES-J) */}
-      <section className="about-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '6rem 1.5rem', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-color)' }}>
-        <div className="about-grid" style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '4rem', alignItems: 'center' }}>
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
-            <div className="section-eyebrow" style={{ color: 'var(--primary-pink)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-              Organizational Identity
+      {/* 3. OUR MOVEMENT & OUR STRUCTURE */}
+      <section className="movement-section">
+        <div className="movement-container">
+          <motion.div 
+            className="movement-header"
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true, margin: '-40px' }} 
+            variants={fadeUp}
+          >
+            <div className="movement-eyebrow">
+              Institutional Foundation
             </div>
-            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: '1.25rem' }}>
-              Rooted in Values.<br/>
-              <span style={{ color: 'var(--primary-blue)' }}>Driven by Youth.</span>
+            <h2 className="movement-title">
+              OUR <span style={{ color: 'var(--primary-blue)' }}>MOVEMENT</span>
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', lineHeight: 1.8, marginBottom: '1.5rem' }}>
-              MAGIC Youth operates as the premier campus youth movement under the YES-J (Youth Empowerment Services - Jesuits) umbrella, translating institutional Ignatian values of conscience, compassion, and commitment into active student-led community leadership.
+            <p className="movement-desc">
+              MAGIC Youth forms young leaders through the institutional guidance of YES-J and active collegiate partnerships, mobilizing students as collaborative agents of social transformation.
             </p>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <Link to="/about" className="btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700 }}>
-                Learn More About Our Roots <ArrowRight size={16} />
-              </Link>
-            </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }}>
-            <div className="flow-diagram" style={{ background: 'white', padding: '3rem 2rem', borderRadius: '1rem', boxShadow: '0 10px 30px rgba(0,0,0,0.04)', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-              <div style={{ fontWeight: 800, fontSize: '1.35rem', color: '#0F172A' }}>YES-J</div>
-              <div style={{ fontSize: '0.8125rem', color: '#64748B', marginBottom: '0.25rem' }}>Youth Empowerment Services</div>
-              <ArrowDown size={22} style={{ color: 'var(--primary-blue)', margin: '0.5rem auto' }} />
-              <div style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--primary-blue)' }}>MAGIC YOUTH</div>
-              <div style={{ fontSize: '0.8125rem', color: '#64748B', marginBottom: '0.25rem' }}>Campus Movement</div>
-              <ArrowDown size={22} style={{ color: 'var(--primary-pink)', margin: '0.5rem auto' }} />
-              <div style={{ fontWeight: 700, fontSize: '1.2rem', color: '#1E293B' }}>Educational Institutions</div>
-              <div style={{ fontSize: '0.8125rem', color: '#64748B', marginBottom: '0.25rem' }}>College Units & Chapters</div>
-              <ArrowDown size={22} style={{ color: 'var(--primary-blue)', margin: '0.5rem auto' }} />
-              <div style={{ fontWeight: 800, fontSize: '1.25rem', color: 'var(--primary-pink)' }}>Student Agents of Change</div>
-              <div style={{ fontSize: '0.8125rem', color: '#64748B' }}>Action &bull; Leadership &bull; Impact</div>
+          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+              Organizational Hierarchy
             </div>
-          </motion.div>
+            <h3 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+              OUR <span style={{ color: 'var(--primary-pink)' }}>STRUCTURE</span>
+            </h3>
+          </div>
+
+          {/* Connected Structure Flow Diagram */}
+          <div className="structure-flow">
+            {/* Level 01: YES-J */}
+            <motion.div 
+              className="structure-card"
+              initial="hidden" 
+              whileInView="visible" 
+              viewport={{ once: true }} 
+              variants={fadeUp}
+            >
+              <div className="structure-badge">
+                <Shield size={28} />
+              </div>
+              <div className="structure-content">
+                <div className="structure-level-tag">LEVEL 01 &bull; APEX UMBRELLA</div>
+                <div className="structure-name">YES-J (Youth Empowering Service – Jesuits)</div>
+                <p className="structure-description">
+                  The Jesuit youth ministry umbrella providing institutional vision, ethical leadership values, and spiritual grounding in conscience, compassion, and commitment.
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Connector */}
+            <div className="structure-connector-line">
+              <ArrowDown size={18} style={{ color: 'var(--primary-blue)', position: 'absolute', bottom: '-2px', background: 'white', borderRadius: '50%' }} />
+            </div>
+
+            {/* Level 02: MAGIC YOUTH (Featured Central Movement) */}
+            <motion.div 
+              className="structure-card featured-core"
+              initial="hidden" 
+              whileInView="visible" 
+              viewport={{ once: true }} 
+              variants={fadeUp}
+              transition={{ delay: 0.1 }}
+            >
+              <div className="structure-badge">
+                <Sparkles size={30} />
+              </div>
+              <div className="structure-content">
+                <div className="structure-level-tag" style={{ color: 'var(--primary-pink)', fontWeight: 900 }}>LEVEL 02 &bull; CENTRAL MOVEMENT</div>
+                <div className="structure-name">
+                  MAGIC YOUTH <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--primary-pink)', marginLeft: '0.5rem' }}>(Men and Women Aiming at Greater Initiatives for Change)</span>
+                </div>
+                <p className="structure-description">
+                  A campus-based youth movement under YES-J that organizes, forms, and mentors college students into active, empathetic leaders for societal change.
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Connector */}
+            <div className="structure-connector-line">
+              <ArrowDown size={18} style={{ color: 'var(--primary-pink)', position: 'absolute', bottom: '-2px', background: 'white', borderRadius: '50%' }} />
+            </div>
+
+            {/* Level 03: EDUCATIONAL INSTITUTIONS */}
+            <motion.div 
+              className="structure-card"
+              initial="hidden" 
+              whileInView="visible" 
+              viewport={{ once: true }} 
+              variants={fadeUp}
+              transition={{ delay: 0.2 }}
+            >
+              <div className="structure-badge" style={{ backgroundColor: '#FFE4E6', color: 'var(--primary-pink)' }}>
+                <Building size={28} />
+              </div>
+              <div className="structure-content">
+                <div className="structure-level-tag">LEVEL 03 &bull; CAMPUS COLLABORATION</div>
+                <div className="structure-name">EDUCATIONAL INSTITUTIONS</div>
+                <p className="structure-description">
+                  Colleges and higher education campuses across Andhra Pradesh and Telangana where institutional MAGIC chapters and faculty mentors operate.
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Connector */}
+            <div className="structure-connector-line">
+              <ArrowDown size={18} style={{ color: 'var(--primary-blue)', position: 'absolute', bottom: '-2px', background: 'white', borderRadius: '50%' }} />
+            </div>
+
+            {/* Level 04: STUDENT AGENTS OF CHANGE */}
+            <motion.div 
+              className="structure-card"
+              initial="hidden" 
+              whileInView="visible" 
+              viewport={{ once: true }} 
+              variants={fadeUp}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="structure-badge" style={{ backgroundColor: '#E0F2FE', color: 'var(--primary-blue)' }}>
+                <Users size={28} />
+              </div>
+              <div className="structure-content">
+                <div className="structure-level-tag">LEVEL 04 &bull; ACTIVE FORMATION</div>
+                <div className="structure-name">STUDENT AGENTS OF CHANGE</div>
+                <p className="structure-description">
+                  Young people who experience grassroots reality, reflect critically with conscience, participate in community initiatives, and lead lasting transformation.
+                </p>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* 3. VISION & MISSION */}
-      <section className="vision-mission-section" style={{ backgroundColor: 'white', padding: '6rem 1.5rem' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 4rem' }}>
-            <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+      {/* 4. COMPACT VISION & MISSION */}
+      <section className="vision-mission-compact">
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto 3rem' }}>
+            <div style={{ color: 'var(--primary-pink)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
               Purpose & Calling
             </div>
-            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Our Vision & Mission
+            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.65rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              OUR <span style={{ color: 'var(--primary-blue)' }}>VISION & MISSION</span>
             </h2>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
             {/* Vision Card */}
             <motion.div 
-              style={{ backgroundColor: '#0F172A', color: 'white', padding: '3rem', borderRadius: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+              style={{ backgroundColor: '#0F172A', color: 'white', padding: '2.75rem 2.25rem', borderRadius: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 10px 25px rgba(15,23,42,0.1)' }}
               initial="hidden" 
               whileInView="visible" 
               viewport={{ once: true }} 
               variants={fadeUp}
             >
               <div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-pink)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
-                  VISION
+                <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-pink)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+                  OUR VISION
                 </div>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 800, lineHeight: 1.4, marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.6rem', fontWeight: 800, lineHeight: 1.4, marginBottom: '1.25rem' }}>
                   "A just, equal, and compassionate society where young people lead meaningful change."
                 </h3>
               </div>
-              <p style={{ color: '#94A3B8', fontSize: '1rem', lineHeight: 1.7 }}>
+              <p style={{ color: '#94A3B8', fontSize: '0.975rem', lineHeight: 1.7, margin: 0 }}>
                 Envisioning a generation of formed student leaders who embody empathy, critical social awareness, and institutional responsibility for community welfare.
               </p>
             </motion.div>
 
             {/* Mission Card */}
             <motion.div 
-              style={{ backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', padding: '3rem', borderRadius: '1rem' }}
+              style={{ backgroundColor: '#FFFFFF', border: '1.5px solid var(--border-color)', padding: '2.75rem 2.25rem', borderRadius: '1.25rem', boxShadow: '0 10px 25px rgba(0,0,0,0.03)' }}
               initial="hidden" 
               whileInView="visible" 
               viewport={{ once: true }} 
               variants={fadeUp}
               transition={{ delay: 0.15 }}
             >
-              <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
-                MISSION
+              <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+                OUR MISSION
               </div>
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1.25rem' }}>
                 Forming Young Leaders Who:
               </h3>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {[
                   'Understand social realities and structural challenges',
                   'Think critically with conscience and conviction',
@@ -337,7 +434,7 @@ export default function Home() {
                   'Develop collaborative student leadership skills',
                   'Carry lifelong social responsibility beyond college'
                 ].map((item, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.5 }}>
+                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.5 }}>
                     <CheckCircle2 size={18} style={{ color: 'var(--primary-blue)', flexShrink: 0, marginTop: '2px' }} />
                     <span>{item}</span>
                   </li>
@@ -776,10 +873,24 @@ export default function Home() {
             Join MAGIC Youth today and be part of an inspiring campus journey rooted in YES-J's transformative mission.
           </p>
           <div style={{ display: 'flex', gap: '1.25rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-pink)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem', boxShadow: '0 10px 25px rgba(225, 29, 72, 0.4)' }}>
+            <Link 
+              to="/join" 
+              className="btn-primary" 
+              style={{ 
+                backgroundImage: 'var(--gradient-brand)',
+                backgroundColor: 'var(--primary-blue)', 
+                color: 'white', 
+                padding: '1.1rem 2.75rem', 
+                borderRadius: '999px', 
+                textDecoration: 'none', 
+                fontWeight: 800, 
+                fontSize: '1.05rem', 
+                boxShadow: '0 10px 25px rgba(2, 132, 199, 0.4)' 
+              }}
+            >
               JOIN MAGIC &rarr;
             </Link>
-            <a href="https://yesj.org" target="_blank" rel="noopener noreferrer" className="btn-outline" style={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem', border: '2px solid' }}>
+            <a href="https://yesj.org" target="_blank" rel="noopener noreferrer" className="btn-outline" style={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)', padding: '1.1rem 2.75rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1.05rem', border: '2px solid' }}>
               EXPLORE YES-J &rarr;
             </a>
           </div>
