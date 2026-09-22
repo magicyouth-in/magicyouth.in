@@ -28,6 +28,7 @@ async function initStorageBuckets() {
     const bucketNames = (existingBuckets || []).map(b => b.name);
 
     for (const bucket of Object.values(BUCKETS)) {
+      if (!bucketNames.includes(bucket)) {
         const isPublic = true;
         const { error: createError } = await supabase.storage.createBucket(bucket, {
           public: isPublic,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Filter, Loader2 } from 'lucide-react';
 import '../styles/home.css';
+import '../styles/teams.css';
 
 export default function Teams() {
   const [teams, setTeams] = useState([]);
@@ -26,12 +27,18 @@ export default function Teams() {
         fetchedUnits = unitsData.data || [];
         setUnits(fetchedUnits);
         
-        // Preselect ALC unit by default if present
-        const alcMatch = fetchedUnits.find(u => /ALC|Andhra Loyola/i.test(u.shortName || u.name || u.code || ''));
-        if (alcMatch) {
-          setSelectedUnit(alcMatch._id || alcMatch.id);
+        // Preselect ALIET MAGIC YOUTH by default
+        const alietMatch = fetchedUnits.find(u => 
+          /ALIET/i.test(u.code || u.shortName || u.name || '') || 
+          /Andhra Loyola Institute/i.test(u.institution || u.name || '')
+        );
+        if (alietMatch) {
+          setSelectedUnit(alietMatch._id || alietMatch.id);
+        } else if (fetchedUnits.length > 0) {
+          setSelectedUnit(fetchedUnits[0]._id || fetchedUnits[0].id);
         }
       }
+
       if (yearsData.success) {
         fetchedYears = yearsData.data || [];
         setAcademicYears(fetchedYears);
@@ -96,16 +103,16 @@ export default function Teams() {
       <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid var(--border-color)' }}>
         <div className="page-header-content" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
           <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-            <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Leadership & Community
+            <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Leadership &amp; Community
           </div>
           <h1 className="page-header-title" style={{ color: 'var(--text-primary)', fontSize: 'clamp(2.25rem, 4vw, 3rem)', letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>Our Teams</h1>
           <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6 }}>
-            The dedicated students and coordinators driving change across our chapters.
+            The dedicated animators, coordinators, and student leaders driving youth empowerment across our chapters.
           </p>
         </div>
       </section>
 
-      <section className="inner-section" style={{ backgroundColor: 'white', padding: '3rem 1.5rem' }}>
+      <section className="inner-section" style={{ backgroundColor: 'white', padding: '3rem 1.5rem 5rem' }}>
         {/* FILTERS */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', alignItems: 'center', marginBottom: '3.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#FFFFFF', padding: '0.6rem 1.25rem', borderRadius: '999px', border: '1.5px solid var(--border-color)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
@@ -151,77 +158,152 @@ export default function Teams() {
             <p style={{ margin: 0, fontSize: '0.95rem' }}>No team records available for this selection.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5rem', maxWidth: '1200px', margin: '0 auto' }}>
-            {filteredTeams.map((team, i) => (
-              <motion.article key={team._id || team.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: i * 0.1 }}>
-                <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-                  <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: team.academicYearId?.isCurrent ? 'var(--primary-blue)' : '#64748B', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
-                    <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> {team.academicYearId?.isCurrent ? 'CURRENT TEAM' : 'PAST TEAM'}
-                  </div>
-                  <h2 style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.5rem', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
-                    {getTeamDisplayName(team)}
-                  </h2>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', fontWeight: 600 }}>
-                    {team.academicYearId?.year ? `${team.academicYearId.year} • ` : ''}{team.name || 'Executive Body'}
-                  </div>
-                </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5rem', maxWidth: '1280px', margin: '0 auto' }}>
+            {filteredTeams.map((team, i) => {
+              const allMembers = (team.members || []).slice().sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+              const animators = allMembers.filter(m => m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position));
+              const teamMembers = allMembers.filter(m => !(m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position)));
 
-                {team.members && team.members.length > 0 ? (
-                  (() => {
-                    const core = team.members.filter(m => /president|secretary|treasurer|lead/i.test(m.position));
-                    const coords = team.members.filter(m => /coordinator/i.test(m.position) && !/president|secretary|treasurer|lead/i.test(m.position));
-                    const others = team.members.filter(m => !/president|secretary|treasurer|lead|coordinator/i.test(m.position));
+              return (
+                <article key={team._id || team.id} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: team.academicYearId?.isCurrent ? 'var(--primary-blue)' : '#64748B', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                      <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> {team.academicYearId?.isCurrent ? 'CURRENT TEAM' : 'PAST TEAM'}
+                    </div>
+                    <h2 style={{ fontSize: 'clamp(1.25rem, 4vw, 2.25rem)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.5rem', letterSpacing: '-0.02em', textTransform: 'uppercase', padding: '0 0.5rem', lineHeight: 1.2 }}>
+                      {getTeamDisplayName(team)}
+                    </h2>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', fontWeight: 600 }}>
+                      {team.academicYearId?.year ? `${team.academicYearId.year} • ` : ''}{team.name || 'Executive Body'}
+                    </div>
+                  </div>
 
-                    const renderGroup = (group, title) => {
-                      if (group.length === 0) return null;
-                      return (
+                  {allMembers.length > 0 ? (
+                    <div>
+                      {/* 1. MAIN ANIMATOR SECTION */}
+                      {animators.length > 0 && (
                         <div style={{ marginBottom: '4rem' }}>
-                          <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '2rem', textAlign: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                            <span style={{ color: 'var(--primary-pink)' }}>●</span> {title}
-                          </h3>
-                          <div className="programs-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2rem' }}>
-                            {group.map((member) => (
-                              <div key={member._id || member.id} style={{ backgroundColor: 'var(--bg-secondary)', border: '1.5px solid var(--border-color)', borderRadius: '0.75rem', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', transition: 'transform 0.2s ease, box-shadow 0.2s ease' }}>
-                                <div style={{ width: '120px', height: '120px', borderRadius: '50%', marginBottom: '1.5rem', overflow: 'hidden', border: '3px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}>
-                                  {member.photo ? (
-                                    <img src={member.photo} alt={member.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                              <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Chapter Guidance &amp; Mentorship
+                            </div>
+                            <h3 style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.85rem)', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '-0.02em', margin: 0 }}>
+                              MAIN ANIMATOR
+                            </h3>
+                          </div>
+
+                          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2rem' }}>
+                            {animators.map((animator) => (
+                              <div 
+                                key={animator._id || animator.id}
+                                style={{
+                                  backgroundColor: 'var(--bg-secondary)',
+                                  border: '2px solid rgba(2, 132, 199, 0.25)',
+                                  borderRadius: '1rem',
+                                  padding: '2.5rem 2rem',
+                                  maxWidth: '360px',
+                                  width: '100%',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  textAlign: 'center',
+                                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.04)',
+                                  transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                                }}
+                              >
+                                <div style={{ width: '130px', height: '130px', borderRadius: '50%', marginBottom: '1.25rem', overflow: 'hidden', border: '4px solid #FFFFFF', boxShadow: '0 6px 18px rgba(2, 132, 199, 0.15)' }}>
+                                  {animator.photo ? (
+                                    <img src={animator.photo} alt={animator.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                   ) : (
-                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0F9FF', color: 'var(--primary-blue)', fontWeight: 800, fontSize: '1.5rem', letterSpacing: '0.05em' }}>
-                                      {getInitials(member.name)}
+                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0F9FF', color: 'var(--primary-blue)', fontWeight: 800, fontSize: '1.75rem' }}>
+                                      {getInitials(animator.name)}
                                     </div>
                                   )}
                                 </div>
-                                <h4 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>{member.name}</h4>
-                                <p style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
-                                  {member.position}
-                                </p>
-                                {member.department && <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>{member.department}</p>}
+
+                                <h4 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                                  {animator.name}
+                                </h4>
+
+                                <div style={{ color: 'var(--primary-pink)', fontWeight: 800, fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
+                                  {animator.position || 'MAIN ANIMATOR'}
+                                </div>
+
+                                {(animator.organization || animator.department) && (
+                                  <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>
+                                    {animator.organization || animator.department}
+                                  </p>
+                                )}
+
+                                {animator.biography && (
+                                  <p style={{ fontSize: '0.85rem', color: '#64748B', lineHeight: 1.5, marginTop: '0.75rem', marginBottom: 0 }}>
+                                    {animator.biography}
+                                  </p>
+                                )}
                               </div>
                             ))}
                           </div>
                         </div>
-                      );
-                    };
+                      )}
 
-                    return (
-                      <div>
-                        {renderGroup(core, 'Core Leadership')}
-                        {renderGroup(coords, 'Coordinators')}
-                        {renderGroup(others, 'Team Members')}
-                      </div>
-                    );
-                  })()
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '3rem 1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', maxWidth: '600px', margin: '0 auto' }}>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0 }}>No members are currently listed for this team roster.</p>
-                  </div>
-                )}
-              </motion.article>
-            ))}
+                      {/* 2. TEAM MEMBERS SECTION (5 PER ROW ON DESKTOP) */}
+                      {teamMembers.length > 0 && (
+                        <div>
+                          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                              <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Student Leadership &amp; Coordinators
+                            </div>
+                            <h3 style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.85rem)', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '-0.02em', margin: 0 }}>
+                              TEAM MEMBERS
+                            </h3>
+                          </div>
+
+                          <div className="team-members-5col-grid">
+                            {teamMembers.map((member) => (
+                              <div 
+                                key={member._id || member.id}
+                                className="team-member-card-5col"
+                              >
+                                <div className="member-avatar-box">
+                                  {member.photo ? (
+                                    <img src={member.photo} alt={member.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  ) : (
+                                    <div className="member-avatar-initials">
+                                      {getInitials(member.name)}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <h4 className="member-name-heading">
+                                  {member.name}
+                                </h4>
+
+                                <div className="member-role-badge">
+                                  {member.position}
+                                </div>
+
+                                {(member.organization || member.department) && (
+                                  <p className="member-dept-text">
+                                    {member.organization || member.department}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '3rem 1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', maxWidth: '600px', margin: '0 auto' }}>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0 }}>No members are currently listed for this team roster.</p>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
     </main>
   );
 }
-

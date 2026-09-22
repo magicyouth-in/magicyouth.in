@@ -560,7 +560,16 @@ function TeamsModule({ toast, units, academicYears }) {
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [activeTeamId, setActiveTeamId] = useState(null);
-  const [memberForm, setMemberForm] = useState({ name: '', position: 'President', department: '', batchYear: '', biography: '', displayOrder: 0 });
+  const [memberForm, setMemberForm] = useState({ 
+    name: '', 
+    section: 'Team Member',
+    position: 'First Lead', 
+    department: '', 
+    organization: '',
+    batchYear: '', 
+    biography: '', 
+    displayOrder: 0 
+  });
   const [memberPhoto, setMemberPhoto] = useState(null);
 
   const loadTeamsAndMembers = useCallback(async () => {
@@ -623,7 +632,16 @@ function TeamsModule({ toast, units, academicYears }) {
   const openAddMember = (teamId) => {
     setActiveTeamId(teamId);
     setEditingMember(null);
-    setMemberForm({ name: '', position: 'President', department: '', batchYear: '', biography: '', displayOrder: (membersMap[teamId] || []).length });
+    setMemberForm({ 
+      name: '', 
+      section: 'Team Member',
+      position: 'First Lead', 
+      department: '', 
+      organization: '',
+      batchYear: '', 
+      biography: '', 
+      displayOrder: (membersMap[teamId] || []).length 
+    });
     setMemberPhoto(null);
     setShowMemberModal(true);
   };
@@ -631,7 +649,16 @@ function TeamsModule({ toast, units, academicYears }) {
   const openEditMember = (teamId, m) => {
     setActiveTeamId(teamId);
     setEditingMember(m);
-    setMemberForm({ name: m.name, position: m.position, department: m.department || '', batchYear: m.batchYear || '', biography: m.biography || '', displayOrder: m.displayOrder || 0 });
+    setMemberForm({ 
+      name: m.name || '', 
+      section: m.section || (/animator|faculty advisor|mentor/i.test(m.position) ? 'Main Animator' : 'Team Member'),
+      position: m.position || '', 
+      department: m.department || '', 
+      organization: m.organization || m.department || '',
+      batchYear: m.batchYear || '', 
+      biography: m.biography || '', 
+      displayOrder: m.displayOrder ?? 0 
+    });
     setMemberPhoto(null);
     setShowMemberModal(true);
   };
@@ -645,8 +672,10 @@ function TeamsModule({ toast, units, academicYears }) {
     try {
       const fd = new FormData();
       fd.append('name', memberForm.name);
+      fd.append('section', memberForm.section);
       fd.append('position', memberForm.position);
-      fd.append('department', memberForm.department || '');
+      fd.append('organization', memberForm.organization || memberForm.department || '');
+      fd.append('department', memberForm.organization || memberForm.department || '');
       fd.append('batchYear', memberForm.batchYear || '');
       fd.append('biography', memberForm.biography || '');
       fd.append('displayOrder', memberForm.displayOrder ?? 0);
@@ -712,7 +741,7 @@ function TeamsModule({ toast, units, academicYears }) {
       <div className="admin-module-header">
         <div>
           <h1 className="admin-module-title">Teams &amp; Student Leaders</h1>
-          <p className="admin-module-subtitle">Directly manage team rosters, executive leadership, and coordinators displayed on the public /teams page.</p>
+          <p className="admin-module-subtitle">Directly manage chapter team rosters, Main Animators, and student leads displayed on the public /teams page.</p>
         </div>
         <button onClick={() => setShowAddTeam(true)} className="admin-btn-primary">
           <Plus size={16} /> Create Team Body
@@ -763,62 +792,78 @@ function TeamsModule({ toast, units, academicYears }) {
                 {/* Members list with persistent reordering */}
                 {teamMembers.length === 0 ? (
                   <p style={{ color: '#94A3B8', fontSize: '0.875rem', fontStyle: 'italic', margin: '1rem 0' }}>
-                    No members added to this team yet. Use the "Add Team Member" button to add students.
+                    No members added to this team yet. Use the "Add Team Member" button to add animators and student leads.
                   </p>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                    {teamMembers.map((m, idx) => (
-                      <div key={m._id} style={{ backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94A3B8', width: '20px' }}>
-                            #{idx + 1}
-                          </span>
-                          {m.photo ? (
-                            <img src={m.photo} alt={m.name} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover' }} />
-                          ) : (
-                            <div style={{ width: 42, height: 42, borderRadius: '50%', backgroundColor: '#F0F9FF', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.875rem' }}>
-                              {m.name?.[0]}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+                    {teamMembers.map((m, idx) => {
+                      const isAnimator = m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position);
+                      return (
+                        <div key={m._id} style={{ backgroundColor: '#F8FAFC', border: `1.5px solid ${isAnimator ? '#FDA4AF' : 'var(--border-color)'}`, borderRadius: '0.75rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94A3B8', width: '20px' }}>
+                              #{idx + 1}
+                            </span>
+                            {m.photo ? (
+                              <img src={m.photo} alt={m.name} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ width: 44, height: 44, borderRadius: '50%', backgroundColor: isAnimator ? '#FFF1F2' : '#F0F9FF', color: isAnimator ? 'var(--primary-pink)' : 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.875rem' }}>
+                                {m.name?.[0] || 'M'}
+                              </div>
+                            )}
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-primary)' }}>{m.name}</span>
+                                {isAnimator && (
+                                  <span style={{ fontSize: '0.625rem', fontWeight: 900, backgroundColor: '#FFE4E6', color: '#BE123C', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                                    ANIMATOR
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isAnimator ? 'var(--primary-pink)' : 'var(--primary-blue)', textTransform: 'uppercase' }}>
+                                {m.position}
+                              </div>
+                              {(m.organization || m.department) && (
+                                <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                                  {m.organization || m.department}
+                                </div>
+                              )}
                             </div>
-                          )}
-                          <div>
-                            <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-primary)' }}>{m.name}</div>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-blue)' }}>{m.position}</div>
-                            {m.department && <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{m.department}</div>}
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          {/* Reorder Buttons */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                            <button 
-                              onClick={() => handleMoveMember(team._id, idx, 'up')} 
-                              disabled={idx === 0} 
-                              className="admin-btn-action" 
-                              style={{ padding: '0.2rem', opacity: idx === 0 ? 0.3 : 1 }} 
-                              title="Move Up"
-                            >
-                              <ChevronUp size={14} />
-                            </button>
-                            <button 
-                              onClick={() => handleMoveMember(team._id, idx, 'down')} 
-                              disabled={idx === teamMembers.length - 1} 
-                              className="admin-btn-action" 
-                              style={{ padding: '0.2rem', opacity: idx === teamMembers.length - 1 ? 0.3 : 1 }} 
-                              title="Move Down"
-                            >
-                              <ChevronDown size={14} />
-                            </button>
                           </div>
 
-                          <button onClick={() => openEditMember(team._id, m)} className="admin-btn-action" style={{ padding: '0.4rem' }} title="Edit Member">
-                            <Edit size={13} />
-                          </button>
-                          <button onClick={() => handleDeleteMember(m._id)} className="admin-btn-danger" style={{ padding: '0.4rem' }} title="Remove Member">
-                            <Trash2 size={13} />
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            {/* Reorder Buttons */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <button 
+                                onClick={() => handleMoveMember(team._id, idx, 'up')} 
+                                disabled={idx === 0} 
+                                className="admin-btn-action" 
+                                style={{ padding: '0.2rem', opacity: idx === 0 ? 0.3 : 1 }} 
+                                title="Move Up"
+                              >
+                                <ChevronUp size={14} />
+                              </button>
+                              <button 
+                                onClick={() => handleMoveMember(team._id, idx, 'down')} 
+                                disabled={idx === teamMembers.length - 1} 
+                                className="admin-btn-action" 
+                                style={{ padding: '0.2rem', opacity: idx === teamMembers.length - 1 ? 0.3 : 1 }} 
+                                title="Move Down"
+                              >
+                                <ChevronDown size={14} />
+                              </button>
+                            </div>
+
+                            <button onClick={() => openEditMember(team._id, m)} className="admin-btn-action" style={{ padding: '0.4rem' }} title="Edit Member">
+                              <Edit size={13} />
+                            </button>
+                            <button onClick={() => handleDeleteMember(m._id)} className="admin-btn-danger" style={{ padding: '0.4rem' }} title="Remove Member">
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -858,33 +903,62 @@ function TeamsModule({ toast, units, academicYears }) {
           <div className="admin-modal-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
-                {editingMember ? 'Edit Team Member' : 'Add Student Member / Lead'}
+                {editingMember ? 'Edit Team Member' : 'Add Team Member / Lead'}
               </h3>
               <button onClick={() => setShowMemberModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
             </div>
             <form onSubmit={handleSaveMember} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="admin-input-group">
                 <label className="admin-label">Full Name *</label>
-                <input required placeholder="e.g. Lokesh Sai" value={memberForm.name} onChange={e => setMemberForm({ ...memberForm, name: e.target.value })} className="admin-input" />
+                <input required placeholder="e.g. Lokesh Sai or Dr. Name" value={memberForm.name} onChange={e => setMemberForm({ ...memberForm, name: e.target.value })} className="admin-input" />
               </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label className="admin-label">Position / Role *</label>
-                  <input required placeholder="e.g. President, Lead, Coordinator" value={memberForm.position} onChange={e => setMemberForm({ ...memberForm, position: e.target.value })} className="admin-input" />
+                  <label className="admin-label">Section *</label>
+                  <select 
+                    value={memberForm.section} 
+                    onChange={e => {
+                      const sec = e.target.value;
+                      setMemberForm({ 
+                        ...memberForm, 
+                        section: sec,
+                        position: sec === 'Main Animator' ? 'Main Animator' : (memberForm.position === 'Main Animator' ? 'First Lead' : memberForm.position)
+                      });
+                    }} 
+                    className="admin-select"
+                  >
+                    <option value="Main Animator">MAIN ANIMATOR</option>
+                    <option value="Team Member">TEAM MEMBER</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="admin-label">Department / Branch</label>
-                  <input placeholder="e.g. CSE, EEE, B.Com" value={memberForm.department} onChange={e => setMemberForm({ ...memberForm, department: e.target.value })} className="admin-input" />
+                  <label className="admin-label">Role / Position Title *</label>
+                  <input required placeholder="e.g. Main Animator, First Lead, President" value={memberForm.position} onChange={e => setMemberForm({ ...memberForm, position: e.target.value })} className="admin-input" />
                 </div>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">Organization / College / Dept</label>
+                  <input placeholder="e.g. ALIET or EEE Department" value={memberForm.organization || memberForm.department} onChange={e => setMemberForm({ ...memberForm, organization: e.target.value, department: e.target.value })} className="admin-input" />
+                </div>
+                <div>
+                  <label className="admin-label">Display Order (Optional)</label>
+                  <input type="number" value={memberForm.displayOrder} onChange={e => setMemberForm({ ...memberForm, displayOrder: parseInt(e.target.value, 10) || 0 })} className="admin-input" />
+                </div>
+              </div>
+
               <div className="admin-input-group">
                 <label className="admin-label">Biography / Role Summary</label>
                 <textarea rows={2} placeholder="Brief summary of member responsibilities..." value={memberForm.biography} onChange={e => setMemberForm({ ...memberForm, biography: e.target.value })} className="admin-textarea" />
               </div>
+
               <div className="admin-input-group">
                 <label className="admin-label">Photo Upload (Optional)</label>
                 <input type="file" accept="image/*" onChange={e => setMemberPhoto(e.target.files?.[0] || null)} className="admin-input" />
               </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setShowMemberModal(false)} className="admin-btn-secondary">Cancel</button>
                 <button type="submit" className="admin-btn-primary">{editingMember ? 'Save Changes' : 'Add Member'}</button>

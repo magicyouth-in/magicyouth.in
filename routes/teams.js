@@ -92,15 +92,21 @@ router.get('/:id/members', async (req, res) => {
 
     if (error) throw error;
 
-    const formatted = (members || []).map(m => ({
-      ...m,
-      _id: m.id,
-      teamId: m.team_id,
-      batchYear: m.batch_year,
-      socialLinks: m.social_links || {},
-      isActive: m.is_active,
-      displayOrder: m.display_order,
-    }));
+    const formatted = (members || []).map(m => {
+      const social = typeof m.social_links === 'string' ? JSON.parse(m.social_links || '{}') : (m.social_links || {});
+      const isAnimator = social.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position);
+      return {
+        ...m,
+        _id: m.id,
+        teamId: m.team_id,
+        batchYear: m.batch_year,
+        socialLinks: social,
+        section: social.section || (isAnimator ? 'Main Animator' : 'Team Member'),
+        organization: social.organization || m.department || '',
+        isActive: m.is_active,
+        displayOrder: m.display_order ?? 0,
+      };
+    });
 
     res.json({ success: true, data: formatted });
   } catch (err) {
@@ -171,7 +177,7 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
     if (!team) return res.status(404).json({ success: false, message: 'Team not found.' });
     if (!canAccessUnit(req.admin, team.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    const { name, position, biography, department, batchYear, socialLinks, displayOrder, isActive } = req.body;
+    const { name, position, biography, department, batchYear, socialLinks, displayOrder, isActive, section, organization } = req.body;
     if (!name || !position) return res.status(400).json({ success: false, message: 'Name and position are required.' });
 
     // Upload photo to Supabase Storage if provided
@@ -182,6 +188,10 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
       photoUrl = publicUrl;
     }
 
+    let parsedSocial = socialLinks ? (typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks) : {};
+    if (section) parsedSocial.section = section;
+    if (organization) parsedSocial.organization = organization;
+
     const { data: member, error } = await supabase
       .from('team_members')
       .insert([{
@@ -189,12 +199,12 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
         name,
         position,
         biography: biography || '',
-        department: department || '',
+        department: organization || department || '',
         batch_year: batchYear || '',
         photo: photoUrl,
-        social_links: socialLinks ? (typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks) : {},
-        display_order: displayOrder ?? 0,
-        is_active: isActive !== undefined ? isActive : true,
+        social_links: parsedSocial,
+        display_order: displayOrder ? parseInt(displayOrder, 10) : 0,
+        is_active: isActive !== undefined ? (isActive === 'true' || isActive === true) : true,
       }])
       .select()
       .single();
@@ -202,7 +212,18 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
     if (error) throw error;
 
     await logAction(req, 'Create Team Member', 'TeamMember', member.id, team.unit_id);
-    res.status(201).json({ success: true, data: { ...member, _id: member.id, teamId: member.team_id, photo: member.photo }, message: 'Team member added.' });
+    res.status(201).json({ 
+      success: true, 
+      data: { 
+        ...member, 
+        _id: member.id, 
+        teamId: member.team_id, 
+        photo: member.photo,
+        section: parsedSocial.section || 'Team Member',
+        organization: member.department
+      }, 
+      message: 'Team member added.' 
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   } finally {
@@ -220,17 +241,22 @@ router.put('/members/:memberId', authenticateAdmin, requireAnyAdmin, uploadPhoto
     const { data: team } = await supabase.from('teams').select('*').eq('id', member.team_id).single();
     if (team && !canAccessUnit(req.admin, team.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    const { name, position, biography, department, batchYear, socialLinks, displayOrder, isActive } = req.body;
+    const { name, position, biography, department, batchYear, socialLinks, displayOrder, isActive, section, organization } = req.body;
     const updates = { updated_at: new Date().toISOString() };
 
     if (name) updates.name = name;
     if (position) updates.position = position;
     if (biography !== undefined) updates.biography = biography;
-    if (department !== undefined) updates.department = department;
+    if (department !== undefined || organization !== undefined) updates.department = organization || department || '';
     if (batchYear !== undefined) updates.batch_year = batchYear;
     if (displayOrder !== undefined) updates.display_order = parseInt(displayOrder, 10);
     if (isActive !== undefined) updates.is_active = isActive === 'true' || isActive === true;
-    if (socialLinks) updates.social_links = typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks;
+    
+    let existingSocial = typeof member.social_links === 'string' ? JSON.parse(member.social_links || '{}') : (member.social_links || {});
+    let parsedSocial = socialLinks ? (typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks) : { ...existingSocial };
+    if (section !== undefined) parsedSocial.section = section;
+    if (organization !== undefined) parsedSocial.organization = organization;
+    updates.social_links = parsedSocial;
 
     if (tmpFile) {
       const dest = `team-photos/${Date.now()}-${path.basename(tmpFile)}`;
@@ -248,7 +274,18 @@ router.put('/members/:memberId', authenticateAdmin, requireAnyAdmin, uploadPhoto
     if (error) throw error;
 
     if (team) await logAction(req, 'Edit Team Member', 'TeamMember', member.id, team.unit_id);
-    res.json({ success: true, data: { ...updated, _id: updated.id, teamId: updated.team_id, photo: updated.photo }, message: 'Member updated.' });
+    res.json({ 
+      success: true, 
+      data: { 
+        ...updated, 
+        _id: updated.id, 
+        teamId: updated.team_id, 
+        photo: updated.photo,
+        section: parsedSocial.section || 'Team Member',
+        organization: updated.department
+      }, 
+      message: 'Member updated.' 
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   } finally {
