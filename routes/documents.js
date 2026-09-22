@@ -300,19 +300,33 @@ router.patch('/:id/visibility', authenticateAdmin, requireAnyAdmin, async (req, 
   }
 });
 
-/** PUT /api/documents/:id — Edit Document Metadata */
-router.put('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
+/** PUT /api/documents/:id — Edit Document Metadata & Optional File Replacement */
+router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('file'), async (req, res) => {
+  let tmpFile = null;
   try {
     const { data: doc } = await supabase.from('documents').select('*').eq('id', req.params.id).single();
     if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
     if (!canAccessUnit(req.admin, doc.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    const { title, description, documentType, visibility } = req.body;
+    const { title, description, documentType, visibility, unitId, academicYearId } = req.body;
     const updates = { updated_at: new Date().toISOString() };
     if (title) updates.title = title;
     if (description !== undefined) updates.description = description;
     if (documentType) updates.document_type = documentType;
     if (visibility) updates.visibility = visibility;
+    if (unitId) updates.unit_id = unitId;
+    if (academicYearId) updates.academic_year_id = academicYearId;
+
+    if (req.file) {
+      tmpFile = req.file.path;
+      const publicUrl = await uploadFile(BUCKETS.DOCUMENTS, req.file.path, req.file.originalname, req.file.mimetype);
+      if (doc.file_path) {
+        await deleteFile(BUCKETS.DOCUMENTS, doc.file_path).catch(() => {});
+      }
+      updates.file_path = publicUrl;
+      updates.file_size = req.file.size;
+      updates.mime_type = req.file.mimetype;
+    }
 
     const { data: updated, error } = await supabase
       .from('documents')
@@ -327,6 +341,10 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
     res.json({ success: true, data: { ...updated, _id: updated.id, filePath: updated.file_path }, message: 'Document updated.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  } finally {
+    if (tmpFile && fs.existsSync(tmpFile)) {
+      try { fs.unlinkSync(tmpFile); } catch {}
+    }
   }
 });
 

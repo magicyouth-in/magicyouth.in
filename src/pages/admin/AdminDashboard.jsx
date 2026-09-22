@@ -19,8 +19,18 @@ async function api(url, opts = {}) {
     credentials: 'include',
     ...opts,
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Request failed');
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    if (!res.ok) {
+      if (res.status === 413) throw new Error('File or payload is too large (Request Entity Too Large).');
+      throw new Error(`Server error (${res.status}): ${text.slice(0, 120) || res.statusText}`);
+    }
+    throw new Error('Invalid response from server.');
+  }
+  if (!res.ok) throw new Error(data?.message || 'Request failed');
   return data;
 }
 
@@ -1727,8 +1737,11 @@ function ResourcesModule({ toast, units, academicYears }) {
     }
   };
 
+  const [replaceFile, setReplaceFile] = useState(null);
+
   const openEdit = (d) => {
     setEditingDoc(d);
+    setReplaceFile(null);
     setDocForm({
       title: d.title,
       description: d.description || '',
@@ -1742,21 +1755,50 @@ function ResourcesModule({ toast, units, academicYears }) {
 
   const handleEditDoc = async (e) => {
     e.preventDefault();
+    setUploading(true);
     try {
-      await api(`/api/documents/${editingDoc._id || editingDoc.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          title: docForm.title,
-          description: docForm.description,
-          documentType: docForm.documentType,
-          visibility: docForm.visibility
-        })
-      });
-      toast('Document metadata updated.');
+      if (replaceFile) {
+        const fd = new FormData();
+        fd.append('title', docForm.title);
+        fd.append('description', docForm.description);
+        fd.append('documentType', docForm.documentType);
+        fd.append('visibility', docForm.visibility);
+        fd.append('unitId', docForm.unitId);
+        fd.append('academicYearId', docForm.academicYearId);
+        fd.append('file', replaceFile);
+
+        const res = await fetch(`/api/documents/${editingDoc._id || editingDoc.id}`, {
+          method: 'PUT',
+          credentials: 'include',
+          body: fd
+        });
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { throw new Error(res.status === 413 ? 'File too large.' : 'Server error'); }
+        if (!data.success) throw new Error(data.message || 'Update failed');
+      } else {
+        await api(`/api/documents/${editingDoc._id || editingDoc.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            title: docForm.title,
+            description: docForm.description,
+            documentType: docForm.documentType,
+            visibility: docForm.visibility,
+            unitId: docForm.unitId,
+            academicYearId: docForm.academicYearId
+          })
+        });
+      }
+      toast('Document updated successfully.');
       setShowEditModal(false);
       setEditingDoc(null);
+      setReplaceFile(null);
       loadDocs();
-    } catch (e) { toast(e.message, 'error'); }
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -1917,14 +1959,38 @@ function ResourcesModule({ toast, units, academicYears }) {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
+                  <label className="admin-label">Chapter *</label>
+                  <select value={docForm.unitId} onChange={e => setDocForm({ ...docForm, unitId: e.target.value })} className="admin-select">
+                    {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="admin-label">Academic Year *</label>
+                  <select value={docForm.academicYearId} onChange={e => setDocForm({ ...docForm, academicYearId: e.target.value })} className="admin-select">
+                    {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
                   <label className="admin-label">Category</label>
-                  <input value={docForm.documentType} onChange={e => setDocForm({ ...docForm, documentType: e.target.value })} className="admin-input" />
+                  <select value={docForm.documentType} onChange={e => setDocForm({ ...docForm, documentType: e.target.value })} className="admin-select">
+                    <option value="Student Leadership & Formation">Student Leadership &amp; Formation</option>
+                    <option value="Publications & Reports">Publications &amp; Reports</option>
+                    <option value="Institutional Guide">Institutional Guide</option>
+                    <option value="Operational Toolkit">Operational Toolkit</option>
+                    <option value="Facilitation Guide">Facilitation Guide</option>
+                    <option value="Annual Publication">Annual Publication</option>
+                    <option value="Program Framework">Program Framework</option>
+                    <option value="Action Manual">Action Manual</option>
+                    <option value="Other Documents">Other Documents</option>
+                  </select>
                 </div>
                 <div>
                   <label className="admin-label">Visibility</label>
                   <select value={docForm.visibility} onChange={e => setDocForm({ ...docForm, visibility: e.target.value })} className="admin-select">
-                    <option value="Public">Public</option>
-                    <option value="Admin Only">Admin Only</option>
+                    <option value="Public">Public (Visible on /resources)</option>
+                    <option value="Admin Only">Admin Only (Internal)</option>
                   </select>
                 </div>
               </div>
@@ -1932,9 +1998,15 @@ function ResourcesModule({ toast, units, academicYears }) {
                 <label className="admin-label">Description</label>
                 <textarea rows={2} value={docForm.description} onChange={e => setDocForm({ ...docForm, description: e.target.value })} className="admin-textarea" />
               </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Replace File (Optional, leave blank to keep current file)</label>
+                <input type="file" onChange={e => setReplaceFile(e.target.files?.[0] || null)} className="admin-input" />
+              </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => setShowEditModal(false)} className="admin-btn-secondary">Cancel</button>
-                <button type="submit" className="admin-btn-primary">Save Changes</button>
+                <button type="button" onClick={() => setShowEditModal(false)} className="admin-btn-secondary" disabled={uploading}>Cancel</button>
+                <button type="submit" className="admin-btn-primary" disabled={uploading}>
+                  {uploading ? <><Loader2 size={15} className="animate-spin" /> Saving...</> : 'Save Changes'}
+                </button>
               </div>
             </form>
           </div>
