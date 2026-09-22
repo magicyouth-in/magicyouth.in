@@ -23,7 +23,7 @@ const joinRequestSchema = new mongoose.Schema({
   reason:           { type: String, required: true, trim: true },
   resumePath:       { type: String, default: null },    // Nextcloud path
   profileImagePath: { type: String, default: null },   // Nextcloud path
-  status:           { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
+  status:           { type: String, enum: ['Pending', 'Approved', 'Accepted', 'Rejected'], default: 'Pending' },
   adminNotes:       { type: String, default: '' },
 }, { timestamps: true });
 

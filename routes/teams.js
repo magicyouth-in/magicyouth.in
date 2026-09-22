@@ -210,6 +210,77 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
   }
 });
 
+/** PUT /api/teams/members/:memberId — Edit Team Member */
+router.put('/members/:memberId', authenticateAdmin, requireAnyAdmin, uploadPhoto.single('photo'), async (req, res) => {
+  const tmpFile = req.file ? req.file.path : null;
+  try {
+    const { data: member } = await supabase.from('team_members').select('*').eq('id', req.params.memberId).single();
+    if (!member) return res.status(404).json({ success: false, message: 'Member not found.' });
+
+    const { data: team } = await supabase.from('teams').select('*').eq('id', member.team_id).single();
+    if (team && !canAccessUnit(req.admin, team.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+
+    const { name, position, biography, department, batchYear, socialLinks, displayOrder, isActive } = req.body;
+    const updates = { updated_at: new Date().toISOString() };
+
+    if (name) updates.name = name;
+    if (position) updates.position = position;
+    if (biography !== undefined) updates.biography = biography;
+    if (department !== undefined) updates.department = department;
+    if (batchYear !== undefined) updates.batch_year = batchYear;
+    if (displayOrder !== undefined) updates.display_order = parseInt(displayOrder, 10);
+    if (isActive !== undefined) updates.is_active = isActive === 'true' || isActive === true;
+    if (socialLinks) updates.social_links = typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks;
+
+    if (tmpFile) {
+      const dest = `team-photos/${Date.now()}-${path.basename(tmpFile)}`;
+      const { publicUrl } = await uploadFile(BUCKETS.GALLERY, tmpFile, dest, req.file.mimetype);
+      updates.photo = publicUrl;
+    }
+
+    const { data: updated, error } = await supabase
+      .from('team_members')
+      .update(updates)
+      .eq('id', member.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (team) await logAction(req, 'Edit Team Member', 'TeamMember', member.id, team.unit_id);
+    res.json({ success: true, data: { ...updated, _id: updated.id, teamId: updated.team_id, photo: updated.photo }, message: 'Member updated.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    if (tmpFile && fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+  }
+});
+
+/** PATCH /api/teams/members/reorder — Reorder members persistently */
+router.patch('/members/reorder', authenticateAdmin, requireAnyAdmin, async (req, res) => {
+  try {
+    const { items, order } = req.body;
+    const list = items || order;
+    if (!Array.isArray(list)) {
+      return res.status(400).json({ success: false, message: 'Array of items or order is required.' });
+    }
+
+    const updates = list.map((item, index) => {
+      const id = typeof item === 'object' ? (item._id || item.id) : item;
+      const displayOrder = typeof item === 'object' && item.displayOrder !== undefined ? item.displayOrder : index;
+      return supabase
+        .from('team_members')
+        .update({ display_order: displayOrder, updated_at: new Date().toISOString() })
+        .eq('id', id);
+    });
+
+    await Promise.all(updates);
+    res.json({ success: true, message: 'Display order saved to database.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 /** DELETE /api/teams/members/:memberId */
 router.delete('/members/:memberId', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
@@ -229,3 +300,4 @@ router.delete('/members/:memberId', authenticateAdmin, requireAnyAdmin, async (r
 });
 
 module.exports = router;
+

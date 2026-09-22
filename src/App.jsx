@@ -33,7 +33,7 @@ function PageFallback() {
 
 function PublicLayout({ children }) {
   return (
-    <div className="public-wrapper" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', color: '#1F2937' }}>
+    <div className="public-wrapper" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', color: '#1F2937', paddingTop: '68px' }}>
       <Navbar />
       <main style={{ flex: 1 }}>
         <Suspense fallback={<PageFallback />}>

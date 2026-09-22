@@ -149,7 +149,15 @@ router.get('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
 router.patch('/:id/status', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     const { status, adminNotes } = req.body;
-    if (!['Pending', 'Approved', 'Rejected'].includes(status)) {
+    const statusMap = {
+      'accepted': 'Approved',
+      'approved': 'Approved',
+      'rejected': 'Rejected',
+      'pending': 'Pending'
+    };
+
+    const normalizedStatus = status ? statusMap[status.toLowerCase()] : null;
+    if (!normalizedStatus) {
       return res.status(400).json({ success: false, message: 'Invalid status value.' });
     }
 
@@ -157,7 +165,7 @@ router.patch('/:id/status', authenticateAdmin, requireAnyAdmin, async (req, res)
     if (!application) return res.status(404).json({ success: false, message: 'Application not found.' });
     if (application.unit_id && !canAccessUnit(req.admin, application.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    const updates = { status, updated_at: new Date().toISOString() };
+    const updates = { status: normalizedStatus, updated_at: new Date().toISOString() };
     if (adminNotes !== undefined) updates.admin_notes = adminNotes;
 
     const { data: updated, error } = await supabase
@@ -169,7 +177,7 @@ router.patch('/:id/status', authenticateAdmin, requireAnyAdmin, async (req, res)
 
     if (error) throw error;
 
-    res.json({ success: true, message: `Application ${status.toLowerCase()}.`, data: { ...updated, _id: updated.id } });
+    res.json({ success: true, message: `Application ${normalizedStatus.toLowerCase()}.`, data: { ...updated, _id: updated.id, status: normalizedStatus } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

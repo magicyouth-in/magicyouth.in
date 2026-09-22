@@ -1,10 +1,10 @@
-/* src/styles/navbar.css */
 .navbar-header {
-  position: sticky;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  width: 100%;
+  z-index: 9999;
   background-color: #FFFFFF;
   border-bottom: 1px solid #E5E7EB;
   transition: box-shadow 0.2s ease, background-color 0.2s ease;

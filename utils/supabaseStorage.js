@@ -28,11 +28,10 @@ async function initStorageBuckets() {
     const bucketNames = (existingBuckets || []).map(b => b.name);
 
     for (const bucket of Object.values(BUCKETS)) {
-      if (!bucketNames.includes(bucket)) {
-        const isPublic = bucket !== 'documents'; // documents can have restricted access
+        const isPublic = true;
         const { error: createError } = await supabase.storage.createBucket(bucket, {
           public: isPublic,
-          fileSizeLimit: 25 * 1024 * 1024, // 25MB
+          fileSizeLimit: 50 * 1024 * 1024, // 50MB
         });
         if (createError) {
           console.warn(`[Supabase Storage] Bucket "${bucket}" creation info:`, createError.message);

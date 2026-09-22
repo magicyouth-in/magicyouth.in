@@ -86,6 +86,40 @@ router.get('/download/:id', async (req, res) => {
   }
 });
 
+/** GET /api/documents/public — Public list of published toolkits & resources */
+router.get('/public', async (req, res) => {
+  try {
+    let query = supabase
+      .from('documents')
+      .select('*, units(name, code), academic_years(year)')
+      .eq('visibility', 'Public')
+      .order('created_at', { ascending: false });
+
+    if (req.query.unitId && req.query.unitId !== 'All') query = query.eq('unit_id', req.query.unitId);
+    if (req.query.academicYearId && req.query.academicYearId !== 'All') query = query.eq('academic_year_id', req.query.academicYearId);
+    if (req.query.documentType && req.query.documentType !== 'All') query = query.eq('document_type', req.query.documentType);
+
+    const { data: docs, error } = await query;
+    if (error) throw error;
+
+    const formatted = (docs || []).map(d => ({
+      ...d,
+      _id: d.id,
+      filePath: d.file_path,
+      fileSize: d.file_size,
+      mimeType: d.mime_type,
+      documentType: d.document_type,
+      downloadsCount: d.downloads_count,
+      unitId: d.unit_id ? { _id: d.unit_id, id: d.unit_id, name: d.units?.name || '', code: d.units?.code || '' } : null,
+      academicYearId: d.academic_year_id ? { _id: d.academic_year_id, id: d.academic_year_id, year: d.academic_years?.year || '' } : null,
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 /** GET /api/documents */
 router.get('/', async (req, res) => {
   try {
@@ -261,6 +295,36 @@ router.patch('/:id/visibility', authenticateAdmin, requireAnyAdmin, async (req, 
     if (error) throw error;
 
     res.json({ success: true, data: { ...updated, _id: updated.id, filePath: updated.file_path }, message: 'Visibility updated.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/** PUT /api/documents/:id — Edit Document Metadata */
+router.put('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
+  try {
+    const { data: doc } = await supabase.from('documents').select('*').eq('id', req.params.id).single();
+    if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
+    if (!canAccessUnit(req.admin, doc.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+
+    const { title, description, documentType, visibility } = req.body;
+    const updates = { updated_at: new Date().toISOString() };
+    if (title) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (documentType) updates.document_type = documentType;
+    if (visibility) updates.visibility = visibility;
+
+    const { data: updated, error } = await supabase
+      .from('documents')
+      .update(updates)
+      .eq('id', doc.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await logAction(req, 'Edit Document', 'Document', doc.id, doc.unit_id);
+    res.json({ success: true, data: { ...updated, _id: updated.id, filePath: updated.file_path }, message: 'Document updated.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
