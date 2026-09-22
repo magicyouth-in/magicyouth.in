@@ -112,7 +112,7 @@ export default function About() {
               </div>
               <div>
                 <h4 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.5rem' }}>YES-J Institutional Base</h4>
-                <p style={{ color: '#475569', lineHeight: 1.6, marginBottom: '1rem' }}>MAGIC Youth coordinates its regional campus units centrally through the YES-J headquarters in Vijayawada, Andhra Pradesh, India.</p>
+                <p style={{ color: '#475569', lineHeight: 1.6, marginBottom: '1rem' }}>MAGIC Youth coordinates its collegiate campus chapters centrally through the YES-J headquarters in Vijayawada, Andhra Pradesh, India.</p>
                 <a href="https://yesj.org/contact" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-blue)', fontWeight: 600, textDecoration: 'none' }}>View Official Location &rarr;</a>
               </div>
             </div>
