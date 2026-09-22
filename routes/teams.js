@@ -130,45 +130,89 @@ router.post('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
     const { data: team, error } = await supabase
       .from('teams')
       .insert([{
-        name: name || 'Executive Board',
+        name: (name || 'Executive Board').trim(),
         unit_id: unitId,
         academic_year_id: academicYearId,
         status: status || 'Active',
       }])
-      .select()
+      .select('*, units(name, code), academic_years(year)')
       .single();
 
     if (error) throw error;
 
     await logAction(req, 'Create Team', 'Team', team.id, unitId);
-    res.status(201).json({ success: true, data: { ...team, _id: team.id }, message: 'Team created.' });
+    res.status(201).json({
+      success: true,
+      data: {
+        ...team,
+        _id: team.id,
+        unitId: team.unit_id ? { _id: team.unit_id, id: team.unit_id, name: team.units?.name || '', code: team.units?.code || '' } : null,
+        academicYearId: team.academic_year_id ? { _id: team.academic_year_id, id: team.academic_year_id, year: team.academic_years?.year || '' } : null,
+      },
+      message: 'Team body created.'
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
-/** PUT /api/teams/:id */
+/** PUT /api/teams/:id — Edit Team Body (Name, Academic Year, Chapter, Status) */
 router.put('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     const { data: team } = await supabase.from('teams').select('*').eq('id', req.params.id).single();
     if (!team) return res.status(404).json({ success: false, message: 'Team not found.' });
     if (!canAccessUnit(req.admin, team.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
+    const { name, unitId, academicYearId, status } = req.body;
     const updates = { updated_at: new Date().toISOString() };
-    if (req.body.name) updates.name = req.body.name;
-    if (req.body.status) updates.status = req.body.status;
+    if (name !== undefined) updates.name = name.trim();
+    if (unitId) {
+      if (!canAccessUnit(req.admin, unitId)) return res.status(403).json({ success: false, message: 'Cannot move team to unauthorized chapter.' });
+      updates.unit_id = unitId;
+    }
+    if (academicYearId) updates.academic_year_id = academicYearId;
+    if (status) updates.status = status;
 
     const { data: updated, error } = await supabase
       .from('teams')
       .update(updates)
       .eq('id', req.params.id)
-      .select()
+      .select('*, units(name, code), academic_years(year)')
       .single();
 
     if (error) throw error;
 
-    await logAction(req, 'Edit Team', 'Team', updated.id, team.unit_id);
-    res.json({ success: true, data: { ...updated, _id: updated.id }, message: 'Team updated.' });
+    await logAction(req, 'Edit Team Body', 'Team', updated.id, updated.unit_id);
+    res.json({
+      success: true,
+      data: {
+        ...updated,
+        _id: updated.id,
+        unitId: updated.unit_id ? { _id: updated.unit_id, id: updated.unit_id, name: updated.units?.name || '', code: updated.units?.code || '' } : null,
+        academicYearId: updated.academic_year_id ? { _id: updated.academic_year_id, id: updated.academic_year_id, year: updated.academic_years?.year || '' } : null,
+      },
+      message: 'Team body updated successfully.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/** DELETE /api/teams/:id — Delete Team Body */
+router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
+  try {
+    const { data: team } = await supabase.from('teams').select('*').eq('id', req.params.id).single();
+    if (!team) return res.status(404).json({ success: false, message: 'Team not found.' });
+    if (!canAccessUnit(req.admin, team.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+
+    // Delete attached members first
+    await supabase.from('team_members').delete().eq('team_id', team.id);
+
+    // Delete team body
+    await supabase.from('teams').delete().eq('id', team.id);
+    await logAction(req, 'Delete Team Body', 'Team', team.id, team.unit_id);
+
+    res.json({ success: true, message: 'Team body deleted successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

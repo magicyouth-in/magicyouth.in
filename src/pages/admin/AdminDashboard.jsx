@@ -552,18 +552,35 @@ function ChaptersModule({ toast, refreshUnits }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 3. TEAMS MODULE (Persistent Display Order & Full Member CRUD)
+// 3. TEAMS MODULE (Persistent Display Order, Full Member CRUD & Team Body Editing)
 // ═════════════════════════════════════════════════════════════════════════════
 function TeamsModule({ toast, units, academicYears }) {
-  const [selectedUnit, setSelectedUnit] = useState(units[0]?._id || 'all');
+  const [selectedUnit, setSelectedUnit] = useState('all');
+  const [selectedYear, setSelectedYear] = useState('all');
   const [teams, setTeams] = useState([]);
   const [membersMap, setMembersMap] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Modals state
+  // Modals state for Team Body
   const [showAddTeam, setShowAddTeam] = useState(false);
-  const [newTeamName, setNewTeamName] = useState('Executive Board');
-  
+  const [addTeamForm, setAddTeamForm] = useState({
+    name: 'Executive Board',
+    unitId: units[0]?._id || '',
+    academicYearId: academicYears[0]?._id || '',
+    status: 'Active'
+  });
+
+  const [showEditTeamModal, setShowEditTeamModal] = useState(false);
+  const [editingTeam, setEditingTeam] = useState(null);
+  const [editTeamForm, setEditTeamForm] = useState({
+    name: '',
+    unitId: '',
+    academicYearId: '',
+    status: 'Active'
+  });
+  const [teamSaving, setTeamSaving] = useState(false);
+
+  // Modals state for Team Member
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
   const [activeTeamId, setActiveTeamId] = useState(null);
@@ -579,11 +596,25 @@ function TeamsModule({ toast, units, academicYears }) {
   });
   const [memberPhoto, setMemberPhoto] = useState(null);
 
+  // Update default form values when global data loads
+  useEffect(() => {
+    if (units.length > 0 && !addTeamForm.unitId) {
+      setAddTeamForm(f => ({ ...f, unitId: units[0]._id }));
+    }
+    if (academicYears.length > 0 && !addTeamForm.academicYearId) {
+      setAddTeamForm(f => ({ ...f, academicYearId: academicYears[0]._id }));
+    }
+  }, [units, academicYears]);
+
   const loadTeamsAndMembers = useCallback(async () => {
     setLoading(true);
     try {
       let q = '/api/teams';
-      if (selectedUnit !== 'all') q += `?unitId=${selectedUnit}`;
+      const params = [];
+      if (selectedUnit !== 'all') params.push(`unitId=${selectedUnit}`);
+      if (selectedYear !== 'all') params.push(`academicYearId=${selectedYear}`);
+      if (params.length > 0) q += `?${params.join('&')}`;
+
       const res = await api(q);
       const list = res.data || [];
       setTeams(list);
@@ -591,10 +622,10 @@ function TeamsModule({ toast, units, academicYears }) {
       const memMap = {};
       await Promise.all(list.map(async t => {
         try {
-          const m = await api(`/api/teams/${t._id}/members`);
-          memMap[t._id] = m.data || [];
+          const m = await api(`/api/teams/${t._id || t.id}/members`);
+          memMap[t._id || t.id] = m.data || [];
         } catch {
-          memMap[t._id] = [];
+          memMap[t._id || t.id] = [];
         }
       }));
       setMembersMap(memMap);
@@ -603,39 +634,109 @@ function TeamsModule({ toast, units, academicYears }) {
     } finally {
       setLoading(false);
     }
-  }, [selectedUnit, toast]);
+  }, [selectedUnit, selectedYear, toast]);
 
   useEffect(() => {
     loadTeamsAndMembers();
   }, [loadTeamsAndMembers]);
 
+  // Open Create Team Modal
+  const openCreateTeamModal = () => {
+    setAddTeamForm({
+      name: 'Executive Board',
+      unitId: selectedUnit !== 'all' ? selectedUnit : (units[0]?._id || ''),
+      academicYearId: selectedYear !== 'all' ? selectedYear : (academicYears[0]?._id || ''),
+      status: 'Active'
+    });
+    setShowAddTeam(true);
+  };
+
+  // Create Team Body Handler
   const handleCreateTeam = async (e) => {
     e.preventDefault();
-    if (!selectedUnit || selectedUnit === 'all') {
-      toast('Please select a specific Chapter first.', 'error');
+    if (!addTeamForm.name || !addTeamForm.unitId || !addTeamForm.academicYearId) {
+      toast('Team Name, Chapter, and Academic Year are required.', 'error');
       return;
     }
-    const currentYearObj = academicYears.find(y => y.isCurrent) || academicYears[0];
-    if (!currentYearObj) {
-      toast('Please create an Academic Year first.', 'error');
-      return;
-    }
+    setTeamSaving(true);
     try {
       await api('/api/teams', {
         method: 'POST',
         body: JSON.stringify({
-          unitId: selectedUnit,
-          academicYearId: currentYearObj._id,
-          name: newTeamName,
-          status: 'Active'
+          unitId: addTeamForm.unitId,
+          academicYearId: addTeamForm.academicYearId,
+          name: addTeamForm.name,
+          status: addTeamForm.status || 'Active'
         })
       });
-      toast(`Team ${newTeamName} created.`);
+      toast(`Team "${addTeamForm.name}" created successfully.`);
       setShowAddTeam(false);
       loadTeamsAndMembers();
-    } catch (e) { toast(e.message, 'error'); }
+    } catch (e) {
+      toast(e.message || 'Failed to create team', 'error');
+    } finally {
+      setTeamSaving(false);
+    }
   };
 
+  // Open Edit Team Body Modal
+  const openEditTeam = (team) => {
+    setEditingTeam(team);
+    setEditTeamForm({
+      name: team.name || 'Executive Board',
+      unitId: team.unitId?._id || team.unitId?.id || team.unit_id || units[0]?._id || '',
+      academicYearId: team.academicYearId?._id || team.academicYearId?.id || team.academic_year_id || academicYears[0]?._id || '',
+      status: team.status || 'Active'
+    });
+    setShowEditTeamModal(true);
+  };
+
+  // Save Edit Team Body Handler
+  const handleSaveEditTeam = async (e) => {
+    e.preventDefault();
+    if (!editTeamForm.name || !editTeamForm.unitId || !editTeamForm.academicYearId) {
+      toast('Team Name, Chapter, and Academic Year are required.', 'error');
+      return;
+    }
+    setTeamSaving(true);
+    try {
+      await api(`/api/teams/${editingTeam._id || editingTeam.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: editTeamForm.name,
+          unitId: editTeamForm.unitId,
+          academicYearId: editTeamForm.academicYearId,
+          status: editTeamForm.status
+        })
+      });
+      toast(`Team Body updated to "${editTeamForm.name}".`);
+      setShowEditTeamModal(false);
+      setEditingTeam(null);
+      loadTeamsAndMembers();
+    } catch (e) {
+      toast(e.message || 'Failed to update team body', 'error');
+    } finally {
+      setTeamSaving(false);
+    }
+  };
+
+  // Delete Team Body Handler
+  const handleDeleteTeam = async (teamId, teamName) => {
+    const memberCount = (membersMap[teamId] || []).length;
+    const msg = memberCount > 0 
+      ? `Are you sure you want to delete "${teamName}" and all ${memberCount} team members in it?`
+      : `Are you sure you want to delete "${teamName}"?`;
+    if (!confirm(msg)) return;
+    try {
+      await api(`/api/teams/${teamId}`, { method: 'DELETE' });
+      toast(`Team "${teamName}" deleted.`);
+      loadTeamsAndMembers();
+    } catch (e) {
+      toast(e.message || 'Failed to delete team', 'error');
+    }
+  };
+
+  // Member Handlers
   const openAddMember = (teamId) => {
     setActiveTeamId(teamId);
     setEditingMember(null);
@@ -660,7 +761,7 @@ function TeamsModule({ toast, units, academicYears }) {
       name: m.name || '', 
       section: m.section || (/animator|faculty advisor|mentor/i.test(m.position) ? 'Main Animator' : 'Team Member'),
       position: m.position || '', 
-      department: m.department || '', 
+      department: m.department || m.organization || '', 
       organization: m.organization || m.department || '',
       batchYear: m.batchYear || '', 
       biography: m.biography || '', 
@@ -688,7 +789,7 @@ function TeamsModule({ toast, units, academicYears }) {
       fd.append('displayOrder', memberForm.displayOrder ?? 0);
       if (memberPhoto) fd.append('photo', memberPhoto);
 
-      let url = editingMember ? `/api/teams/members/${editingMember._id}` : `/api/teams/${activeTeamId}/members`;
+      let url = editingMember ? `/api/teams/members/${editingMember._id || editingMember.id}` : `/api/teams/${activeTeamId}/members`;
       let method = editingMember ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -720,7 +821,7 @@ function TeamsModule({ toast, units, academicYears }) {
     setMembersMap({ ...membersMap, [teamId]: list });
 
     // Prepare payload with new displayOrder values
-    const items = list.map((m, idx) => ({ id: m._id, displayOrder: idx }));
+    const items = list.map((m, idx) => ({ id: m._id || m.id, displayOrder: idx }));
 
     try {
       await api('/api/teams/members/reorder', {
@@ -750,18 +851,26 @@ function TeamsModule({ toast, units, academicYears }) {
           <h1 className="admin-module-title">Teams &amp; Student Leaders</h1>
           <p className="admin-module-subtitle">Directly manage chapter team rosters, Main Animators, and student leads displayed on the public /teams page.</p>
         </div>
-        <button onClick={() => setShowAddTeam(true)} className="admin-btn-primary">
+        <button onClick={openCreateTeamModal} className="admin-btn-primary">
           <Plus size={16} /> Create Team Body
         </button>
       </div>
 
       {/* Filter bar */}
-      <div className="admin-card" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="admin-card" style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <label className="admin-label">Filter by Chapter</label>
           <select value={selectedUnit} onChange={e => setSelectedUnit(e.target.value)} className="admin-select" style={{ minWidth: 200 }}>
             <option value="all">All Chapters</option>
             {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="admin-label">Filter by Academic Year</label>
+          <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} className="admin-select" style={{ minWidth: 200 }}>
+            <option value="all">All Academic Years</option>
+            {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
           </select>
         </div>
       </div>
@@ -770,43 +879,73 @@ function TeamsModule({ toast, units, academicYears }) {
         <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><Loader2 size={32} className="animate-spin" color="var(--primary-blue)" /></div>
       ) : teams.length === 0 ? (
         <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
-          No leadership teams created for this selection. Click "+ Create Team Body" above to add one.
+          No leadership teams found for this selection. Click &quot;+ Create Team Body&quot; above to add one.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           {teams.map(team => {
-            const teamMembers = membersMap[team._id] || [];
+            const teamId = team._id || team.id;
+            const teamMembers = membersMap[teamId] || [];
             return (
-              <div key={team._id} className="admin-card">
+              <div key={teamId} className="admin-card">
+                {/* Team Body Header with Chapter, Academic Year & Action Buttons */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.25rem' }}>
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                      {team.unitId?.name || 'CAMPUS'} &bull; {team.academicYearId?.year || '2025-26'}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', backgroundColor: '#EFF6FF', padding: '0.2rem 0.6rem', borderRadius: '999px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {team.unitId?.name || 'CAMPUS'}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-pink)', backgroundColor: '#FFF1F2', padding: '0.2rem 0.6rem', borderRadius: '999px' }}>
+                        {team.academicYearId?.year || '2025-26'}
+                      </span>
                     </div>
-                    <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0.25rem 0' }}>
-                      {team.name}
-                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+                        {team.name}
+                      </h3>
+                      <button 
+                        onClick={() => openEditTeam(team)} 
+                        className="admin-btn-action" 
+                        style={{ padding: '0.3rem 0.6rem', fontSize: '0.78125rem', color: 'var(--primary-blue)', borderColor: 'rgba(2,132,199,0.3)' }}
+                        title="Edit Team Body (Name, Academic Year, Chapter)"
+                      >
+                        <Edit size={13} /> Edit Team Body
+                      </button>
+                    </div>
                   </div>
-                  <button 
-                    onClick={() => openAddMember(team._id)}
-                    className="admin-btn-primary"
-                    style={{ fontSize: '0.8125rem', padding: '0.5rem 1rem' }}
-                  >
-                    <Plus size={14} /> Add Team Member
-                  </button>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button 
+                      onClick={() => openAddMember(teamId)}
+                      className="admin-btn-primary"
+                      style={{ fontSize: '0.8125rem', padding: '0.5rem 1rem' }}
+                    >
+                      <Plus size={14} /> Add Team Member
+                    </button>
+                    {teamMembers.length === 0 && (
+                      <button 
+                        onClick={() => handleDeleteTeam(teamId, team.name)} 
+                        className="admin-btn-danger" 
+                        style={{ padding: '0.5rem 0.75rem', fontSize: '0.8125rem' }} 
+                        title="Delete Empty Team Body"
+                      >
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Members list with persistent reordering */}
                 {teamMembers.length === 0 ? (
                   <p style={{ color: '#94A3B8', fontSize: '0.875rem', fontStyle: 'italic', margin: '1rem 0' }}>
-                    No members added to this team yet. Use the "Add Team Member" button to add animators and student leads.
+                    No members added to this team yet. Use the &quot;Add Team Member&quot; button to add animators and student leads.
                   </p>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
                     {teamMembers.map((m, idx) => {
                       const isAnimator = m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position);
                       return (
-                        <div key={m._id} style={{ backgroundColor: '#F8FAFC', border: `1.5px solid ${isAnimator ? '#FDA4AF' : 'var(--border-color)'}`, borderRadius: '0.75rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div key={m._id || m.id} style={{ backgroundColor: '#F8FAFC', border: `1.5px solid ${isAnimator ? '#FDA4AF' : 'var(--border-color)'}`, borderRadius: '0.75rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94A3B8', width: '20px' }}>
                               #{idx + 1}
@@ -842,7 +981,7 @@ function TeamsModule({ toast, units, academicYears }) {
                             {/* Reorder Buttons */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                               <button 
-                                onClick={() => handleMoveMember(team._id, idx, 'up')} 
+                                onClick={() => handleMoveMember(teamId, idx, 'up')} 
                                 disabled={idx === 0} 
                                 className="admin-btn-action" 
                                 style={{ padding: '0.2rem', opacity: idx === 0 ? 0.3 : 1 }} 
@@ -851,7 +990,7 @@ function TeamsModule({ toast, units, academicYears }) {
                                 <ChevronUp size={14} />
                               </button>
                               <button 
-                                onClick={() => handleMoveMember(team._id, idx, 'down')} 
+                                onClick={() => handleMoveMember(teamId, idx, 'down')} 
                                 disabled={idx === teamMembers.length - 1} 
                                 className="admin-btn-action" 
                                 style={{ padding: '0.2rem', opacity: idx === teamMembers.length - 1 ? 0.3 : 1 }} 
@@ -861,10 +1000,10 @@ function TeamsModule({ toast, units, academicYears }) {
                               </button>
                             </div>
 
-                            <button onClick={() => openEditMember(team._id, m)} className="admin-btn-action" style={{ padding: '0.4rem' }} title="Edit Member">
+                            <button onClick={() => openEditMember(teamId, m)} className="admin-btn-action" style={{ padding: '0.4rem' }} title="Edit Member">
                               <Edit size={13} />
                             </button>
-                            <button onClick={() => handleDeleteMember(m._id)} className="admin-btn-danger" style={{ padding: '0.4rem' }} title="Remove Member">
+                            <button onClick={() => handleDeleteMember(m._id || m.id)} className="admin-btn-danger" style={{ padding: '0.4rem' }} title="Remove Member">
                               <Trash2 size={13} />
                             </button>
                           </div>
@@ -879,32 +1018,101 @@ function TeamsModule({ toast, units, academicYears }) {
         </div>
       )}
 
-      {/* Add Team Modal */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* CREATE TEAM BODY MODAL */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
       {showAddTeam && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-box">
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.25rem' }}>Create Team Body</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Create Team Body</h3>
+              <button onClick={() => setShowAddTeam(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
             <form onSubmit={handleCreateTeam} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="admin-input-group">
-                <label className="admin-label">Select Chapter</label>
-                <select value={selectedUnit} onChange={e => setSelectedUnit(e.target.value)} className="admin-select">
-                  {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-                </select>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="admin-input-group">
+                  <label className="admin-label">Chapter *</label>
+                  <select value={addTeamForm.unitId} onChange={e => setAddTeamForm({ ...addTeamForm, unitId: e.target.value })} className="admin-select">
+                    {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                  </select>
+                </div>
+                <div className="admin-input-group">
+                  <label className="admin-label">Academic Year *</label>
+                  <select value={addTeamForm.academicYearId} onChange={e => setAddTeamForm({ ...addTeamForm, academicYearId: e.target.value })} className="admin-select">
+                    {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                  </select>
+                </div>
               </div>
+
               <div className="admin-input-group">
                 <label className="admin-label">Team Body Name *</label>
-                <input required placeholder="e.g. Executive Board, Core Committee" value={newTeamName} onChange={e => setNewTeamName(e.target.value)} className="admin-input" />
+                <input required placeholder="e.g. Executive Board, Core Leadership Team" value={addTeamForm.name} onChange={e => setAddTeamForm({ ...addTeamForm, name: e.target.value })} className="admin-input" />
               </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => setShowAddTeam(false)} className="admin-btn-secondary">Cancel</button>
-                <button type="submit" className="admin-btn-primary">Create Team</button>
+                <button type="button" onClick={() => setShowAddTeam(false)} className="admin-btn-secondary" disabled={teamSaving}>Cancel</button>
+                <button type="submit" className="admin-btn-primary" disabled={teamSaving}>
+                  {teamSaving ? <><Loader2 size={15} className="animate-spin" /> Creating...</> : 'Create Team Body'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Add / Edit Member Modal */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* EDIT TEAM BODY MODAL (Supports Editing Chapter, Year, and Name) */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {showEditTeamModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Edit Team Body Details</h3>
+              <button onClick={() => setShowEditTeamModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleSaveEditTeam} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="admin-input-group">
+                  <label className="admin-label">Chapter *</label>
+                  <select value={editTeamForm.unitId} onChange={e => setEditTeamForm({ ...editTeamForm, unitId: e.target.value })} className="admin-select">
+                    {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                  </select>
+                </div>
+                <div className="admin-input-group">
+                  <label className="admin-label">Academic Year * (Editable)</label>
+                  <select value={editTeamForm.academicYearId} onChange={e => setEditTeamForm({ ...editTeamForm, academicYearId: e.target.value })} className="admin-select" style={{ borderColor: 'var(--primary-blue)', borderWidth: '2px' }}>
+                    {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-label">Team Body Name * (Editable)</label>
+                <input required placeholder="e.g. Executive Board, Core Leadership Team" value={editTeamForm.name} onChange={e => setEditTeamForm({ ...editTeamForm, name: e.target.value })} className="admin-input" />
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-label">Status</label>
+                <select value={editTeamForm.status} onChange={e => setEditTeamForm({ ...editTeamForm, status: e.target.value })} className="admin-select">
+                  <option value="Active">Active</option>
+                  <option value="Archived">Archived</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setShowEditTeamModal(false)} className="admin-btn-secondary" disabled={teamSaving}>Cancel</button>
+                <button type="submit" className="admin-btn-primary" disabled={teamSaving}>
+                  {teamSaving ? <><Loader2 size={15} className="animate-spin" /> Saving Changes...</> : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* ADD / EDIT MEMBER MODAL */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
       {showMemberModal && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-box">
@@ -948,7 +1156,7 @@ function TeamsModule({ toast, units, academicYears }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label className="admin-label">Organization / College / Dept</label>
-                  <input placeholder="e.g. ALIET or EEE Department" value={memberForm.organization || memberForm.department} onChange={e => setMemberForm({ ...memberForm, organization: e.target.value, department: e.target.value })} className="admin-input" />
+                  <input placeholder="e.g. ALIET or CSE (AI & ML) Department" value={memberForm.organization || memberForm.department} onChange={e => setMemberForm({ ...memberForm, organization: e.target.value, department: e.target.value })} className="admin-input" />
                 </div>
                 <div>
                   <label className="admin-label">Display Order (Optional)</label>
