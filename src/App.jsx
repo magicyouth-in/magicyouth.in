@@ -81,7 +81,7 @@ export default function App() {
         <Route path="/impact"        element={<PublicLayout><Impact        /></PublicLayout>} />
         <Route path="/media"         element={<PublicLayout><Media         /></PublicLayout>} />
         <Route path="/teams"         element={<PublicLayout><Teams         /></PublicLayout>} />
-        <Route path="/resources"     element={<PublicLayout><Resources     /></PublicLayout>} />
+        <Route path="/resources"     element={<Navigate to="/media" replace />} />
         <Route path="/documentation" element={<PublicLayout><Documentation /></PublicLayout>} />
         <Route path="/join"          element={<PublicLayout><JoinUs        /></PublicLayout>} />
         <Route path="/contact"       element={<PublicLayout><Contact       /></PublicLayout>} />

@@ -310,7 +310,7 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('file'), asyn
         mime_type: finalMimeType,
         visibility: visibility || 'Public',
       }])
-      .select()
+      .select('*, units(name, code), academic_years(year)')
       .single();
 
     if (error) {
@@ -323,7 +323,17 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('file'), asyn
     await logAction(req, 'Upload Document', 'Document', doc.id, unitId);
     res.status(201).json({
       success: true,
-      data: { ...doc, _id: doc.id, filePath: doc.file_path },
+      data: {
+        ...doc,
+        _id: doc.id,
+        filePath: doc.file_path,
+        fileSize: doc.file_size,
+        mimeType: doc.mime_type,
+        documentType: doc.document_type,
+        downloadsCount: doc.downloads_count,
+        unitId: doc.unit_id ? { _id: doc.unit_id, id: doc.unit_id, name: doc.units?.name || '', code: doc.units?.code || '' } : null,
+        academicYearId: doc.academic_year_id ? { _id: doc.academic_year_id, id: doc.academic_year_id, year: doc.academic_years?.year || '' } : null,
+      },
       message: 'Document uploaded successfully.'
     });
   } catch (err) {
@@ -422,7 +432,7 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('file'), as
       .from('documents')
       .update(updates)
       .eq('id', doc.id)
-      .select()
+      .select('*, units(name, code), academic_years(year)')
       .single();
 
     if (error) throw error;
@@ -430,7 +440,17 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('file'), as
     await logAction(req, 'Edit Document', 'Document', doc.id, doc.unit_id);
     res.json({
       success: true,
-      data: { ...updated, _id: updated.id, filePath: updated.file_path },
+      data: {
+        ...updated,
+        _id: updated.id,
+        filePath: updated.file_path,
+        fileSize: updated.file_size,
+        mimeType: updated.mime_type,
+        documentType: updated.document_type,
+        downloadsCount: updated.downloads_count,
+        unitId: updated.unit_id ? { _id: updated.unit_id, id: updated.unit_id, name: updated.units?.name || '', code: updated.units?.code || '' } : null,
+        academicYearId: updated.academic_year_id ? { _id: updated.academic_year_id, id: updated.academic_year_id, year: updated.academic_years?.year || '' } : null,
+      },
       message: 'Document updated successfully.'
     });
   } catch (err) {

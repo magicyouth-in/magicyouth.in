@@ -163,6 +163,48 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.array('photos', 30),
   }
 });
 
+/** PUT /api/gallery/:id — Edit Gallery Photo Details */
+router.put('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
+  try {
+    const { data: photo } = await supabase.from('gallery').select('*').eq('id', req.params.id).single();
+    if (!photo) return res.status(404).json({ success: false, message: 'Photo not found.' });
+    if (!canAccessUnit(req.admin, photo.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+
+    const { title, description, album, category, unitId, academicYearId } = req.body;
+    const updates = {};
+    if (title !== undefined) updates.title = title.trim();
+    if (description !== undefined) updates.description = description;
+    if (album !== undefined) updates.album = album;
+    if (category !== undefined) updates.category = category;
+    if (unitId) updates.unit_id = unitId;
+    if (academicYearId) updates.academic_year_id = academicYearId;
+
+    const { data: updated, error } = await supabase
+      .from('gallery')
+      .update(updates)
+      .eq('id', photo.id)
+      .select('*, units(name, code), academic_years(year)')
+      .single();
+
+    if (error) throw error;
+
+    await logAction(req, 'Edit Gallery Photo', 'Gallery', photo.id, photo.unit_id);
+    res.json({
+      success: true,
+      data: {
+        ...updated,
+        _id: updated.id,
+        filePath: updated.file_path,
+        unitId: updated.unit_id ? { _id: updated.unit_id, id: updated.unit_id, name: updated.units?.name || '', code: updated.units?.code || '' } : null,
+        academicYearId: updated.academic_year_id ? { _id: updated.academic_year_id, id: updated.academic_year_id, year: updated.academic_years?.year || '' } : null,
+      },
+      message: 'Photo details updated successfully.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 /** DELETE /api/gallery/:id */
 router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {

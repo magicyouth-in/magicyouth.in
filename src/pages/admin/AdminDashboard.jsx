@@ -136,14 +136,13 @@ export default function AdminDashboard() {
     {
       group: 'CONTENT',
       items: [
-        { id: 'chapters',   label: 'Chapters',        icon: Building2 },
-        { id: 'teams',      label: 'Teams & Leads',   icon: Users },
-        { id: 'programs',   label: 'Programs',        icon: BookOpen },
-        { id: 'events',     label: 'Events & Impact', icon: Calendar },
-        { id: 'stories',    label: 'Stories',         icon: Sparkles },
-        { id: 'gallery',    label: 'Media / Gallery', icon: Image },
-        { id: 'resources',  label: 'Resources',       icon: FileText },
-        { id: 'faqs',       label: 'FAQs',            icon: HelpCircle }
+        { id: 'chapters',   label: 'Chapters',             icon: Building2 },
+        { id: 'teams',      label: 'Teams & Leads',        icon: Users },
+        { id: 'programs',   label: 'Programs',             icon: BookOpen },
+        { id: 'events',     label: 'Events & Impact',      icon: Calendar },
+        { id: 'stories',    label: 'Stories',              icon: Sparkles },
+        { id: 'media',      label: 'Media & Publications', icon: Image },
+        { id: 'faqs',       label: 'FAQs',                 icon: HelpCircle }
       ]
     },
     {
@@ -277,9 +276,7 @@ export default function AdminDashboard() {
           {activeTab === 'teams'          && <TeamsModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'programs'       && <ProgramsModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'events'         && <EventsModule toast={showToast} units={units} academicYears={academicYears} />}
-          {activeTab === 'stories'        && <StoriesModule toast={showToast} units={units} />}
-          {activeTab === 'gallery'        && <GalleryModule toast={showToast} units={units} academicYears={academicYears} />}
-          {activeTab === 'resources'      && <ResourcesModule toast={showToast} units={units} academicYears={academicYears} />}
+          {(activeTab === 'media' || activeTab === 'gallery' || activeTab === 'resources') && <MediaModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'faqs'           && <FaqModule toast={showToast} />}
           {activeTab === 'join-apps'      && <JoinApplicationsModule toast={showToast} />}
           {activeTab === 'chapter-apps'   && <ChapterApplicationsModule toast={showToast} />}
@@ -1499,28 +1496,270 @@ function StoriesModule({ toast, units }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 7. GALLERY & MEDIA MODULE (Multi-photo upload & delete)
+// 7. MEDIA & PUBLICATIONS MODULE (Unified: Publications, Documents, Toolkits & Gallery)
 // ═════════════════════════════════════════════════════════════════════════════
-function GalleryModule({ toast, units, academicYears }) {
-  const [photos, setPhotos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [galleryForm, setGalleryForm] = useState({ unitId: units[0]?._id || '', academicYearId: academicYears[0]?._id || '', album: 'General', category: 'Events', title: '', description: '' });
-  const [selectedFiles, setSelectedFiles] = useState([]);
+function MediaModule({ toast, units, academicYears }) {
+  const [activeSubTab, setActiveSubTab] = useState('documents'); // 'documents' | 'gallery'
 
-  const loadPhotos = useCallback(() => {
-    setLoading(true);
-    api('/api/gallery')
-      .then(d => { setPhotos(d.data || []); setLoading(false); })
-      .catch(e => { toast(e.message, 'error'); setLoading(false); });
+  // --- Publications & Documents State ---
+  const [docs, setDocs] = useState([]);
+  const [docsLoading, setDocsLoading] = useState(true);
+  const [showDocUploadModal, setShowDocUploadModal] = useState(false);
+  const [showDocEditModal, setShowDocEditModal] = useState(false);
+  const [editingDoc, setEditingDoc] = useState(null);
+  const [docUploading, setDocUploading] = useState(false);
+  const [docSearch, setDocSearch] = useState('');
+  const [docCategoryFilter, setDocCategoryFilter] = useState('All');
+  const [docUnitFilter, setDocUnitFilter] = useState('All');
+  const [docYearFilter, setDocYearFilter] = useState('All');
+
+  const [docForm, setDocForm] = useState({
+    title: '',
+    description: '',
+    documentType: 'Magazines & Publications',
+    visibility: 'Public',
+    unitId: units[0]?._id || '',
+    academicYearId: academicYears[0]?._id || ''
+  });
+  const [fileToUpload, setFileToUpload] = useState(null);
+  const [replaceFile, setReplaceFile] = useState(null);
+
+  // --- Gallery State ---
+  const [photos, setPhotos] = useState([]);
+  const [photosLoading, setPhotosLoading] = useState(true);
+  const [showPhotoUploadModal, setShowPhotoUploadModal] = useState(false);
+  const [showPhotoEditModal, setShowPhotoEditModal] = useState(false);
+  const [editingPhoto, setEditingPhoto] = useState(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoAlbumFilter, setPhotoAlbumFilter] = useState('All');
+  const [photoUnitFilter, setPhotoUnitFilter] = useState('All');
+  const [photoYearFilter, setPhotoYearFilter] = useState('All');
+
+  const [galleryForm, setGalleryForm] = useState({
+    unitId: units[0]?._id || '',
+    academicYearId: academicYears[0]?._id || '',
+    album: 'General',
+    category: 'Events',
+    title: '',
+    description: ''
+  });
+  const [selectedPhotos, setSelectedPhotos] = useState([]);
+
+  // Load Documents
+  const loadDocs = useCallback(() => {
+    setDocsLoading(true);
+    api('/api/documents/admin/all')
+      .then(d => { setDocs(d.data || []); setDocsLoading(false); })
+      .catch(e => { toast(e.message, 'error'); setDocsLoading(false); });
   }, [toast]);
 
-  useEffect(() => { loadPhotos(); }, [loadPhotos]);
+  // Load Gallery
+  const loadPhotos = useCallback(() => {
+    setPhotosLoading(true);
+    api('/api/gallery')
+      .then(d => { setPhotos(d.data || []); setPhotosLoading(false); })
+      .catch(e => { toast(e.message, 'error'); setPhotosLoading(false); });
+  }, [toast]);
 
-  const handleUpload = async (e) => {
+  useEffect(() => {
+    loadDocs();
+    loadPhotos();
+  }, [loadDocs, loadPhotos]);
+
+  // Keep defaults updated if units/academicYears load after initial render
+  useEffect(() => {
+    if (units.length > 0 && !docForm.unitId) {
+      setDocForm(f => ({ ...f, unitId: units[0]._id }));
+      setGalleryForm(f => ({ ...f, unitId: units[0]._id }));
+    }
+    if (academicYears.length > 0 && !docForm.academicYearId) {
+      setDocForm(f => ({ ...f, academicYearId: academicYears[0]._id }));
+      setGalleryForm(f => ({ ...f, academicYearId: academicYears[0]._id }));
+    }
+  }, [units, academicYears]);
+
+  // Document Upload Handler (Direct-to-Supabase signed upload up to 50MB)
+  const handleUploadDoc = async (e) => {
     e.preventDefault();
-    if (!selectedFiles.length) {
+    if (!fileToUpload) {
+      toast('Please select a file to upload.', 'error');
+      return;
+    }
+    if (!docForm.title || !docForm.unitId || !docForm.academicYearId) {
+      toast('Title, Chapter, and Academic Year are required.', 'error');
+      return;
+    }
+
+    const MAX_SIZE = 50 * 1024 * 1024;
+    if (fileToUpload.size > MAX_SIZE) {
+      toast('File size exceeds the 50MB maximum limit.', 'error');
+      return;
+    }
+
+    setDocUploading(true);
+    try {
+      const signData = await api('/api/documents/sign-upload', {
+        method: 'POST',
+        body: JSON.stringify({
+          fileName: fileToUpload.name,
+          fileType: fileToUpload.type || 'application/pdf',
+          fileSize: fileToUpload.size,
+          unitId: docForm.unitId
+        })
+      });
+
+      if (!signData.signedUrl) throw new Error('Could not obtain upload authorization.');
+
+      const uploadRes = await fetch(signData.signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': fileToUpload.type || 'application/octet-stream' },
+        body: fileToUpload
+      });
+
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        throw new Error(`Storage upload failed (${uploadRes.status}): ${errText || 'Network failure'}`);
+      }
+
+      const saveRes = await api('/api/documents', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: docForm.title,
+          description: docForm.description,
+          documentType: docForm.documentType,
+          visibility: docForm.visibility,
+          unitId: docForm.unitId,
+          academicYearId: docForm.academicYearId,
+          filePath: signData.publicUrl,
+          storagePath: signData.path,
+          fileName: fileToUpload.name,
+          fileSize: fileToUpload.size,
+          mimeType: fileToUpload.type || 'application/pdf'
+        })
+      });
+
+      if (!saveRes.success) throw new Error(saveRes.message || 'Failed to save document metadata.');
+
+      toast(`Document "${docForm.title}" uploaded successfully.`);
+      setShowDocUploadModal(false);
+      setFileToUpload(null);
+      setDocForm({
+        title: '',
+        description: '',
+        documentType: 'Magazines & Publications',
+        visibility: 'Public',
+        unitId: units[0]?._id || '',
+        academicYearId: academicYears[0]?._id || ''
+      });
+      loadDocs();
+    } catch (e) {
+      toast(e.message || 'Upload failed', 'error');
+    } finally {
+      setDocUploading(false);
+    }
+  };
+
+  // Open Edit Document Modal
+  const openEditDoc = (d) => {
+    setEditingDoc(d);
+    setReplaceFile(null);
+    setDocForm({
+      title: d.title || '',
+      description: d.description || '',
+      documentType: d.documentType || d.document_type || 'Magazines & Publications',
+      visibility: d.visibility || 'Public',
+      unitId: d.unitId?._id || d.unitId?.id || d.unit_id || units[0]?._id || '',
+      academicYearId: d.academicYearId?._id || d.academicYearId?.id || d.academic_year_id || academicYears[0]?._id || ''
+    });
+    setShowDocEditModal(true);
+  };
+
+  // Save Edit Document
+  const handleEditDoc = async (e) => {
+    e.preventDefault();
+    if (!docForm.academicYearId) {
+      toast('Academic Year is required.', 'error');
+      return;
+    }
+    setDocUploading(true);
+    try {
+      let filePayload = {};
+      if (replaceFile) {
+        const MAX_SIZE = 50 * 1024 * 1024;
+        if (replaceFile.size > MAX_SIZE) {
+          toast('Replacement file exceeds the 50MB limit.', 'error');
+          setDocUploading(false);
+          return;
+        }
+
+        const signData = await api('/api/documents/sign-upload', {
+          method: 'POST',
+          body: JSON.stringify({
+            fileName: replaceFile.name,
+            fileType: replaceFile.type || 'application/pdf',
+            fileSize: replaceFile.size,
+            unitId: docForm.unitId
+          })
+        });
+
+        const uploadRes = await fetch(signData.signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': replaceFile.type || 'application/octet-stream' },
+          body: replaceFile
+        });
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          throw new Error(`Storage upload failed (${uploadRes.status}): ${errText || 'Network failure'}`);
+        }
+
+        filePayload = {
+          filePath: signData.publicUrl,
+          storagePath: signData.path,
+          fileSize: replaceFile.size,
+          mimeType: replaceFile.type || 'application/pdf'
+        };
+      }
+
+      await api(`/api/documents/${editingDoc._id || editingDoc.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: docForm.title,
+          description: docForm.description,
+          documentType: docForm.documentType,
+          visibility: docForm.visibility,
+          unitId: docForm.unitId,
+          academicYearId: docForm.academicYearId,
+          ...filePayload
+        })
+      });
+
+      toast('Document updated successfully.');
+      setShowDocEditModal(false);
+      setEditingDoc(null);
+      setReplaceFile(null);
+      loadDocs();
+    } catch (e) {
+      toast(e.message || 'Update failed', 'error');
+    } finally {
+      setDocUploading(false);
+    }
+  };
+
+  // Delete Document
+  const handleDeleteDoc = async (id) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+    try {
+      await api(`/api/documents/${id}`, { method: 'DELETE' });
+      toast('Document deleted.');
+      loadDocs();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  // Upload Photo Handler
+  const handleUploadPhotos = async (e) => {
+    e.preventDefault();
+    if (!selectedPhotos.length) {
       toast('Please select at least one photo.', 'error');
       return;
     }
@@ -1529,7 +1768,7 @@ function GalleryModule({ toast, units, academicYears }) {
       return;
     }
 
-    setUploading(true);
+    setPhotoUploading(true);
     try {
       const fd = new FormData();
       fd.append('unitId', galleryForm.unitId);
@@ -1538,8 +1777,8 @@ function GalleryModule({ toast, units, academicYears }) {
       fd.append('category', galleryForm.category);
       fd.append('title', galleryForm.title);
       fd.append('description', galleryForm.description);
-      for (let i = 0; i < selectedFiles.length; i++) {
-        fd.append('photos', selectedFiles[i]);
+      for (let i = 0; i < selectedPhotos.length; i++) {
+        fd.append('photos', selectedPhotos[i]);
       }
 
       const res = await fetch('/api/gallery', {
@@ -1550,18 +1789,65 @@ function GalleryModule({ toast, units, academicYears }) {
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
 
-      toast(`${selectedFiles.length} photo(s) uploaded successfully.`);
-      setShowModal(false);
-      setSelectedFiles([]);
+      toast(`${selectedPhotos.length} photo(s) uploaded successfully.`);
+      setShowPhotoUploadModal(false);
+      setSelectedPhotos([]);
       loadPhotos();
     } catch (e) {
       toast(e.message, 'error');
     } finally {
-      setUploading(false);
+      setPhotoUploading(false);
     }
   };
 
-  const handleDelete = async (id) => {
+  // Open Edit Photo Modal
+  const openEditPhoto = (p) => {
+    setEditingPhoto(p);
+    setGalleryForm({
+      unitId: p.unitId?._id || p.unitId?.id || p.unit_id || units[0]?._id || '',
+      academicYearId: p.academicYearId?._id || p.academicYearId?.id || p.academic_year_id || academicYears[0]?._id || '',
+      album: p.album || 'General',
+      category: p.category || 'Events',
+      title: p.title || p.caption || '',
+      description: p.description || ''
+    });
+    setShowPhotoEditModal(true);
+  };
+
+  // Save Edit Photo
+  const handleEditPhoto = async (e) => {
+    e.preventDefault();
+    if (!galleryForm.academicYearId) {
+      toast('Academic Year is required.', 'error');
+      return;
+    }
+    setPhotoUploading(true);
+    try {
+      await api(`/api/gallery/${editingPhoto._id || editingPhoto.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: galleryForm.title,
+          description: galleryForm.description,
+          album: galleryForm.album,
+          category: galleryForm.category,
+          unitId: galleryForm.unitId,
+          academicYearId: galleryForm.academicYearId
+        })
+      });
+
+      toast('Photo details updated successfully.');
+      setShowPhotoEditModal(false);
+      setEditingPhoto(null);
+      loadPhotos();
+    } catch (e) {
+      toast(e.message || 'Update failed', 'error');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  // Delete Photo
+  const handleDeletePhoto = async (id) => {
     if (!confirm('Remove photo from gallery?')) return;
     try {
       await api(`/api/gallery/${id}`, { method: 'DELETE' });
@@ -1570,48 +1856,452 @@ function GalleryModule({ toast, units, academicYears }) {
     } catch (e) { toast(e.message, 'error'); }
   };
 
+  // Filtered Documents
+  const filteredDocs = docs.filter(d => {
+    const matchesSearch = !docSearch || d.title?.toLowerCase().includes(docSearch.toLowerCase()) || d.description?.toLowerCase().includes(docSearch.toLowerCase());
+    const matchesCategory = docCategoryFilter === 'All' || d.documentType === docCategoryFilter || d.document_type === docCategoryFilter;
+    const matchesUnit = docUnitFilter === 'All' || (d.unitId?._id === docUnitFilter || d.unitId?.id === docUnitFilter || d.unit_id === docUnitFilter);
+    const matchesYear = docYearFilter === 'All' || (d.academicYearId?._id === docYearFilter || d.academicYearId?.id === docYearFilter || d.academic_year_id === docYearFilter);
+    return matchesSearch && matchesCategory && matchesUnit && matchesYear;
+  });
+
+  // Unique Albums for filter
+  const uniqueAlbums = Array.from(new Set(photos.map(p => p.album || 'General')));
+
+  // Filtered Photos
+  const filteredPhotos = photos.filter(p => {
+    const matchesAlbum = photoAlbumFilter === 'All' || p.album === photoAlbumFilter;
+    const matchesUnit = photoUnitFilter === 'All' || (p.unitId?._id === photoUnitFilter || p.unitId?.id === photoUnitFilter || p.unit_id === photoUnitFilter);
+    const matchesYear = photoYearFilter === 'All' || (p.academicYearId?._id === photoYearFilter || p.academicYearId?.id === photoYearFilter || p.academic_year_id === photoYearFilter);
+    return matchesAlbum && matchesUnit && matchesYear;
+  });
+
   return (
     <div>
-      <div className="admin-module-header">
+      {/* Header & Sub-Tab Switcher */}
+      <div className="admin-module-header" style={{ marginBottom: '1.25rem' }}>
         <div>
-          <h1 className="admin-module-title">Media &amp; Gallery</h1>
-          <p className="admin-module-subtitle">Manage high-resolution photo archives and media publications from chapters displayed on /media.</p>
+          <h1 className="admin-module-title">Media &amp; Publications Hub</h1>
+          <p className="admin-module-subtitle">Manage annual magazines, reports, toolkits, documents, and high-resolution photo archives across chapters.</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="admin-btn-primary">
-          <Upload size={16} /> Upload Media Photos
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {activeSubTab === 'documents' ? (
+            <button onClick={() => setShowDocUploadModal(true)} className="admin-btn-primary">
+              <Upload size={16} /> Upload Document / Publication
+            </button>
+          ) : (
+            <button onClick={() => setShowPhotoUploadModal(true)} className="admin-btn-primary">
+              <Upload size={16} /> Upload Media Photos
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Sub-Navigation Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '2px solid #E2E8F0', marginBottom: '1.5rem', paddingBottom: '0.25rem' }}>
+        <button
+          onClick={() => setActiveSubTab('documents')}
+          style={{
+            padding: '0.625rem 1.25rem',
+            borderRadius: '0.5rem 0.5rem 0 0',
+            fontWeight: 800,
+            fontSize: '0.9rem',
+            border: 'none',
+            cursor: 'pointer',
+            backgroundColor: activeSubTab === 'documents' ? 'var(--primary-blue)' : '#F1F5F9',
+            color: activeSubTab === 'documents' ? '#FFFFFF' : '#475569',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <FileText size={16} />
+          <span>Publications &amp; Documents</span>
+          <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.45rem', borderRadius: '999px', backgroundColor: activeSubTab === 'documents' ? 'rgba(255,255,255,0.25)' : '#E2E8F0', color: activeSubTab === 'documents' ? '#FFFFFF' : '#334155' }}>
+            {docs.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('gallery')}
+          style={{
+            padding: '0.625rem 1.25rem',
+            borderRadius: '0.5rem 0.5rem 0 0',
+            fontWeight: 800,
+            fontSize: '0.9rem',
+            border: 'none',
+            cursor: 'pointer',
+            backgroundColor: activeSubTab === 'gallery' ? 'var(--primary-blue)' : '#F1F5F9',
+            color: activeSubTab === 'gallery' ? '#FFFFFF' : '#475569',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <Image size={16} />
+          <span>Photo Gallery &amp; Albums</span>
+          <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.45rem', borderRadius: '999px', backgroundColor: activeSubTab === 'gallery' ? 'rgba(255,255,255,0.25)' : '#E2E8F0', color: activeSubTab === 'gallery' ? '#FFFFFF' : '#334155' }}>
+            {photos.length}
+          </span>
         </button>
       </div>
 
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
-      ) : photos.length === 0 ? (
-        <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
-          No gallery images uploaded yet. Click "+ Upload Media Photos" above to add pictures.
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.25rem' }}>
-          {photos.map(p => (
-            <div key={p._id} className="admin-card" style={{ padding: '0.75rem', position: 'relative' }}>
-              <img src={p.file_path || p.filePath || p.url} alt={p.caption || p.title || 'Gallery'} style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '0.5rem', marginBottom: '0.5rem' }} />
-              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                {p.title || p.caption || 'Event Photo'}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* 1. PUBLICATIONS & DOCUMENTS SUB-TAB */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {activeSubTab === 'documents' && (
+        <div>
+          {/* Filter Bar */}
+          <div className="admin-card" style={{ marginBottom: '1.25rem', padding: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', alignItems: 'center' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+                <input
+                  type="text"
+                  placeholder="Search publications..."
+                  value={docSearch}
+                  onChange={e => setDocSearch(e.target.value)}
+                  className="admin-input"
+                  style={{ paddingLeft: '2.25rem' }}
+                />
               </div>
-              <button onClick={() => handleDelete(p._id)} className="admin-btn-danger" style={{ width: '100%', justifyContent: 'center' }}>
-                <Trash2 size={13} /> Remove
-              </button>
+
+              <div>
+                <select value={docCategoryFilter} onChange={e => setDocCategoryFilter(e.target.value)} className="admin-select">
+                  <option value="All">All Categories</option>
+                  <option value="Magazines & Publications">Magazines &amp; Publications</option>
+                  <option value="Toolkits & Manuals">Toolkits &amp; Manuals</option>
+                  <option value="Chapter Resources">Chapter Resources</option>
+                  <option value="Student Leadership & Formation">Student Leadership &amp; Formation</option>
+                  <option value="Publications & Reports">Publications &amp; Reports</option>
+                  <option value="Institutional Guide">Institutional Guide</option>
+                  <option value="Operational Toolkit">Operational Toolkit</option>
+                </select>
+              </div>
+
+              <div>
+                <select value={docUnitFilter} onChange={e => setDocUnitFilter(e.target.value)} className="admin-select">
+                  <option value="All">All Chapters</option>
+                  {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <select value={docYearFilter} onChange={e => setDocYearFilter(e.target.value)} className="admin-select">
+                  <option value="All">All Academic Years</option>
+                  {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                </select>
+              </div>
             </div>
-          ))}
+          </div>
+
+          {/* Table Container */}
+          <div className="admin-table-container">
+            {docsLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
+            ) : filteredDocs.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+                No publications found matching your filters. Click &quot;+ Upload Document / Publication&quot; to add one.
+              </div>
+            ) : (
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Document Title</th>
+                    <th>Category</th>
+                    <th>Chapter</th>
+                    <th>Academic Year</th>
+                    <th>Visibility</th>
+                    <th>File Size</th>
+                    <th>Uploaded</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDocs.map(d => (
+                    <tr key={d._id || d.id}>
+                      <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                        <div>{d.title}</div>
+                        {d.description && <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 500, marginTop: '2px' }}>{d.description.slice(0, 60)}{d.description.length > 60 ? '...' : ''}</div>}
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155' }}>
+                          {d.documentType || d.document_type || 'Document'}
+                        </span>
+                      </td>
+                      <td>{d.unitId?.name || 'All Chapters'}</td>
+                      <td>
+                        <span style={{ backgroundColor: '#EFF6FF', color: 'var(--primary-blue)', padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.78125rem', fontWeight: 700 }}>
+                          {d.academicYearId?.year || 'Current'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`admin-badge ${d.visibility === 'Public' ? 'badge-approved' : 'badge-archived'}`}>
+                          {d.visibility || 'Public'}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '0.8125rem', color: '#64748B' }}>
+                        {d.fileSize ? `${(d.fileSize / (1024 * 1024)).toFixed(1)} MB` : (d.file_size ? `${(d.file_size / (1024 * 1024)).toFixed(1)} MB` : '—')}
+                      </td>
+                      <td>{d.created_at || d.createdAt ? new Date(d.created_at || d.createdAt).toLocaleDateString() : '—'}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
+                          {(d.filePath || d.file_path) && (
+                            <a href={d.filePath || d.file_path} target="_blank" rel="noopener noreferrer" className="admin-btn-action" title="Open Document">
+                              <ExternalLink size={13} /> Open
+                            </a>
+                          )}
+                          <button onClick={() => openEditDoc(d)} className="admin-btn-action" title="Edit Metadata & Academic Year">
+                            <Edit size={13} /> Edit
+                          </button>
+                          <button onClick={() => handleDeleteDoc(d._id || d.id)} className="admin-btn-danger" title="Delete Document">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       )}
 
-      {showModal && (
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* 2. PHOTO GALLERY & ALBUMS SUB-TAB */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {activeSubTab === 'gallery' && (
+        <div>
+          {/* Gallery Filter Bar */}
+          <div className="admin-card" style={{ marginBottom: '1.25rem', padding: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem', alignItems: 'center' }}>
+              <div>
+                <select value={photoAlbumFilter} onChange={e => setPhotoAlbumFilter(e.target.value)} className="admin-select">
+                  <option value="All">All Albums</option>
+                  {uniqueAlbums.map(alb => <option key={alb} value={alb}>{alb}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <select value={photoUnitFilter} onChange={e => setPhotoUnitFilter(e.target.value)} className="admin-select">
+                  <option value="All">All Chapters</option>
+                  {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <select value={photoYearFilter} onChange={e => setPhotoYearFilter(e.target.value)} className="admin-select">
+                  <option value="All">All Academic Years</option>
+                  {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {photosLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
+          ) : filteredPhotos.length === 0 ? (
+            <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+              No gallery photos found. Click &quot;+ Upload Media Photos&quot; above to add images.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '1.25rem' }}>
+              {filteredPhotos.map(p => (
+                <div key={p._id || p.id} className="admin-card" style={{ padding: '0.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '0.5rem', height: '160px', marginBottom: '0.625rem', backgroundColor: '#F1F5F9' }}>
+                      <img
+                        src={p.file_path || p.filePath || p.url}
+                        alt={p.caption || p.title || 'Gallery item'}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <span style={{ position: 'absolute', top: '0.4rem', right: '0.4rem', backgroundColor: 'rgba(15,23,42,0.75)', color: '#FFFFFF', fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '0.25rem' }}>
+                        {p.album || 'General'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.25rem', lineHeight: 1.3 }}>
+                      {p.title || p.caption || 'Event Photo'}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.75rem' }}>
+                      <span style={{ fontSize: '0.75rem', backgroundColor: '#EFF6FF', color: 'var(--primary-blue)', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '999px' }}>
+                        {p.academicYearId?.year || 'Current'}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', backgroundColor: '#F8FAFC', color: '#475569', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: '999px', border: '1px solid #E2E8F0' }}>
+                        {p.unitId?.name || 'All Chapters'}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.4rem', borderTop: '1px solid #F1F5F9', paddingTop: '0.625rem' }}>
+                    <button onClick={() => openEditPhoto(p)} className="admin-btn-action" style={{ flex: 1, justifyContent: 'center', padding: '0.4rem' }}>
+                      <Edit size={13} /> Edit
+                    </button>
+                    <button onClick={() => handleDeletePhoto(p._id || p.id)} className="admin-btn-danger" style={{ flex: 1, justifyContent: 'center', padding: '0.4rem' }}>
+                      <Trash2 size={13} /> Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* UPLOAD DOCUMENT MODAL */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {showDocUploadModal && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Upload Gallery Media</h3>
-              <button onClick={() => setShowModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Upload Publication / Document</h3>
+              <button onClick={() => setShowDocUploadModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
             </div>
-            <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <form onSubmit={handleUploadDoc} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="admin-input-group">
+                <label className="admin-label">Document / Publication Title *</label>
+                <input required placeholder="e.g. YES-J MAGIS Magazine 2025-26" value={docForm.title} onChange={e => setDocForm({ ...docForm, title: e.target.value })} className="admin-input" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">Chapter *</label>
+                  <select value={docForm.unitId} onChange={e => setDocForm({ ...docForm, unitId: e.target.value })} className="admin-select">
+                    {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="admin-label">Academic Year *</label>
+                  <select value={docForm.academicYearId} onChange={e => setDocForm({ ...docForm, academicYearId: e.target.value })} className="admin-select">
+                    {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">Category</label>
+                  <select value={docForm.documentType} onChange={e => setDocForm({ ...docForm, documentType: e.target.value })} className="admin-select">
+                    <option value="Magazines & Publications">Magazines &amp; Publications</option>
+                    <option value="Toolkits & Manuals">Toolkits &amp; Manuals</option>
+                    <option value="Chapter Resources">Chapter Resources</option>
+                    <option value="Student Leadership & Formation">Student Leadership &amp; Formation</option>
+                    <option value="Publications & Reports">Publications &amp; Reports</option>
+                    <option value="Institutional Guide">Institutional Guide</option>
+                    <option value="Operational Toolkit">Operational Toolkit</option>
+                    <option value="Facilitation Guide">Facilitation Guide</option>
+                    <option value="Other Documents">Other Documents</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="admin-label">Visibility</label>
+                  <select value={docForm.visibility} onChange={e => setDocForm({ ...docForm, visibility: e.target.value })} className="admin-select">
+                    <option value="Public">Public (Visible on /media)</option>
+                    <option value="Admin Only">Admin Only (Internal)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Description / Summary</label>
+                <textarea rows={2} placeholder="Brief summary of publication contents..." value={docForm.description} onChange={e => setDocForm({ ...docForm, description: e.target.value })} className="admin-textarea" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Select File (PDF, DOCX, PPTX, Images - Max 50MB) *</label>
+                <input type="file" required onChange={e => setFileToUpload(e.target.files?.[0] || null)} className="admin-input" />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setShowDocUploadModal(false)} className="admin-btn-secondary" disabled={docUploading}>Cancel</button>
+                <button type="submit" className="admin-btn-primary" disabled={docUploading}>
+                  {docUploading ? <><Loader2 size={15} className="animate-spin" /> Uploading...</> : 'Upload File'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* EDIT DOCUMENT METADATA MODAL (Supports editing Academic Year) */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {showDocEditModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Edit Publication / Document</h3>
+              <button onClick={() => setShowDocEditModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleEditDoc} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="admin-input-group">
+                <label className="admin-label">Document Title *</label>
+                <input required value={docForm.title} onChange={e => setDocForm({ ...docForm, title: e.target.value })} className="admin-input" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">Chapter *</label>
+                  <select value={docForm.unitId} onChange={e => setDocForm({ ...docForm, unitId: e.target.value })} className="admin-select">
+                    {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="admin-label">Academic Year * (Editable)</label>
+                  <select value={docForm.academicYearId} onChange={e => setDocForm({ ...docForm, academicYearId: e.target.value })} className="admin-select" style={{ borderColor: 'var(--primary-blue)', borderWidth: '2px' }}>
+                    {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">Category</label>
+                  <select value={docForm.documentType} onChange={e => setDocForm({ ...docForm, documentType: e.target.value })} className="admin-select">
+                    <option value="Magazines & Publications">Magazines &amp; Publications</option>
+                    <option value="Toolkits & Manuals">Toolkits &amp; Manuals</option>
+                    <option value="Chapter Resources">Chapter Resources</option>
+                    <option value="Student Leadership & Formation">Student Leadership &amp; Formation</option>
+                    <option value="Publications & Reports">Publications &amp; Reports</option>
+                    <option value="Institutional Guide">Institutional Guide</option>
+                    <option value="Operational Toolkit">Operational Toolkit</option>
+                    <option value="Facilitation Guide">Facilitation Guide</option>
+                    <option value="Other Documents">Other Documents</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="admin-label">Visibility</label>
+                  <select value={docForm.visibility} onChange={e => setDocForm({ ...docForm, visibility: e.target.value })} className="admin-select">
+                    <option value="Public">Public (Visible on /media)</option>
+                    <option value="Admin Only">Admin Only (Internal)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Description</label>
+                <textarea rows={2} value={docForm.description} onChange={e => setDocForm({ ...docForm, description: e.target.value })} className="admin-textarea" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Replace File (Optional, max 50MB - leave blank to keep current file)</label>
+                <input type="file" onChange={e => setReplaceFile(e.target.files?.[0] || null)} className="admin-input" />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setShowDocEditModal(false)} className="admin-btn-secondary" disabled={docUploading}>Cancel</button>
+                <button type="submit" className="admin-btn-primary" disabled={docUploading}>
+                  {docUploading ? <><Loader2 size={15} className="animate-spin" /> Saving Changes...</> : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* UPLOAD PHOTOS MODAL */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {showPhotoUploadModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Upload Gallery Media Photos</h3>
+              <button onClick={() => setShowPhotoUploadModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleUploadPhotos} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label className="admin-label">Chapter *</label>
@@ -1638,365 +2328,16 @@ function GalleryModule({ toast, units, academicYears }) {
               </div>
               <div className="admin-input-group">
                 <label className="admin-label">Caption / Title</label>
-                <input placeholder="e.g. Orientation workshop at Andhra Loyola" value={galleryForm.title} onChange={e => setGalleryForm({ ...galleryForm, title: e.target.value })} className="admin-input" />
+                <input placeholder="e.g. Leadership Workshop 2026" value={galleryForm.title} onChange={e => setGalleryForm({ ...galleryForm, title: e.target.value })} className="admin-input" />
               </div>
               <div className="admin-input-group">
-                <label className="admin-label">Select Photos (Max 30) *</label>
-                <input type="file" multiple accept="image/*" required onChange={e => setSelectedFiles(e.target.files ? Array.from(e.target.files) : [])} className="admin-input" />
+                <label className="admin-label">Select Photos (Images, Max 30) *</label>
+                <input type="file" multiple accept="image/*" required onChange={e => setSelectedPhotos(e.target.files ? Array.from(e.target.files) : [])} className="admin-input" />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => setShowModal(false)} className="admin-btn-secondary" disabled={uploading}>Cancel</button>
-                <button type="submit" className="admin-btn-primary" disabled={uploading}>
-                  {uploading ? <><Loader2 size={15} className="animate-spin" /> Uploading...</> : 'Upload Photos'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// 8. RESOURCES & DOCUMENTS MODULE (Complete Upload, Edit, Download, Delete)
-// ═════════════════════════════════════════════════════════════════════════════
-function ResourcesModule({ toast, units, academicYears }) {
-  const [docs, setDocs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingDoc, setEditingDoc] = useState(null);
-  const [uploading, setUploading] = useState(false);
-
-  const [docForm, setDocForm] = useState({
-    title: '',
-    description: '',
-    documentType: 'Institutional Guide',
-    visibility: 'Public',
-    unitId: units[0]?._id || '',
-    academicYearId: academicYears[0]?._id || ''
-  });
-  const [fileToUpload, setFileToUpload] = useState(null);
-
-  const loadDocs = useCallback(() => {
-    setLoading(true);
-    api('/api/documents/admin/all')
-      .then(d => { setDocs(d.data || []); setLoading(false); })
-      .catch(e => { toast(e.message, 'error'); setLoading(false); });
-  }, [toast]);
-
-  useEffect(() => { loadDocs(); }, [loadDocs]);
-
-  const handleUploadDoc = async (e) => {
-    e.preventDefault();
-    if (!fileToUpload) {
-      toast('Please select a file to upload.', 'error');
-      return;
-    }
-    if (!docForm.title || !docForm.unitId || !docForm.academicYearId) {
-      toast('Title, Chapter, and Academic Year are required.', 'error');
-      return;
-    }
-
-    const MAX_SIZE = 50 * 1024 * 1024;
-    if (fileToUpload.size > MAX_SIZE) {
-      toast('File size exceeds the 50MB maximum limit.', 'error');
-      return;
-    }
-
-    setUploading(true);
-    try {
-      // 1. Get signed upload URL from backend
-      const signData = await api('/api/documents/sign-upload', {
-        method: 'POST',
-        body: JSON.stringify({
-          fileName: fileToUpload.name,
-          fileType: fileToUpload.type || 'application/pdf',
-          fileSize: fileToUpload.size,
-          unitId: docForm.unitId
-        })
-      });
-
-      if (!signData.signedUrl) throw new Error('Could not obtain upload authorization.');
-
-      // 2. Upload file directly to Supabase Storage
-      const uploadRes = await fetch(signData.signedUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': fileToUpload.type || 'application/octet-stream'
-        },
-        body: fileToUpload
-      });
-
-      if (!uploadRes.ok) {
-        const errText = await uploadRes.text();
-        throw new Error(`Storage upload failed (${uploadRes.status}): ${errText || 'Network failure'}`);
-      }
-
-      // 3. Save document metadata in database
-      const saveRes = await api('/api/documents', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: docForm.title,
-          description: docForm.description,
-          documentType: docForm.documentType,
-          visibility: docForm.visibility,
-          unitId: docForm.unitId,
-          academicYearId: docForm.academicYearId,
-          filePath: signData.publicUrl,
-          storagePath: signData.path,
-          fileName: fileToUpload.name,
-          fileSize: fileToUpload.size,
-          mimeType: fileToUpload.type || 'application/pdf'
-        })
-      });
-
-      if (!saveRes.success) throw new Error(saveRes.message || 'Failed to save document metadata.');
-
-      toast(`Document "${docForm.title}" uploaded successfully.`);
-      setShowUploadModal(false);
-      setFileToUpload(null);
-      setDocForm({
-        title: '',
-        description: '',
-        documentType: 'Institutional Guide',
-        visibility: 'Public',
-        unitId: units[0]?._id || '',
-        academicYearId: academicYears[0]?._id || ''
-      });
-      loadDocs();
-    } catch (e) {
-      toast(e.message || 'Upload failed', 'error');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const [replaceFile, setReplaceFile] = useState(null);
-
-  const openEdit = (d) => {
-    setEditingDoc(d);
-    setReplaceFile(null);
-    setDocForm({
-      title: d.title,
-      description: d.description || '',
-      documentType: d.documentType || d.document_type || 'Institutional Guide',
-      visibility: d.visibility || 'Public',
-      unitId: d.unitId?._id || d.unitId?.id || units[0]?._id || '',
-      academicYearId: d.academicYearId?._id || d.academicYearId?.id || academicYears[0]?._id || ''
-    });
-    setShowEditModal(true);
-  };
-
-  const handleEditDoc = async (e) => {
-    e.preventDefault();
-    setUploading(true);
-    try {
-      let filePayload = {};
-      if (replaceFile) {
-        const MAX_SIZE = 50 * 1024 * 1024;
-        if (replaceFile.size > MAX_SIZE) {
-          toast('Replacement file exceeds the 50MB maximum limit.', 'error');
-          setUploading(false);
-          return;
-        }
-
-        // 1. Get signed upload URL
-        const signData = await api('/api/documents/sign-upload', {
-          method: 'POST',
-          body: JSON.stringify({
-            fileName: replaceFile.name,
-            fileType: replaceFile.type || 'application/pdf',
-            fileSize: replaceFile.size,
-            unitId: docForm.unitId
-          })
-        });
-
-        // 2. Upload file directly to Supabase Storage
-        const uploadRes = await fetch(signData.signedUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': replaceFile.type || 'application/octet-stream'
-          },
-          body: replaceFile
-        });
-
-        if (!uploadRes.ok) {
-          const errText = await uploadRes.text();
-          throw new Error(`Storage upload failed (${uploadRes.status}): ${errText || 'Network failure'}`);
-        }
-
-        filePayload = {
-          filePath: signData.publicUrl,
-          storagePath: signData.path,
-          fileSize: replaceFile.size,
-          mimeType: replaceFile.type || 'application/pdf'
-        };
-      }
-
-      // Save updated metadata
-      await api(`/api/documents/${editingDoc._id || editingDoc.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          title: docForm.title,
-          description: docForm.description,
-          documentType: docForm.documentType,
-          visibility: docForm.visibility,
-          unitId: docForm.unitId,
-          academicYearId: docForm.academicYearId,
-          ...filePayload
-        })
-      });
-
-      toast('Document updated successfully.');
-      setShowEditModal(false);
-      setEditingDoc(null);
-      setReplaceFile(null);
-      loadDocs();
-    } catch (e) {
-      toast(e.message || 'Update failed', 'error');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this document?')) return;
-    try {
-      await api(`/api/documents/${id}`, { method: 'DELETE' });
-      toast('Document deleted.');
-      loadDocs();
-    } catch (e) { toast(e.message, 'error'); }
-  };
-
-  return (
-    <div>
-      <div className="admin-module-header">
-        <div>
-          <h1 className="admin-module-title">Resources, Guides &amp; Toolkits</h1>
-          <p className="admin-module-subtitle">Upload official formation materials, annual magazines, and chapter guidelines displayed on /resources.</p>
-        </div>
-        <button onClick={() => setShowUploadModal(true)} className="admin-btn-primary">
-          <Upload size={16} /> Upload New Document
-        </button>
-      </div>
-
-      <div className="admin-table-container">
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
-        ) : docs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
-            No documents uploaded yet. Click "+ Upload New Document" to add files.
-          </div>
-        ) : (
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Document Title</th>
-                <th>Category</th>
-                <th>Chapter / Year</th>
-                <th>Visibility</th>
-                <th>Uploaded</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {docs.map(d => (
-                <tr key={d._id || d.id}>
-                  <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{d.title}</td>
-                  <td>{d.documentType || d.document_type || 'Guide'}</td>
-                  <td>{d.unitId?.name || 'All'} &bull; {d.academicYearId?.year || 'Current'}</td>
-                  <td>
-                    <span className={`admin-badge ${d.visibility === 'Public' ? 'badge-approved' : 'badge-archived'}`}>
-                      {d.visibility || 'Public'}
-                    </span>
-                  </td>
-                  <td>{d.created_at || d.createdAt ? new Date(d.created_at || d.createdAt).toLocaleDateString() : '—'}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
-                      {d.filePath && (
-                        <a href={d.filePath} target="_blank" rel="noopener noreferrer" className="admin-btn-action" title="Open Document">
-                          <ExternalLink size={13} /> Open
-                        </a>
-                      )}
-                      <button onClick={() => openEdit(d)} className="admin-btn-action" title="Edit Metadata">
-                        <Edit size={13} />
-                      </button>
-                      <button onClick={() => handleDelete(d._id || d.id)} className="admin-btn-danger" title="Delete Document">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Upload Document Modal */}
-      {showUploadModal && (
-        <div className="admin-modal-overlay">
-          <div className="admin-modal-box">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Upload Document / Toolkit</h3>
-              <button onClick={() => setShowUploadModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
-            </div>
-            <form onSubmit={handleUploadDoc} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div className="admin-input-group">
-                <label className="admin-label">Document Title *</label>
-                <input required placeholder="e.g. MAGIC Youth Handbook 2026" value={docForm.title} onChange={e => setDocForm({ ...docForm, title: e.target.value })} className="admin-input" />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="admin-label">Chapter *</label>
-                  <select value={docForm.unitId} onChange={e => setDocForm({ ...docForm, unitId: e.target.value })} className="admin-select">
-                    {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="admin-label">Academic Year *</label>
-                  <select value={docForm.academicYearId} onChange={e => setDocForm({ ...docForm, academicYearId: e.target.value })} className="admin-select">
-                    {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="admin-label">Document Category</label>
-                  <select value={docForm.documentType} onChange={e => setDocForm({ ...docForm, documentType: e.target.value })} className="admin-select">
-                    <option value="Student Leadership & Formation">Student Leadership &amp; Formation</option>
-                    <option value="Publications & Reports">Publications &amp; Reports</option>
-                    <option value="Institutional Guide">Institutional Guide</option>
-                    <option value="Operational Toolkit">Operational Toolkit</option>
-                    <option value="Facilitation Guide">Facilitation Guide</option>
-                    <option value="Annual Publication">Annual Publication</option>
-                    <option value="Program Framework">Program Framework</option>
-                    <option value="Action Manual">Action Manual</option>
-                    <option value="Other Documents">Other Documents</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="admin-label">Visibility</label>
-                  <select value={docForm.visibility} onChange={e => setDocForm({ ...docForm, visibility: e.target.value })} className="admin-select">
-                    <option value="Public">Public (Visible on /resources)</option>
-                    <option value="Admin Only">Admin Only (Internal)</option>
-                  </select>
-                </div>
-              </div>
-              <div className="admin-input-group">
-                <label className="admin-label">Description / Summary</label>
-                <textarea rows={2} placeholder="Brief summary of the document..." value={docForm.description} onChange={e => setDocForm({ ...docForm, description: e.target.value })} className="admin-textarea" />
-              </div>
-              <div className="admin-input-group">
-                <label className="admin-label">Select File (PDF, DOCX, PPTX, Images - Max 50MB) *</label>
-                <input type="file" required onChange={e => setFileToUpload(e.target.files?.[0] || null)} className="admin-input" />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => setShowUploadModal(false)} className="admin-btn-secondary" disabled={uploading}>Cancel</button>
-                <button type="submit" className="admin-btn-primary" disabled={uploading}>
-                  {uploading ? <><Loader2 size={15} className="animate-spin" /> Uploading...</> : 'Upload File'}
+                <button type="button" onClick={() => setShowPhotoUploadModal(false)} className="admin-btn-secondary" disabled={photoUploading}>Cancel</button>
+                <button type="submit" className="admin-btn-primary" disabled={photoUploading}>
+                  {photoUploading ? <><Loader2 size={15} className="animate-spin" /> Uploading...</> : 'Upload Photos'}
                 </button>
               </div>
             </form>
@@ -2004,68 +2345,53 @@ function ResourcesModule({ toast, units, academicYears }) {
         </div>
       )}
 
-      {/* Edit Document Metadata Modal */}
-      {showEditModal && (
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* EDIT PHOTO DETAILS MODAL (Supports editing Academic Year) */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {showPhotoEditModal && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-box">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Edit Document Details</h3>
-              <button onClick={() => setShowEditModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Edit Photo Details</h3>
+              <button onClick={() => setShowPhotoEditModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
             </div>
-            <form onSubmit={handleEditDoc} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <form onSubmit={handleEditPhoto} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="admin-input-group">
-                <label className="admin-label">Document Title *</label>
-                <input required value={docForm.title} onChange={e => setDocForm({ ...docForm, title: e.target.value })} className="admin-input" />
+                <label className="admin-label">Caption / Title</label>
+                <input placeholder="e.g. Leadership Workshop 2026" value={galleryForm.title} onChange={e => setGalleryForm({ ...galleryForm, title: e.target.value })} className="admin-input" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label className="admin-label">Chapter *</label>
-                  <select value={docForm.unitId} onChange={e => setDocForm({ ...docForm, unitId: e.target.value })} className="admin-select">
+                  <select value={galleryForm.unitId} onChange={e => setGalleryForm({ ...galleryForm, unitId: e.target.value })} className="admin-select">
                     {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="admin-label">Academic Year *</label>
-                  <select value={docForm.academicYearId} onChange={e => setDocForm({ ...docForm, academicYearId: e.target.value })} className="admin-select">
+                  <label className="admin-label">Academic Year * (Editable)</label>
+                  <select value={galleryForm.academicYearId} onChange={e => setGalleryForm({ ...galleryForm, academicYearId: e.target.value })} className="admin-select" style={{ borderColor: 'var(--primary-blue)', borderWidth: '2px' }}>
                     {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
                   </select>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">Album Name</label>
+                  <input value={galleryForm.album} onChange={e => setGalleryForm({ ...galleryForm, album: e.target.value })} className="admin-input" />
+                </div>
                 <div>
                   <label className="admin-label">Category</label>
-                  <select value={docForm.documentType} onChange={e => setDocForm({ ...docForm, documentType: e.target.value })} className="admin-select">
-                    <option value="Student Leadership & Formation">Student Leadership &amp; Formation</option>
-                    <option value="Publications & Reports">Publications &amp; Reports</option>
-                    <option value="Institutional Guide">Institutional Guide</option>
-                    <option value="Operational Toolkit">Operational Toolkit</option>
-                    <option value="Facilitation Guide">Facilitation Guide</option>
-                    <option value="Annual Publication">Annual Publication</option>
-                    <option value="Program Framework">Program Framework</option>
-                    <option value="Action Manual">Action Manual</option>
-                    <option value="Other Documents">Other Documents</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="admin-label">Visibility</label>
-                  <select value={docForm.visibility} onChange={e => setDocForm({ ...docForm, visibility: e.target.value })} className="admin-select">
-                    <option value="Public">Public (Visible on /resources)</option>
-                    <option value="Admin Only">Admin Only (Internal)</option>
-                  </select>
+                  <input value={galleryForm.category} onChange={e => setGalleryForm({ ...galleryForm, category: e.target.value })} className="admin-input" />
                 </div>
               </div>
               <div className="admin-input-group">
                 <label className="admin-label">Description</label>
-                <textarea rows={2} value={docForm.description} onChange={e => setDocForm({ ...docForm, description: e.target.value })} className="admin-textarea" />
-              </div>
-              <div className="admin-input-group">
-                <label className="admin-label">Replace File (Optional, leave blank to keep current file)</label>
-                <input type="file" onChange={e => setReplaceFile(e.target.files?.[0] || null)} className="admin-input" />
+                <textarea rows={2} value={galleryForm.description} onChange={e => setGalleryForm({ ...galleryForm, description: e.target.value })} className="admin-textarea" />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => setShowEditModal(false)} className="admin-btn-secondary" disabled={uploading}>Cancel</button>
-                <button type="submit" className="admin-btn-primary" disabled={uploading}>
-                  {uploading ? <><Loader2 size={15} className="animate-spin" /> Saving...</> : 'Save Changes'}
+                <button type="button" onClick={() => setShowPhotoEditModal(false)} className="admin-btn-secondary" disabled={photoUploading}>Cancel</button>
+                <button type="submit" className="admin-btn-primary" disabled={photoUploading}>
+                  {photoUploading ? <><Loader2 size={15} className="animate-spin" /> Saving Changes...</> : 'Save Changes'}
                 </button>
               </div>
             </form>

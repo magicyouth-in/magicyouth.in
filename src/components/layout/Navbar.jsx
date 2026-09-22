@@ -27,7 +27,6 @@ export default function Navbar() {
     { name: 'Media', path: '/media' },
     { name: 'Stories', path: '/stories' },
     { name: 'Team', path: '/teams' },
-    { name: 'Resources', path: '/resources' },
     { name: 'Contact', path: '/contact' },
   ];
 

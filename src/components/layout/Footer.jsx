@@ -41,10 +41,9 @@ export default function Footer() {
           </h4>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
             <li><Link to="/teams" className="footer-link">Student Leadership</Link></li>
-            <li><Link to="/media" className="footer-link">Photo & Video Gallery</Link></li>
-            <li><Link to="/resources" className="footer-link">Resources & Toolkits</Link></li>
+            <li><Link to="/media" className="footer-link">Media &amp; Publications</Link></li>
             <li><Link to="/join" className="footer-link">Become a Change Agent</Link></li>
-            <li><Link to="/contact" className="footer-link">Contact & Inquiries</Link></li>
+            <li><Link to="/contact" className="footer-link">Contact &amp; Inquiries</Link></li>
           </ul>
         </div>
 
