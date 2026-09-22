@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Quote, ArrowRight, Sparkles, Heart, Compass } from 'lucide-react';
+import { ArrowRight, X, Sparkles } from 'lucide-react';
+import '../styles/home.css';
 
 export default function Stories() {
   const [dbTestimonials, setDbTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStory, setSelectedStory] = useState(null);
 
   useEffect(() => {
     fetch('/api/testimonials')
@@ -19,9 +21,19 @@ export default function Stories() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedStory(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const fadeUp = {
-    hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } }
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } }
   };
 
   const defaultStories = [
@@ -51,6 +63,33 @@ export default function Stories() {
       excerpt: "The 3-day rural immersion camp organized under YES-J fundamentally shifted how our team collaborates. Living alongside farming families dismantled our urban preconceptions.",
       fullStory: "Every evening, we sat in structured reflection circles—sharing not just what we did, but what we felt and what systemic issues we observed. That daily practice of discernment is what makes MAGIC Youth unique: action is never disconnected from deep ethical reflection.",
       tag: "Ignatian Reflection"
+    },
+    {
+      title: "Bridge to High School: Student-Led Math Mentoring",
+      category: "Peer Mentorship",
+      author: "Academic Outreach Lead",
+      unit: "ALC MAGIC Youth Chapter",
+      excerpt: "Every Saturday, twenty of our student volunteers travel to local municipal schools to conduct interactive stem workshops and bridge foundational learning gaps.",
+      fullStory: "Rather than rote learning, we created visual math puzzles and hands-on science experiments using locally available materials. Over six months, school attendance on Saturdays jumped by 40%, and our college volunteers developed deep empathy and pedagogical patience.",
+      tag: "Community Formation"
+    },
+    {
+      title: "Health, Hygiene & Dignity in Slum Communities",
+      category: "Community Outreach",
+      author: "Social Action Volunteer",
+      unit: "Loyola Campus Unit",
+      excerpt: "Collaborating with local medical volunteers, our student chapter organized adolescent health literacy and water sanitation workshops in peri-urban settlements.",
+      fullStory: "We distributed sanitary kits and conducted open, stigma-free awareness sessions for over 150 young women. The grassroots connection taught our collegiate volunteers the importance of community dignity, active listening, and long-term sustained partnership.",
+      tag: "Grassroots Solidarity"
+    },
+    {
+      title: "Ignatian Discernment in Daily Student Decisions",
+      category: "Ethical Formation",
+      author: "Formation Secretary",
+      unit: "Student Leadership Wing",
+      excerpt: "MAGIC Youth provided me with a framework of conscience, competence, compassion, and commitment that guides how I lead student committees and plan projects.",
+      fullStory: "Before making decisions for student fests or budget allocations, we pause for regular reflection. Asking 'who benefits and who might be left behind?' has transformed how our entire student executive council prioritizes inclusivity.",
+      tag: "Ethical Leadership"
     }
   ];
 
@@ -72,66 +111,142 @@ export default function Stories() {
           <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
             <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Voices & Impact
           </div>
-          <h1 style={{ fontSize: 'clamp(2.25rem, 4vw, 3rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
+          <h1 className="page-header-title" style={{ fontSize: 'clamp(2.25rem, 4vw, 3rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
             MAGIC Stories
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '650px', margin: '0 auto' }}>
+          <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '650px', margin: '0 auto' }}>
             Real narratives of student leadership, community solidarity, and personal transformation across campuses.
           </p>
         </motion.div>
       </section>
 
-      {/* Stories Editorial Grid */}
-      <section style={{ backgroundColor: '#F8FAFC', padding: '3.5rem 1.5rem' }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '3.5rem' }}>
+      {/* Stories Responsive 3-Column Grid */}
+      <section style={{ backgroundColor: '#F8FAFC', padding: '3.5rem 1.5rem 5rem' }}>
+        <div className="stories-grid">
           {storiesData.map((story, idx) => (
             <motion.article 
               key={idx}
-              style={{ backgroundColor: 'white', borderRadius: '1rem', border: '1px solid var(--border-color)', padding: '3.5rem 2.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}
+              className="story-card"
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
               variants={fadeUp}
-              transition={{ delay: idx * 0.1 }}
+              transition={{ delay: (idx % 3) * 0.1 }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em', backgroundColor: '#F0F9FF', padding: '0.35rem 0.85rem', borderRadius: '999px' }}>
-                  {story.category}
-                </span>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--primary-blue)' }}>
-                  {story.tag}
-                </span>
+              <div>
+                <div className="story-card-header">
+                  <span className="story-card-category">
+                    <span style={{ color: 'var(--primary-pink)' }}>●</span> {story.category}
+                  </span>
+                  {story.tag && <span className="story-card-tag">{story.tag}</span>}
+                </div>
+
+                <h2 className="story-card-title">
+                  {story.title}
+                </h2>
+
+                <p className="story-card-excerpt">
+                  "{story.excerpt}"
+                </p>
               </div>
 
-              <h2 style={{ fontSize: 'clamp(1.75rem, 3vw, 2.25rem)', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.25, marginBottom: '1.5rem' }}>
-                {story.title}
-              </h2>
-
-              <p style={{ fontSize: '1.15rem', fontWeight: 600, color: '#334155', lineHeight: 1.7, marginBottom: '1.25rem' }}>
-                "{story.excerpt}"
-              </p>
-
-              <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.8, marginBottom: '2.5rem' }}>
-                {story.fullStory}
-              </p>
-
-              <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                  <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-                    {story.author}
-                  </div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
-                    {story.unit}
-                  </div>
+              <div className="story-card-footer">
+                <div className="story-card-meta">
+                  <div className="story-card-author">{story.author}</div>
+                  <div className="story-card-unit">{story.unit}</div>
                 </div>
-                <Link to="/join" style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.9rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                  Start Your Journey &rarr;
-                </Link>
+                <button 
+                  type="button"
+                  className="story-card-btn"
+                  onClick={() => setSelectedStory(story)}
+                  aria-label={`Read story: ${story.title}`}
+                >
+                  Read Story <ArrowRight size={14} />
+                </button>
               </div>
             </motion.article>
           ))}
         </div>
       </section>
+
+      {/* Story Reader Modal */}
+      <AnimatePresence>
+        {selectedStory && (
+          <div 
+            className="story-modal-overlay"
+            onClick={() => setSelectedStory(null)}
+          >
+            <motion.div 
+              className="story-modal-content"
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
+                <div className="story-card-category">
+                  <span style={{ color: 'var(--primary-pink)' }}>●</span> {selectedStory.category}
+                </div>
+                <button 
+                  onClick={() => setSelectedStory(null)}
+                  aria-label="Close modal"
+                  style={{ background: '#F1F5F9', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#64748B' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <h2 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0F172A', lineHeight: 1.3, marginBottom: '1rem' }}>
+                {selectedStory.title}
+              </h2>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #F1F5F9' }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: 'var(--primary-blue-light)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>
+                  {selectedStory.author ? selectedStory.author.charAt(0).toUpperCase() : 'M'}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.95rem' }}>{selectedStory.author}</div>
+                  <div style={{ color: '#64748B', fontSize: '0.8125rem' }}>{selectedStory.unit}</div>
+                </div>
+              </div>
+
+              <div style={{ color: '#334155', fontSize: '1.05rem', lineHeight: 1.8, marginBottom: '2rem' }}>
+                <p style={{ fontWeight: 600, color: '#0F172A', marginBottom: '1rem', fontStyle: 'italic' }}>
+                  "{selectedStory.excerpt}"
+                </p>
+                {selectedStory.fullStory && selectedStory.fullStory !== selectedStory.excerpt && (
+                  <p style={{ marginTop: '1rem' }}>
+                    {selectedStory.fullStory}
+                  </p>
+                )}
+              </div>
+
+              <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <span style={{ fontSize: '0.8125rem', color: '#64748B' }}>
+                  YES-J Chartered Student Formation
+                </span>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button 
+                    onClick={() => setSelectedStory(null)} 
+                    className="btn-secondary" 
+                    style={{ padding: '0.6rem 1.25rem', fontSize: '0.875rem' }}
+                  >
+                    Close
+                  </button>
+                  <Link 
+                    to="/join" 
+                    className="btn-primary" 
+                    style={{ padding: '0.6rem 1.25rem', fontSize: '0.875rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    Join Movement <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* CTA */}
       <section style={{ backgroundColor: '#0F172A', color: 'white', padding: '5rem 1.5rem', textAlign: 'center' }}>
