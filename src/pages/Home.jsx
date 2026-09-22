@@ -364,56 +364,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* LEADERSHIP & GUIDANCE */}
-      <section className="leadership-section">
-        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-          <motion.div 
-            style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto 2.75rem' }}
-            initial="hidden" 
-            whileInView="visible" 
-            viewport={{ once: true, margin: '-40px' }} 
-            variants={fadeUp}
-          >
-            <div style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-              <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Institutional Guidance
-            </div>
-            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.65rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
-              LEADERSHIP & <span style={{ color: 'var(--primary-blue)' }}>GUIDANCE</span>
-            </h2>
-          </motion.div>
-
-          <motion.div 
-            className="leadership-card"
-            initial="hidden" 
-            whileInView="visible" 
-            viewport={{ once: true }} 
-            variants={fadeUp}
-          >
-            <div className="leadership-img-wrapper">
-              <img 
-                src="/assets/fr-bala-kumar.png" 
-                alt="Fr. Bala Kumar Bollineni, SJ" 
-                className="leadership-img"
-              />
-            </div>
-            <div className="leadership-info">
-              <div className="leadership-role-tag">
-                <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> FOUNDER-DIRECTOR, YES-J
-              </div>
-              <h3 className="leadership-name">
-                Fr. Bala Kumar Bollineni, SJ
-              </h3>
-              <div className="leadership-official-role">
-                Founder-Director, Youth Empowering Service-Jesuits (YES-J)
-              </div>
-              <p className="leadership-desc">
-                Founder-Director of YES-J and a foundational guide in the formation and accompaniment of young people through MAGIC Youth.
-              </p>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
       {/* 4. COMPACT VISION & MISSION */}
       <section className="vision-mission-compact">
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
@@ -758,7 +708,57 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 9. REAL IMPACT METRICS */}
+      {/* 9. LEADERSHIP & GUIDANCE */}
+      <section className="leadership-section">
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <motion.div 
+            style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto 2.75rem' }}
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true, margin: '-40px' }} 
+            variants={fadeUp}
+          >
+            <div style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+              <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Institutional Guidance
+            </div>
+            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.65rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
+              LEADERSHIP & <span style={{ color: 'var(--primary-blue)' }}>GUIDANCE</span>
+            </h2>
+          </motion.div>
+
+          <motion.div 
+            className="leadership-card"
+            initial="hidden" 
+            whileInView="visible" 
+            viewport={{ once: true }} 
+            variants={fadeUp}
+          >
+            <div className="leadership-img-wrapper">
+              <img 
+                src="/assets/fr-bala-kumar.png" 
+                alt="Fr. Bala Kumar Bollineni, SJ" 
+                className="leadership-img"
+              />
+            </div>
+            <div className="leadership-info">
+              <div className="leadership-role-tag">
+                <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> FOUNDER-DIRECTOR, YES-J
+              </div>
+              <h3 className="leadership-name">
+                Fr. Bala Kumar Bollineni, SJ
+              </h3>
+              <div className="leadership-official-role">
+                Founder-Director, Youth Empowering Service-Jesuits (YES-J)
+              </div>
+              <p className="leadership-desc">
+                Founder-Director of YES-J and a foundational guide in the formation and accompaniment of young people through MAGIC Youth.
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* 10. REAL IMPACT METRICS */}
       {stats.initialized && (
         <section className="impact-strip" style={{ backgroundColor: '#F8FAFC', padding: '4.5rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem', textAlign: 'center' }}>
