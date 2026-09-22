@@ -136,7 +136,7 @@ export default function Teams() {
           </div>
         ) : filteredTeams.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', maxWidth: '600px', margin: '0 auto', color: 'var(--text-secondary)' }}>
-            <p style={{ margin: 0, fontSize: '0.95rem' }}>No leadership teams found for the selected campus and year.</p>
+            <p style={{ margin: 0, fontSize: '0.95rem' }}>No team records available for this selection.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5rem', maxWidth: '1200px', margin: '0 auto' }}>

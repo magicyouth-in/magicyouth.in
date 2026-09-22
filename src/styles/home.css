@@ -35,30 +35,31 @@
   bottom: 1.25rem;
   right: 1.25rem;
   z-index: 20;
-  background-color: rgba(15, 23, 42, 0.85);
+  background-color: rgba(15, 23, 42, 0.65);
   color: #FFFFFF;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 0.5rem 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.4rem 0.85rem;
   border-radius: 999px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   transition: all 0.2s ease;
 }
 
 .video-sound-toggle.unmuted {
-  background-color: var(--primary-blue);
-  border-color: var(--primary-blue);
+  background-color: rgba(2, 132, 199, 0.85);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .video-sound-toggle:hover {
   transform: translateY(-1px);
-  filter: brightness(1.1);
+  background-color: rgba(15, 23, 42, 0.85);
 }
 
 @media (max-width: 480px) {
