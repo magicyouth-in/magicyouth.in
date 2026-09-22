@@ -1,15 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Quote, ArrowRight, Sparkles, Heart, Compass } from 'lucide-react';
 
 export default function Stories() {
+  const [dbTestimonials, setDbTestimonials] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/testimonials')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data && data.data.length > 0) {
+          setDbTestimonials(data.data);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
   const fadeUp = {
     hidden: { opacity: 0, y: 30 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } }
   };
 
-  const storiesData = [
+  const defaultStories = [
     {
       title: "From Passive Student to Community Advocate",
       category: "Leadership Journey",
@@ -38,6 +53,16 @@ export default function Stories() {
       tag: "Ignatian Reflection"
     }
   ];
+
+  const storiesData = dbTestimonials.length > 0 ? dbTestimonials.map(t => ({
+    title: t.title || `Transformation Story by ${t.name}`,
+    category: t.category || "Student Experience",
+    author: t.name,
+    unit: t.role || "MAGIC Youth Member",
+    excerpt: t.quote,
+    fullStory: t.quote,
+    tag: "Verified Testimony"
+  })) : defaultStories;
 
   return (
     <div className="stories-page-wrapper">
