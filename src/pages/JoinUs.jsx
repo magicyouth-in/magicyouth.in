@@ -172,20 +172,20 @@ export default function JoinUs() {
   return (
     <div>
       {/* ── JOIN HERO ───────────────────────────────────────────── */}
-      <section className="join-hero" style={{ backgroundColor: '#0F172A', color: 'white', padding: '6rem 1.5rem 4rem', textAlign: 'center' }}>
-        <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
-          <span style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem', display: 'inline-block' }}>
+      <section className="join-hero page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
+          <span className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'inline-block' }}>
             <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> YES-J &bull; MAGIC YOUTH MEMBERSHIP
           </span>
-          <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '1.25rem', color: 'white' }}>Become a <span style={{ color: 'var(--primary-blue)' }}>Change</span> <span style={{ color: 'var(--primary-pink)' }}>Agent</span></h1>
-          <p style={{ color: '#94A3B8', fontSize: '1.2rem', lineHeight: 1.6 }}>
+          <h1 className="page-header-title" style={{ fontSize: 'clamp(2.25rem, 4vw, 3rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '0.75rem', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Become a <span style={{ color: 'var(--primary-blue)' }}>Change</span> <span style={{ color: 'var(--primary-pink)' }}>Agent</span></h1>
+          <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto' }}>
             Join a campus-based movement forming young people as leaders of conscience, compassion, and commitment.
           </p>
-        </div>
+        </motion.div>
       </section>
 
       {/* ── FORM CONTAINER ──────────────────────────────────────── */}
-      <section className="join-section" style={{ backgroundColor: 'var(--bg-primary)', padding: '5rem 1.5rem' }}>
+      <section className="join-section" style={{ backgroundColor: 'var(--bg-primary)', padding: '3.5rem 1.5rem' }}>
         <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr', gap: '4rem', alignItems: 'start' }} className="join-split-layout">
           
           {/* WHY JOIN SIDEBAR */}

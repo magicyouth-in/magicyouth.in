@@ -61,22 +61,22 @@ export default function Resources() {
   return (
     <div className="resources-page-wrapper">
       {/* Header */}
-      <section style={{ backgroundColor: '#0F172A', color: 'white', padding: '6rem 1.5rem 4rem', textAlign: 'center' }}>
+      <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
         <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
-          <div style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
-            Knowledge & Toolkits
+          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+            <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Knowledge & Toolkits
           </div>
-          <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '1.5rem' }}>
+          <h1 style={{ fontSize: 'clamp(2.25rem, 4vw, 3rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
             Resources & Publications
           </h1>
-          <p style={{ color: '#94A3B8', fontSize: '1.2rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto' }}>
             Official formation guides, chapter toolkits, publications, and program manuals for MAGIC Youth leaders and mentors.
           </p>
         </motion.div>
       </section>
 
       {/* Resource Sections */}
-      <section style={{ backgroundColor: '#F8FAFC', padding: '5rem 1.5rem' }}>
+      <section style={{ backgroundColor: '#F8FAFC', padding: '3.5rem 1.5rem' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '4rem' }}>
           {resourceCategories.map((cat, idx) => (
             <div key={idx}>

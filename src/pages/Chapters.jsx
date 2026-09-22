@@ -32,22 +32,22 @@ export default function Chapters() {
   return (
     <div className="chapters-page-wrapper">
       {/* Header */}
-      <section style={{ backgroundColor: '#0F172A', color: 'white', padding: '6rem 1.5rem 4rem', textAlign: 'center' }}>
+      <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
         <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
-          <div style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '1rem' }}>
+          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
             <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Campus Network
           </div>
-          <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '1.5rem' }}>
+          <h1 className="page-header-title" style={{ color: 'var(--text-primary)', fontSize: 'clamp(2.25rem, 4vw, 3rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>
             MAGIC Youth Chapters
           </h1>
-          <p style={{ color: '#94A3B8', fontSize: '1.2rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto' }}>
+          <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto' }}>
             Student-driven wings established inside educational institutions, forming collegiate youth into active agents of social change.
           </p>
         </motion.div>
       </section>
 
       {/* Chapters Directory */}
-      <section style={{ backgroundColor: '#F8FAFC', padding: '5rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+      <section style={{ backgroundColor: '#F8FAFC', padding: '3.5rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ marginBottom: '3.5rem' }}>
             <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>

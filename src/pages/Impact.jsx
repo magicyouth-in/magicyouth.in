@@ -45,18 +45,18 @@ export default function Impact() {
 
   return (
     <main className="home-wrapper">
-      <section className="page-header-section" style={{ backgroundColor: '#0F172A', padding: '6rem 1.5rem', color: 'white' }}>
-        <div className="page-header-content" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>
+      <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
+          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
             <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Our Impact
           </div>
-          <h1 className="page-header-title" style={{ color: 'white', fontSize: '3.5rem', letterSpacing: '-0.02em', marginBottom: '1rem' }}>
-            From student formation to community action.
+          <h1 className="page-header-title" style={{ color: 'var(--text-primary)', fontSize: 'clamp(2.25rem, 4vw, 3rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
+            From Student Formation to Community Action
           </h1>
-          <p style={{ color: '#94A3B8', fontSize: '1.25rem', lineHeight: 1.6 }}>
+          <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto' }}>
             Real outcomes driven by MAGIC Youth chapters across educational institutions and communities.
           </p>
-        </div>
+        </motion.div>
       </section>
 
       <section className="inner-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '2rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>

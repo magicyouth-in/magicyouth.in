@@ -34,16 +34,16 @@ export default function About() {
 
   return (
     <main className="home-wrapper">
-      <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-        <div className="page-header-content" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>
+      <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
+          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
             <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Institutional Identity
           </div>
-          <h1 className="page-header-title" style={{ color: 'var(--text-primary)', fontSize: '3rem' }}>About MAGIC Youth</h1>
-          <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)' }}>
+          <h1 className="page-header-title" style={{ color: 'var(--text-primary)', fontSize: 'clamp(2.25rem, 4vw, 3rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>About MAGIC Youth</h1>
+          <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto' }}>
             A campus-based movement forming young people as agents of conscience, compassion, and commitment.
           </p>
-        </div>
+        </motion.div>
       </section>
 
       {/* 01 OUR CORE STORY */}

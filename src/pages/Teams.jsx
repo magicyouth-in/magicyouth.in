@@ -25,10 +25,22 @@ export default function Teams() {
       if (unitsData.success) {
         fetchedUnits = unitsData.data || [];
         setUnits(fetchedUnits);
+        
+        // Preselect ALC unit by default if present
+        const alcMatch = fetchedUnits.find(u => /ALC|Andhra Loyola/i.test(u.shortName || u.name || u.code || ''));
+        if (alcMatch) {
+          setSelectedUnit(alcMatch._id || alcMatch.id);
+        }
       }
       if (yearsData.success) {
         fetchedYears = yearsData.data || [];
         setAcademicYears(fetchedYears);
+
+        // Preselect current academic year if present
+        const currentYearObj = fetchedYears.find(y => y.isCurrent) || fetchedYears[0];
+        if (currentYearObj && currentYearObj.year) {
+          setSelectedYear(currentYearObj.year);
+        }
       }
 
       if (teamsData.success) {
@@ -81,19 +93,19 @@ export default function Teams() {
 
   return (
     <main className="home-wrapper">
-      <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+      <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid var(--border-color)' }}>
         <div className="page-header-content" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>
+          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
             <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Leadership & Community
           </div>
-          <h1 className="page-header-title" style={{ color: 'var(--text-primary)', fontSize: '3rem' }}>Our Teams</h1>
-          <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)' }}>
+          <h1 className="page-header-title" style={{ color: 'var(--text-primary)', fontSize: 'clamp(2.25rem, 4vw, 3rem)', letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>Our Teams</h1>
+          <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6 }}>
             The dedicated students and coordinators driving change across our chapters.
           </p>
         </div>
       </section>
 
-      <section className="inner-section" style={{ backgroundColor: 'white' }}>
+      <section className="inner-section" style={{ backgroundColor: 'white', padding: '3rem 1.5rem' }}>
         {/* FILTERS */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', alignItems: 'center', marginBottom: '3.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#FFFFFF', padding: '0.6rem 1.25rem', borderRadius: '999px', border: '1.5px solid var(--border-color)', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
