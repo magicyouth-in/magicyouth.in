@@ -34,6 +34,7 @@ const uploadPhoto = multer({
 
 /** GET /api/teams */
 router.get('/', async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   try {
     let query = supabase.from('teams').select('*, units(name, code), academic_years(year)').order('created_at', { ascending: false });
     if (req.query.unitId) query = query.eq('unit_id', req.query.unitId);
@@ -57,6 +58,7 @@ router.get('/', async (req, res) => {
 
 /** GET /api/teams/:id */
 router.get('/:id', async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   try {
     const { data: team, error } = await supabase
       .from('teams')
@@ -81,6 +83,7 @@ router.get('/:id', async (req, res) => {
 
 /** GET /api/teams/:id/members */
 router.get('/:id/members', async (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   try {
     const { data: members, error } = await supabase
       .from('team_members')
@@ -95,14 +98,16 @@ router.get('/:id/members', async (req, res) => {
     const formatted = (members || []).map(m => {
       const social = typeof m.social_links === 'string' ? JSON.parse(m.social_links || '{}') : (m.social_links || {});
       const isAnimator = social.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position);
+      const canonicalDept = m.department || social.organization || '';
       return {
         ...m,
         _id: m.id,
         teamId: m.team_id,
         batchYear: m.batch_year,
+        department: canonicalDept,
+        organization: canonicalDept,
         socialLinks: social,
         section: social.section || (isAnimator ? 'Main Animator' : 'Team Member'),
-        organization: social.organization || m.department || '',
         isActive: m.is_active,
         displayOrder: m.display_order ?? 0,
       };
@@ -180,6 +185,8 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
     const { name, position, biography, department, batchYear, socialLinks, displayOrder, isActive, section, organization } = req.body;
     if (!name || !position) return res.status(400).json({ success: false, message: 'Name and position are required.' });
 
+    const deptValue = (department !== undefined ? department : organization) || '';
+
     // Upload photo to Supabase Storage if provided
     let photoUrl = null;
     if (tmpFile) {
@@ -190,7 +197,7 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
 
     let parsedSocial = socialLinks ? (typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks) : {};
     if (section) parsedSocial.section = section;
-    if (organization) parsedSocial.organization = organization;
+    parsedSocial.organization = deptValue;
 
     const { data: member, error } = await supabase
       .from('team_members')
@@ -199,7 +206,7 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
         name,
         position,
         biography: biography || '',
-        department: organization || department || '',
+        department: deptValue,
         batch_year: batchYear || '',
         photo: photoUrl,
         social_links: parsedSocial,
@@ -219,8 +226,9 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
         _id: member.id, 
         teamId: member.team_id, 
         photo: member.photo,
+        department: member.department,
+        organization: member.department,
         section: parsedSocial.section || 'Team Member',
-        organization: member.department
       }, 
       message: 'Team member added.' 
     });
@@ -247,7 +255,10 @@ router.put('/members/:memberId', authenticateAdmin, requireAnyAdmin, uploadPhoto
     if (name) updates.name = name;
     if (position) updates.position = position;
     if (biography !== undefined) updates.biography = biography;
-    if (department !== undefined || organization !== undefined) updates.department = organization || department || '';
+    
+    const deptValue = department !== undefined ? department : organization;
+    if (deptValue !== undefined) updates.department = deptValue;
+
     if (batchYear !== undefined) updates.batch_year = batchYear;
     if (displayOrder !== undefined) updates.display_order = parseInt(displayOrder, 10);
     if (isActive !== undefined) updates.is_active = isActive === 'true' || isActive === true;
@@ -255,7 +266,7 @@ router.put('/members/:memberId', authenticateAdmin, requireAnyAdmin, uploadPhoto
     let existingSocial = typeof member.social_links === 'string' ? JSON.parse(member.social_links || '{}') : (member.social_links || {});
     let parsedSocial = socialLinks ? (typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks) : { ...existingSocial };
     if (section !== undefined) parsedSocial.section = section;
-    if (organization !== undefined) parsedSocial.organization = organization;
+    if (deptValue !== undefined) parsedSocial.organization = deptValue;
     updates.social_links = parsedSocial;
 
     if (tmpFile) {
@@ -281,8 +292,9 @@ router.put('/members/:memberId', authenticateAdmin, requireAnyAdmin, uploadPhoto
         _id: updated.id, 
         teamId: updated.team_id, 
         photo: updated.photo,
+        department: updated.department,
+        organization: updated.department,
         section: parsedSocial.section || 'Team Member',
-        organization: updated.department
       }, 
       message: 'Member updated.' 
     });

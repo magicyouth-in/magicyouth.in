@@ -229,9 +229,9 @@ export default function Teams() {
                                   {animator.position || 'MAIN ANIMATOR'}
                                 </div>
 
-                                {(animator.organization || animator.department) && (
+                                {(animator.department || animator.organization) && (
                                   <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>
-                                    {animator.organization || animator.department}
+                                    {animator.department || animator.organization}
                                   </p>
                                 )}
 
@@ -282,9 +282,9 @@ export default function Teams() {
                                   {member.position}
                                 </div>
 
-                                {(member.organization || member.department) && (
+                                {(member.department || member.organization) && (
                                   <p className="member-dept-text">
-                                    {member.organization || member.department}
+                                    {member.department || member.organization}
                                   </p>
                                 )}
                               </div>
