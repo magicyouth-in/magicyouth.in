@@ -1699,24 +1699,60 @@ function ResourcesModule({ toast, units, academicYears }) {
       return;
     }
 
+    const MAX_SIZE = 50 * 1024 * 1024;
+    if (fileToUpload.size > MAX_SIZE) {
+      toast('File size exceeds the 50MB maximum limit.', 'error');
+      return;
+    }
+
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append('title', docForm.title);
-      fd.append('description', docForm.description);
-      fd.append('documentType', docForm.documentType);
-      fd.append('visibility', docForm.visibility);
-      fd.append('unitId', docForm.unitId);
-      fd.append('academicYearId', docForm.academicYearId);
-      fd.append('file', fileToUpload);
-
-      const res = await fetch('/api/documents', {
+      // 1. Get signed upload URL from backend
+      const signData = await api('/api/documents/sign-upload', {
         method: 'POST',
-        credentials: 'include',
-        body: fd
+        body: JSON.stringify({
+          fileName: fileToUpload.name,
+          fileType: fileToUpload.type || 'application/pdf',
+          fileSize: fileToUpload.size,
+          unitId: docForm.unitId
+        })
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
+
+      if (!signData.signedUrl) throw new Error('Could not obtain upload authorization.');
+
+      // 2. Upload file directly to Supabase Storage
+      const uploadRes = await fetch(signData.signedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': fileToUpload.type || 'application/octet-stream'
+        },
+        body: fileToUpload
+      });
+
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        throw new Error(`Storage upload failed (${uploadRes.status}): ${errText || 'Network failure'}`);
+      }
+
+      // 3. Save document metadata in database
+      const saveRes = await api('/api/documents', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: docForm.title,
+          description: docForm.description,
+          documentType: docForm.documentType,
+          visibility: docForm.visibility,
+          unitId: docForm.unitId,
+          academicYearId: docForm.academicYearId,
+          filePath: signData.publicUrl,
+          storagePath: signData.path,
+          fileName: fileToUpload.name,
+          fileSize: fileToUpload.size,
+          mimeType: fileToUpload.type || 'application/pdf'
+        })
+      });
+
+      if (!saveRes.success) throw new Error(saveRes.message || 'Failed to save document metadata.');
 
       toast(`Document "${docForm.title}" uploaded successfully.`);
       setShowUploadModal(false);
@@ -1731,7 +1767,7 @@ function ResourcesModule({ toast, units, academicYears }) {
       });
       loadDocs();
     } catch (e) {
-      toast(e.message, 'error');
+      toast(e.message || 'Upload failed', 'error');
     } finally {
       setUploading(false);
     }
@@ -1757,45 +1793,69 @@ function ResourcesModule({ toast, units, academicYears }) {
     e.preventDefault();
     setUploading(true);
     try {
+      let filePayload = {};
       if (replaceFile) {
-        const fd = new FormData();
-        fd.append('title', docForm.title);
-        fd.append('description', docForm.description);
-        fd.append('documentType', docForm.documentType);
-        fd.append('visibility', docForm.visibility);
-        fd.append('unitId', docForm.unitId);
-        fd.append('academicYearId', docForm.academicYearId);
-        fd.append('file', replaceFile);
+        const MAX_SIZE = 50 * 1024 * 1024;
+        if (replaceFile.size > MAX_SIZE) {
+          toast('Replacement file exceeds the 50MB maximum limit.', 'error');
+          setUploading(false);
+          return;
+        }
 
-        const res = await fetch(`/api/documents/${editingDoc._id || editingDoc.id}`, {
-          method: 'PUT',
-          credentials: 'include',
-          body: fd
-        });
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch { throw new Error(res.status === 413 ? 'File too large.' : 'Server error'); }
-        if (!data.success) throw new Error(data.message || 'Update failed');
-      } else {
-        await api(`/api/documents/${editingDoc._id || editingDoc.id}`, {
-          method: 'PUT',
+        // 1. Get signed upload URL
+        const signData = await api('/api/documents/sign-upload', {
+          method: 'POST',
           body: JSON.stringify({
-            title: docForm.title,
-            description: docForm.description,
-            documentType: docForm.documentType,
-            visibility: docForm.visibility,
-            unitId: docForm.unitId,
-            academicYearId: docForm.academicYearId
+            fileName: replaceFile.name,
+            fileType: replaceFile.type || 'application/pdf',
+            fileSize: replaceFile.size,
+            unitId: docForm.unitId
           })
         });
+
+        // 2. Upload file directly to Supabase Storage
+        const uploadRes = await fetch(signData.signedUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': replaceFile.type || 'application/octet-stream'
+          },
+          body: replaceFile
+        });
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          throw new Error(`Storage upload failed (${uploadRes.status}): ${errText || 'Network failure'}`);
+        }
+
+        filePayload = {
+          filePath: signData.publicUrl,
+          storagePath: signData.path,
+          fileSize: replaceFile.size,
+          mimeType: replaceFile.type || 'application/pdf'
+        };
       }
+
+      // Save updated metadata
+      await api(`/api/documents/${editingDoc._id || editingDoc.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: docForm.title,
+          description: docForm.description,
+          documentType: docForm.documentType,
+          visibility: docForm.visibility,
+          unitId: docForm.unitId,
+          academicYearId: docForm.academicYearId,
+          ...filePayload
+        })
+      });
+
       toast('Document updated successfully.');
       setShowEditModal(false);
       setEditingDoc(null);
       setReplaceFile(null);
       loadDocs();
     } catch (e) {
-      toast(e.message, 'error');
+      toast(e.message || 'Update failed', 'error');
     } finally {
       setUploading(false);
     }

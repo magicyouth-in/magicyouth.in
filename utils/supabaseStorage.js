@@ -15,7 +15,7 @@ const BUCKETS = {
 };
 
 /**
- * Ensure Supabase Storage buckets exist on startup.
+ * Ensure Supabase Storage buckets exist and are public with 50MB limits.
  */
 async function initStorageBuckets() {
   try {
@@ -29,22 +29,50 @@ async function initStorageBuckets() {
 
     for (const bucket of Object.values(BUCKETS)) {
       if (!bucketNames.includes(bucket)) {
-        const isPublic = true;
         const { error: createError } = await supabase.storage.createBucket(bucket, {
-          public: isPublic,
+          public: true,
           fileSizeLimit: 50 * 1024 * 1024, // 50MB
         });
         if (createError) {
           console.warn(`[Supabase Storage] Bucket "${bucket}" creation info:`, createError.message);
         } else {
-          console.log(`[Supabase Storage] Created bucket "${bucket}" (Public: ${isPublic}) ✓`);
+          console.log(`[Supabase Storage] Created bucket "${bucket}" (Public: true, 50MB) ✓`);
         }
+      } else {
+        // Ensure bucket is public and 50MB limit
+        await supabase.storage.updateBucket(bucket, {
+          public: true,
+          fileSizeLimit: 50 * 1024 * 1024,
+        }).catch(() => {});
       }
     }
     console.log('[Supabase Storage] Storage buckets verified ✓');
   } catch (err) {
     console.warn('[Supabase Storage] Initialization warning:', err.message);
   }
+}
+
+/**
+ * Create a pre-signed upload URL for direct-to-storage uploads from browser.
+ * @param {string} bucketName
+ * @param {string} destinationPath
+ * @returns {Promise<{ signedUrl: string, path: string, token: string, publicUrl: string }>}
+ */
+async function createSignedUploadUrl(bucketName, destinationPath) {
+  const cleanPath = destinationPath.replace(/^\/+/, '');
+  const { data, error } = await supabase.storage.from(bucketName).createSignedUploadUrl(cleanPath, {
+    upsert: true,
+  });
+  if (error) {
+    throw new Error(`Failed to create signed upload URL: ${error.message}`);
+  }
+  const { data: urlData } = supabase.storage.from(bucketName).getPublicUrl(data.path);
+  return {
+    signedUrl: data.signedUrl,
+    path: data.path,
+    token: data.token,
+    publicUrl: urlData?.publicUrl || '',
+  };
 }
 
 /**
@@ -110,4 +138,5 @@ module.exports = {
   uploadFile,
   getPublicUrl,
   deleteFile,
+  createSignedUploadUrl,
 };

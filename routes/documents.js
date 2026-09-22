@@ -10,7 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const supabase = require('../utils/supabaseClient');
-const { BUCKETS, uploadFile, deleteFile } = require('../utils/supabaseStorage');
+const { BUCKETS, uploadFile, deleteFile, createSignedUploadUrl } = require('../utils/supabaseStorage');
 const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
 
@@ -217,45 +217,121 @@ router.get('/admin/all', authenticateAdmin, requireAnyAdmin, async (req, res) =>
   }
 });
 
-/** POST /api/documents — Upload */
-router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('file'), async (req, res) => {
-  const tmpFile = req.file ? req.file.path : null;
+/** POST /api/documents/sign-upload — Generate pre-signed upload URL for direct-to-storage upload */
+router.post('/sign-upload', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    if (!tmpFile) return res.status(400).json({ success: false, message: 'File is required.' });
+    const { fileName, fileType, fileSize, unitId } = req.body;
+    if (!fileName) {
+      return res.status(400).json({ success: false, message: 'File name is required.' });
+    }
+    if (unitId && !canAccessUnit(req.admin, unitId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden: Cannot upload to this chapter.' });
+    }
 
-    const { title, description, unitId, academicYearId, eventId, documentType, visibility } = req.body;
-    if (!title || !unitId || !academicYearId) return res.status(400).json({ success: false, message: 'title, unitId, and academicYearId are required.' });
+    // Size limit check (50MB)
+    const MAX_SIZE = 50 * 1024 * 1024;
+    if (fileSize && Number(fileSize) > MAX_SIZE) {
+      return res.status(400).json({ success: false, message: 'File exceeds the maximum allowed size of 50MB.' });
+    }
 
-    if (!canAccessUnit(req.admin, unitId)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+    // Extension and MIME validation
+    const ext = path.extname(fileName).toLowerCase();
+    const allowedExts = /\.(pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|jpg|jpeg|png|gif|webp|svg|zip|heic|heif)$/i;
+    if (!allowedExts.test(ext) && !ALLOWED_MIMES.includes(fileType)) {
+      return res.status(400).json({ success: false, message: `File type "${ext || fileType}" is not supported. Please upload a PDF, document, spreadsheet, presentation, or image.` });
+    }
 
-    const destination = `documents/${Date.now()}-${path.basename(tmpFile)}`;
-    const { publicUrl } = await uploadFile(BUCKETS.DOCUMENTS, tmpFile, destination, req.file.mimetype);
+    const cleanBaseName = path.basename(fileName, ext).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80);
+    const destinationPath = `documents/${Date.now()}-${cleanBaseName}${ext}`;
+
+    const { signedUrl, path: storagePath, token, publicUrl } = await createSignedUploadUrl(BUCKETS.DOCUMENTS, destinationPath);
+
+    res.json({
+      success: true,
+      signedUrl,
+      token,
+      path: storagePath,
+      publicUrl,
+      fileName,
+      fileSize: fileSize || 0,
+      mimeType: fileType || 'application/octet-stream',
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to generate signed upload URL.' });
+  }
+});
+
+/** POST /api/documents — Save Document Record */
+router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('file'), async (req, res) => {
+  let tmpFile = req.file ? req.file.path : null;
+  try {
+    const {
+      title, description, unitId, academicYearId, eventId,
+      documentType, visibility,
+      filePath: directFilePath, storagePath, fileSize: directFileSize, mimeType: directMimeType
+    } = req.body;
+
+    if (!title || !unitId || !academicYearId) {
+      return res.status(400).json({ success: false, message: 'Title, Chapter (unitId), and Academic Year are required.' });
+    }
+
+    if (!canAccessUnit(req.admin, unitId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden.' });
+    }
+
+    let finalFilePath = directFilePath || null;
+    let finalFileSize = directFileSize ? Number(directFileSize) : 0;
+    let finalMimeType = directMimeType || 'application/octet-stream';
+
+    // Fallback: If uploaded via multipart form
+    if (tmpFile) {
+      const destination = `documents/${Date.now()}-${path.basename(tmpFile)}`;
+      const { publicUrl } = await uploadFile(BUCKETS.DOCUMENTS, tmpFile, destination, req.file.mimetype);
+      finalFilePath = publicUrl;
+      finalFileSize = req.file.size;
+      finalMimeType = req.file.mimetype;
+    }
+
+    if (!finalFilePath) {
+      return res.status(400).json({ success: false, message: 'File is required.' });
+    }
 
     const { data: doc, error } = await supabase
       .from('documents')
       .insert([{
-        title,
+        title: title.trim(),
         description: description || '',
         unit_id: unitId,
         academic_year_id: academicYearId,
         event_id: eventId || null,
         document_type: documentType || 'Other Documents',
-        file_path: publicUrl,
-        file_size: req.file.size,
-        mime_type: req.file.mimetype,
+        file_path: finalFilePath,
+        file_size: finalFileSize,
+        mime_type: finalMimeType,
         visibility: visibility || 'Public',
       }])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Clean up orphaned storage file if DB insert failed
+      if (storagePath) await deleteFile(BUCKETS.DOCUMENTS, storagePath).catch(() => {});
+      else if (finalFilePath) await deleteFile(BUCKETS.DOCUMENTS, finalFilePath).catch(() => {});
+      throw error;
+    }
 
     await logAction(req, 'Upload Document', 'Document', doc.id, unitId);
-    res.status(201).json({ success: true, data: { ...doc, _id: doc.id, filePath: doc.file_path }, message: 'Document uploaded.' });
+    res.status(201).json({
+      success: true,
+      data: { ...doc, _id: doc.id, filePath: doc.file_path },
+      message: 'Document uploaded successfully.'
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: err.message || 'Failed to save document record.' });
   } finally {
-    if (tmpFile && fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+    if (tmpFile && fs.existsSync(tmpFile)) {
+      try { fs.unlinkSync(tmpFile); } catch {}
+    }
   }
 });
 
@@ -302,23 +378,37 @@ router.patch('/:id/visibility', authenticateAdmin, requireAnyAdmin, async (req, 
 
 /** PUT /api/documents/:id — Edit Document Metadata & Optional File Replacement */
 router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('file'), async (req, res) => {
-  let tmpFile = null;
+  let tmpFile = req.file ? req.file.path : null;
   try {
     const { data: doc } = await supabase.from('documents').select('*').eq('id', req.params.id).single();
     if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
     if (!canAccessUnit(req.admin, doc.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    const { title, description, documentType, visibility, unitId, academicYearId } = req.body;
+    const {
+      title, description, documentType, visibility, unitId, academicYearId,
+      filePath: directFilePath, storagePath, fileSize: directFileSize, mimeType: directMimeType
+    } = req.body;
+
     const updates = { updated_at: new Date().toISOString() };
-    if (title) updates.title = title;
+    if (title) updates.title = title.trim();
     if (description !== undefined) updates.description = description;
     if (documentType) updates.document_type = documentType;
     if (visibility) updates.visibility = visibility;
     if (unitId) updates.unit_id = unitId;
     if (academicYearId) updates.academic_year_id = academicYearId;
 
-    if (req.file) {
-      tmpFile = req.file.path;
+    // Direct uploaded replacement file
+    if (directFilePath && directFilePath !== doc.file_path) {
+      if (doc.file_path) {
+        await deleteFile(BUCKETS.DOCUMENTS, doc.file_path).catch(() => {});
+      }
+      updates.file_path = directFilePath;
+      if (directFileSize) updates.file_size = Number(directFileSize);
+      if (directMimeType) updates.mime_type = directMimeType;
+    }
+
+    // Multipart replacement file fallback
+    if (tmpFile) {
       const publicUrl = await uploadFile(BUCKETS.DOCUMENTS, req.file.path, req.file.originalname, req.file.mimetype);
       if (doc.file_path) {
         await deleteFile(BUCKETS.DOCUMENTS, doc.file_path).catch(() => {});
@@ -338,9 +428,13 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('file'), as
     if (error) throw error;
 
     await logAction(req, 'Edit Document', 'Document', doc.id, doc.unit_id);
-    res.json({ success: true, data: { ...updated, _id: updated.id, filePath: updated.file_path }, message: 'Document updated.' });
+    res.json({
+      success: true,
+      data: { ...updated, _id: updated.id, filePath: updated.file_path },
+      message: 'Document updated successfully.'
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: err.message || 'Failed to update document.' });
   } finally {
     if (tmpFile && fs.existsSync(tmpFile)) {
       try { fs.unlinkSync(tmpFile); } catch {}
