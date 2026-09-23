@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, Loader2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { Filter, Loader2, Sparkles, X, ChevronRight } from 'lucide-react';
 import '../styles/home.css';
 import '../styles/teams.css';
 
@@ -12,7 +12,7 @@ export default function Teams() {
 
   const [selectedUnit, setSelectedUnit] = useState('All');
   const [selectedYear, setSelectedYear] = useState('All');
-  const [expandedMemberId, setExpandedMemberId] = useState(null);
+  const [selectedMember, setSelectedMember] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -72,6 +72,25 @@ export default function Teams() {
     });
   }, []);
 
+  // Handle ESC key and scroll-lock for modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedMember(null);
+      }
+    };
+    if (selectedMember) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [selectedMember]);
+
   const uniqueYears = Array.from(
     new Set(academicYears.map(y => y.year).filter(Boolean))
   ).sort((a, b) => b.localeCompare(a));
@@ -86,11 +105,16 @@ export default function Teams() {
     const rawUnit = team.unitId?.shortName || team.unitId?.name || 'CAMPUS';
     // Remove duplicate occurrences of "MAGIC YOUTH" or "MAGIC" at the end of unit name
     const cleanCampus = rawUnit.replace(/\s*MAGIC(\s*YOUTH)?\s*$/i, '').trim();
-    return cleanCampus ? `${cleanCampus} MAGIC YOUTH TEAM` : 'MAGIC YOUTH TEAM';
+    return cleanCampus ? `${cleanCampus} MAGIC YOUTH` : 'MAGIC YOUTH';
   };
 
-  const toggleExpand = (id) => {
-    setExpandedMemberId(prev => prev === id ? null : id);
+  const openMemberProfile = (member, team) => {
+    setSelectedMember({
+      ...member,
+      teamName: team.name,
+      unitName: getTeamDisplayName(team),
+      academicYear: team.academicYearId?.year,
+    });
   };
 
   const getInitials = (name) => {
@@ -177,7 +201,7 @@ export default function Teams() {
                       <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> {team.academicYearId?.isCurrent ? 'CURRENT TEAM' : 'PAST TEAM'}
                     </div>
                     <h2 style={{ fontSize: 'clamp(1.25rem, 4vw, 2.25rem)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.5rem', letterSpacing: '-0.02em', textTransform: 'uppercase', padding: '0 0.5rem', lineHeight: 1.2 }}>
-                      {getTeamDisplayName(team)}
+                      {getTeamDisplayName(team)} TEAM
                     </h2>
                     <div style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', fontWeight: 600 }}>
                       {team.academicYearId?.year ? `${team.academicYearId.year} • ` : ''}{team.name || 'Executive Body'}
@@ -201,20 +225,16 @@ export default function Teams() {
                           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2rem' }}>
                             {animators.map((animator) => {
                               const memberId = animator._id || animator.id;
-                              const isExpanded = expandedMemberId === memberId;
-                              const expText = (animator.experience || animator.biography || '').trim();
-                              const hasExp = Boolean(expText);
 
                               return (
                                 <div 
                                   key={memberId}
-                                  onClick={() => hasExp && toggleExpand(memberId)}
-                                  onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && hasExp) { e.preventDefault(); toggleExpand(memberId); } }}
-                                  tabIndex={hasExp ? 0 : undefined}
-                                  role={hasExp ? "button" : undefined}
-                                  aria-expanded={hasExp ? isExpanded : undefined}
-                                  className={`animator-card-interactive ${isExpanded ? 'expanded' : ''}`}
-                                  style={{ cursor: hasExp ? 'pointer' : 'default' }}
+                                  onClick={() => openMemberProfile(animator, team)}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMemberProfile(animator, team); } }}
+                                  tabIndex={0}
+                                  role="button"
+                                  aria-label={`View full profile for ${animator.name}`}
+                                  className="animator-card-interactive"
                                 >
                                   <div style={{ width: '130px', height: '130px', borderRadius: '50%', marginBottom: '1.25rem', overflow: 'hidden', border: '4px solid #FFFFFF', boxShadow: '0 6px 18px rgba(2, 132, 199, 0.15)', flexShrink: 0 }}>
                                     {animator.photo ? (
@@ -240,33 +260,9 @@ export default function Teams() {
                                     </p>
                                   )}
 
-                                  {hasExp && !isExpanded && (
-                                    <span className="member-exp-prompt">
-                                      <Sparkles size={11} /> View Experience <ChevronDown size={11} />
-                                    </span>
-                                  )}
-
-                                  <AnimatePresence>
-                                    {hasExp && isExpanded && (
-                                      <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.25, ease: 'easeOut' }}
-                                        className="member-experience-container"
-                                      >
-                                        <div className="member-experience-heading">
-                                          <Sparkles size={12} /> EXPERIENCE / DETAILS
-                                        </div>
-                                        <p className="member-experience-text">
-                                          {expText}
-                                        </p>
-                                        <div className="member-collapse-row">
-                                          <ChevronUp size={12} /> Click to collapse
-                                        </div>
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
+                                  <span className="member-view-prompt">
+                                    <Sparkles size={11} /> View Full Profile <ChevronRight size={11} />
+                                  </span>
                                 </div>
                               );
                             })}
@@ -289,19 +285,16 @@ export default function Teams() {
                           <div className="team-members-5col-grid">
                             {teamMembers.map((member) => {
                               const memberId = member._id || member.id;
-                              const isExpanded = expandedMemberId === memberId;
-                              const expText = (member.experience || member.biography || '').trim();
-                              const hasExp = Boolean(expText);
 
                               return (
                                 <div 
                                   key={memberId}
-                                  onClick={() => hasExp && toggleExpand(memberId)}
-                                  onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && hasExp) { e.preventDefault(); toggleExpand(memberId); } }}
-                                  tabIndex={hasExp ? 0 : undefined}
-                                  role={hasExp ? "button" : undefined}
-                                  aria-expanded={hasExp ? isExpanded : undefined}
-                                  className={`team-member-card-5col ${hasExp ? 'interactive' : ''} ${isExpanded ? 'expanded' : ''}`}
+                                  onClick={() => openMemberProfile(member, team)}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMemberProfile(member, team); } }}
+                                  tabIndex={0}
+                                  role="button"
+                                  aria-label={`View full profile for ${member.name}`}
+                                  className="team-member-card-5col"
                                 >
                                   <div className="member-avatar-box">
                                     {member.photo ? (
@@ -327,33 +320,9 @@ export default function Teams() {
                                     </p>
                                   )}
 
-                                  {hasExp && !isExpanded && (
-                                    <span className="member-exp-prompt">
-                                      <Sparkles size={10} /> View Profile <ChevronDown size={10} />
-                                    </span>
-                                  )}
-
-                                  <AnimatePresence>
-                                    {hasExp && isExpanded && (
-                                      <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: 'auto' }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        transition={{ duration: 0.25, ease: 'easeOut' }}
-                                        className="member-experience-container"
-                                      >
-                                        <div className="member-experience-heading">
-                                          <Sparkles size={11} /> EXPERIENCE / DETAILS
-                                        </div>
-                                        <p className="member-experience-text">
-                                          {expText}
-                                        </p>
-                                        <div className="member-collapse-row">
-                                          <ChevronUp size={11} /> Click to collapse
-                                        </div>
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
+                                  <span className="member-view-prompt">
+                                    <Sparkles size={10} /> View Profile <ChevronRight size={10} />
+                                  </span>
                                 </div>
                               );
                             })}
@@ -372,6 +341,108 @@ export default function Teams() {
           </div>
         )}
       </section>
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* FULL-SCREEN PROFILE OVERLAY / LIGHTBOX MODAL */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {selectedMember && (
+          <div 
+            className="profile-modal-backdrop" 
+            onClick={() => setSelectedMember(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-modal-name"
+          >
+            <motion.div 
+              className="profile-modal-card" 
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+            >
+              <div className="profile-modal-header">
+                <div className="profile-modal-badge">
+                  <span style={{ color: 'var(--primary-pink)', marginRight: '4px' }}>●</span>
+                  {selectedMember.unitName || 'MAGIC YOUTH PROFILE'}
+                </div>
+                <button 
+                  onClick={() => setSelectedMember(null)} 
+                  className="profile-modal-close-btn"
+                  aria-label="Close Profile"
+                  title="Close (Esc)"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="profile-modal-body">
+                <div className="profile-modal-avatar-box">
+                  {selectedMember.photo ? (
+                    <img 
+                      src={selectedMember.photo} 
+                      alt={selectedMember.name} 
+                      className="profile-modal-avatar-img" 
+                    />
+                  ) : (
+                    <div className="profile-modal-avatar-initials">
+                      {getInitials(selectedMember.name)}
+                    </div>
+                  )}
+                </div>
+
+                <h3 id="profile-modal-name" className="profile-modal-name">
+                  {selectedMember.name}
+                </h3>
+
+                <div className="profile-modal-role">
+                  {getCleanRole(selectedMember.position)}
+                </div>
+
+                {(selectedMember.department || selectedMember.organization) && (
+                  <p className="profile-modal-dept">
+                    {selectedMember.department || selectedMember.organization}
+                  </p>
+                )}
+
+                {selectedMember.unitName && (
+                  <div className="profile-modal-unit">
+                    <span>{selectedMember.unitName}</span>
+                    {selectedMember.academicYear && (
+                      <span>• {selectedMember.academicYear}</span>
+                    )}
+                  </div>
+                )}
+
+                {(selectedMember.experience || selectedMember.biography) && (
+                  <>
+                    <div className="profile-modal-divider" />
+                    <div className="profile-modal-section">
+                      <div className="profile-modal-section-title">
+                        <Sparkles size={13} style={{ color: 'var(--primary-blue)' }} /> EXPERIENCE &amp; PROFILE DETAILS
+                      </div>
+                      <p className="profile-modal-text">
+                        {selectedMember.experience || selectedMember.biography}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="profile-modal-footer">
+                <button 
+                  type="button" 
+                  onClick={() => setSelectedMember(null)} 
+                  className="profile-modal-close-action"
+                >
+                  <X size={14} /> Close Profile
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
