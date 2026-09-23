@@ -2188,11 +2188,11 @@ function StoriesModule({ toast, units = [], academicYears = [] }) {
             onClick={e => e.stopPropagation()}
           >
             {previewStory.coverImage && (
-              <div style={{ width: '100%', height: '220px', borderRadius: '0.75rem', overflow: 'hidden', marginBottom: '1.25rem', backgroundColor: '#F1F5F9' }}>
+              <div style={{ width: '100%', maxHeight: '380px', borderRadius: '0.75rem', overflow: 'hidden', marginBottom: '1.25rem', backgroundColor: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(0,0,0,0.05)' }}>
                 <img 
                   src={previewStory.coverImage} 
                   alt={previewStory.title} 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  style={{ maxWidth: '100%', maxHeight: '380px', width: 'auto', height: 'auto', objectFit: 'contain', display: 'block' }}
                 />
               </div>
             )}
