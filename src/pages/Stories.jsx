@@ -218,21 +218,6 @@ export default function Stories() {
           </div>
         )}
       </AnimatePresence>
-
-      {/* CTA */}
-      <section style={{ backgroundColor: '#0F172A', color: 'white', padding: '5rem 1.5rem', textAlign: 'center' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '1.25rem' }}>
-            Have a story of change to share?
-          </h2>
-          <p style={{ color: '#94A3B8', fontSize: '1.1rem', marginBottom: '2rem' }}>
-            Submit your student leadership or community engagement reflection to the editorial team.
-          </p>
-          <Link to="/contact" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, boxShadow: '0 8px 20px rgba(2, 132, 199, 0.35)' }}>
-            Submit a Story &rarr;
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }

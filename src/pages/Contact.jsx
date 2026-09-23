@@ -158,12 +158,12 @@ export default function Contact() {
       </section>
 
       {/* WHAT HAPPENS NEXT TIMELINE */}
-      <section style={{ backgroundColor: '#0F172A', padding: '5rem 1.5rem', color: 'white' }}>
+      <section style={{ backgroundColor: 'var(--bg-secondary)', padding: '5rem 1.5rem', borderTop: '1px solid var(--border-color)' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)' }}>The Process</div>
-          <h2 style={{ fontSize: '2.25rem', fontWeight: 900, marginBottom: '3.5rem' }}>What Happens Next</h2>
+          <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>The Process</div>
+          <h2 style={{ fontSize: '2.25rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '3.5rem' }}>What Happens Next</h2>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', borderLeft: '2px solid #334155', paddingLeft: '2rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', borderLeft: '2px solid var(--border-color)', paddingLeft: '2rem' }}>
             {[
               { num: '01', title: 'Reach Out', desc: 'Submit your inquiry through our platform or direct contact line.' },
               { num: '02', title: 'Connect', desc: 'Our coordination team reviews your request and connects with you directly.' },
@@ -171,10 +171,10 @@ export default function Contact() {
               { num: '04', title: 'Take Action', desc: 'Students are mobilized to create meaningful grassroots impact.' }
             ].map((step, i) => (
               <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} transition={{ delay: i * 0.1 }} style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', left: '-2.65rem', top: '0.25rem', width: '1rem', height: '1rem', backgroundColor: 'var(--primary-blue)', borderRadius: '50%', border: '3px solid #0F172A' }}></div>
+                <div style={{ position: 'absolute', left: '-2.65rem', top: '0.25rem', width: '1rem', height: '1rem', backgroundColor: 'var(--primary-blue)', borderRadius: '50%', border: '3px solid #FFFFFF' }}></div>
                 <div style={{ color: 'var(--primary-blue)', fontWeight: 800, fontSize: '0.875rem', marginBottom: '0.25rem' }}>{step.num}</div>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.35rem' }}>{step.title}</h3>
-                <p style={{ color: '#94A3B8', fontSize: '0.95rem', margin: 0 }}>{step.desc}</p>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>{step.title}</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0 }}>{step.desc}</p>
               </motion.div>
             ))}
           </div>

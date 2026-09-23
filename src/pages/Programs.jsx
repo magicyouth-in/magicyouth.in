@@ -123,21 +123,6 @@ export default function Programs() {
           )}
         </div>
       </section>
-
-      {/* CTA */}
-      <section style={{ backgroundColor: '#0F172A', color: 'white', padding: '5rem 1.5rem', textAlign: 'center' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 900, marginBottom: '1.25rem' }}>
-            Ready to lead or participate in a program?
-          </h2>
-          <p style={{ color: '#94A3B8', fontSize: '1.1rem', marginBottom: '2rem' }}>
-            Join your campus MAGIC chapter and begin driving initiatives in your community.
-          </p>
-          <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, boxShadow: '0 8px 20px rgba(2, 132, 199, 0.35)' }}>
-            Become a Change Agent &rarr;
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }

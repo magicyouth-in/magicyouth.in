@@ -119,21 +119,21 @@ export default function Chapters() {
       </section>
 
       {/* START A CHAPTER SECTION */}
-      <section id="start-chapter" style={{ backgroundColor: '#0B1120', color: 'white', padding: '6rem 1.5rem' }}>
+      <section id="start-chapter" style={{ backgroundColor: 'var(--bg-secondary)', padding: '5rem 1.5rem', borderTop: '1px solid var(--border-color)' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-            <div style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
+            <div style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
               Institutional Expansion
             </div>
-            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 3rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
               Start a MAGIC Youth Chapter at Your Institution
             </h2>
-            <p style={{ color: '#94A3B8', fontSize: '1.15rem', maxWidth: '700px', margin: '0 auto' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', maxWidth: '700px', margin: '0 auto' }}>
               Bring structured youth formation and community impact to your campus through the official 4-step YES-J chartering process.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2rem', marginBottom: '4rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
             {[
               {
                 step: '01',
@@ -158,35 +158,35 @@ export default function Chapters() {
             ].map((item, idx) => (
               <motion.div 
                 key={idx}
-                style={{ backgroundColor: '#1E293B', border: '1px solid #334155', padding: '2.5rem 1.75rem', borderRadius: '1rem', position: 'relative' }}
+                style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', padding: '2rem 1.5rem', borderRadius: '1rem', position: 'relative' }}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true }}
                 variants={fadeUp}
                 transition={{ delay: idx * 0.1 }}
               >
-                <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--primary-blue)', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--primary-blue)', marginBottom: '0.75rem' }}>
                   {item.step}
                 </div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'white', marginBottom: '0.75rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
                   {item.title}
                 </h3>
-                <p style={{ color: '#94A3B8', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6, margin: 0 }}>
                   {item.desc}
                 </p>
               </motion.div>
             ))}
           </div>
 
-          <div style={{ backgroundColor: '#1E293B', borderRadius: '1rem', padding: '3.5rem 2.5rem', border: '1px solid #334155', textAlign: 'center', maxWidth: '750px', margin: '0 auto' }}>
-            <h3 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'white', marginBottom: '1rem' }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '1rem', padding: '3rem 2rem', border: '1px solid var(--border-color)', textAlign: 'center', maxWidth: '750px', margin: '0 auto' }}>
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
               Initiate Chapter Establishment
             </h3>
-            <p style={{ color: '#94A3B8', fontSize: '1.05rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.6, marginBottom: '1.75rem' }}>
               Are you a student leader or faculty member ready to charter a MAGIC Youth unit on your campus? Contact our expansion coordinators today.
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link to="/contact" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '1rem 2.25rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '1rem', boxShadow: '0 8px 20px rgba(2, 132, 199, 0.35)' }}>
+              <Link to="/contact" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.85rem 2rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '0.9375rem' }}>
                 Submit Chapter Inquiry &rarr;
               </Link>
             </div>

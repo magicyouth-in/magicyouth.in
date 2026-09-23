@@ -133,68 +133,56 @@ export default function About() {
       </section>
 
       {/* ─── 04 INSTITUTIONAL BASE & HEADQUARTERS ─────────────────────────── */}
-      <section className="inner-section" style={{ backgroundColor: '#0F172A', color: 'white', padding: '5rem 1.5rem' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '3.5rem', alignItems: 'center' }}>
-          <div>
+      <section className="inner-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '5rem 1.5rem', borderTop: '1px solid var(--border-color)' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{ maxWidth: '750px', margin: '0 auto', textAlign: 'center', marginBottom: '3rem' }}>
             <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--primary-blue)', marginBottom: '0.5rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               04 &bull; Central Secretariat
             </div>
-            <h2 style={{ fontSize: '2.25rem', fontWeight: 900, color: '#FFFFFF', marginBottom: '1.25rem', lineHeight: 1.25 }}>
+            <h2 style={{ fontSize: '2.25rem', fontWeight: 900, color: '#0F172A', marginBottom: '1rem', lineHeight: 1.25 }}>
               YES-J Headquarters
             </h2>
-            <p style={{ color: '#94A3B8', fontSize: '1.05rem', lineHeight: 1.7, marginBottom: '2rem' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.7, margin: 0 }}>
               MAGIC Youth is centrally coordinated through the YES-J Centre for Excellence at Andhra Loyola College, coordinating collegiate chapters across Andhra Pradesh.
             </p>
+          </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '0.5rem', backgroundColor: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)', flexShrink: 0 }}>
-                  <MapPin size={20} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, color: 'white', fontSize: '0.95rem', marginBottom: '0.2rem' }}>Address</div>
-                  <div style={{ color: '#94A3B8', fontSize: '0.9rem', lineHeight: 1.5 }}>
-                    YES-J Centre for Excellence, Andhra Loyola College Campus, Vijayawada, AP - 522 008, India
-                  </div>
-                </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', maxWidth: '950px', margin: '0 auto' }}>
+            <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '2rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '0.5rem', backgroundColor: '#F0F9FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)', flexShrink: 0 }}>
+                <MapPin size={22} />
               </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '0.5rem', backgroundColor: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-pink)', flexShrink: 0 }}>
-                  <Phone size={20} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, color: 'white', fontSize: '0.95rem', marginBottom: '0.2rem' }}>Phone</div>
-                  <a href="tel:+918686727202" style={{ color: '#38BDF8', fontSize: '0.9rem', textDecoration: 'none', fontWeight: 700 }}>
-                    +91-868-672-7202
-                  </a>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '0.5rem', backgroundColor: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981', flexShrink: 0 }}>
-                  <Mail size={20} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: 800, color: 'white', fontSize: '0.95rem', marginBottom: '0.2rem' }}>Email</div>
-                  <a href="mailto:admin@magicyouth.in" style={{ color: '#38BDF8', fontSize: '0.9rem', textDecoration: 'none', fontWeight: 700 }}>
-                    admin@magicyouth.in
-                  </a>
+              <div>
+                <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.95rem', marginBottom: '0.35rem' }}>Address</div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.6 }}>
+                  YES-J Centre for Excellence, Andhra Loyola College Campus, Vijayawada, AP - 522 008, India
                 </div>
               </div>
             </div>
-          </div>
 
-          <div style={{ backgroundColor: '#1E293B', borderRadius: '1rem', border: '1px solid #334155', padding: '2.5rem' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'white', marginBottom: '1rem' }}>
-              Want to Establish a Chapter?
-            </h3>
-            <p style={{ color: '#94A3B8', fontSize: '0.95rem', lineHeight: 1.65, marginBottom: '1.75rem' }}>
-              Colleges and universities seeking to form a chartered MAGIC Youth campus unit can connect with our institutional expansion team.
-            </p>
-            <Link to="/contact" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800, fontSize: '0.9rem' }}>
-              Inquire for Campus Unit <ArrowRight size={15} />
-            </Link>
+            <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '2rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '0.5rem', backgroundColor: '#FFF1F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-pink)', flexShrink: 0 }}>
+                <Phone size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.95rem', marginBottom: '0.35rem' }}>Direct Line</div>
+                <a href="tel:+918686727202" style={{ color: 'var(--primary-blue)', fontSize: '0.9rem', textDecoration: 'none', fontWeight: 700 }}>
+                  +91-868-672-7202
+                </a>
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '2rem', display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '0.5rem', backgroundColor: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981', flexShrink: 0 }}>
+                <Mail size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '0.95rem', marginBottom: '0.35rem' }}>Email Inquiries</div>
+                <a href="mailto:admin@magicyouth.in" style={{ color: 'var(--primary-blue)', fontSize: '0.9rem', textDecoration: 'none', fontWeight: 700 }}>
+                  admin@magicyouth.in
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
