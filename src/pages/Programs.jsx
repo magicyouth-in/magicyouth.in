@@ -1,29 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { BookOpen, Calendar, MapPin, ArrowRight, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
+import { BookOpen, Calendar, MapPin, ArrowRight, Loader2, Sparkles, Building, Filter } from 'lucide-react';
 import '../styles/home.css';
 
 export default function Programs() {
   const [programs, setPrograms] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [selectedUnit, setSelectedUnit] = useState('All');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/events')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && Array.isArray(data.data)) {
-          setPrograms(data.data);
+    const loadData = async () => {
+      try {
+        const [eventsRes, unitsRes] = await Promise.all([
+          fetch('/api/events'),
+          fetch('/api/units?includeInactive=false')
+        ]);
+        const eventsData = await eventsRes.json();
+        const unitsData = await unitsRes.json();
+
+        if (eventsData.success && Array.isArray(eventsData.data)) {
+          setPrograms(eventsData.data);
         }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+
+        if (unitsData.success && Array.isArray(unitsData.data)) {
+          const uList = unitsData.data;
+          setUnits(uList);
+          const alietMatch = uList.find(u => u.name?.toUpperCase().includes('ALIET') || u.code?.toUpperCase().includes('ALIET'));
+          if (alietMatch) {
+            setSelectedUnit(alietMatch._id || alietMatch.id);
+          } else if (uList.length > 0) {
+            setSelectedUnit(uList[0]._id || uList[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching programs:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
   }, []);
 
   const fadeUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } }
   };
+
+  const filteredPrograms = programs.filter(p => {
+    if (selectedUnit === 'All') return true;
+    return (
+      p.unitId?._id === selectedUnit ||
+      p.unitId?.id === selectedUnit ||
+      p.unit_id === selectedUnit
+    );
+  });
 
   return (
     <div className="programs-page-wrapper">
@@ -36,9 +68,30 @@ export default function Programs() {
           <h1 style={{ fontSize: 'clamp(2.25rem, 4vw, 3rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
             Programs &amp; Initiatives
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto', marginBottom: '2rem' }}>
             Structured institutional initiatives empowering collegiate youth to drive measurable change in education, environment, leadership, and community development.
           </p>
+
+          {/* Unit Filter Bar */}
+          {units.length > 0 && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem', backgroundColor: '#FFFFFF', padding: '0.5rem 1.25rem', borderRadius: '999px', border: '1px solid var(--border-color)', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
+              <Building size={16} style={{ color: 'var(--primary-blue)' }} />
+              <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Chapter:
+              </span>
+              <select
+                aria-label="Filter by Campus Unit"
+                value={selectedUnit}
+                onChange={(e) => setSelectedUnit(e.target.value)}
+                style={{ background: 'none', border: 'none', outline: 'none', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem', cursor: 'pointer' }}
+              >
+                <option value="All">All Chapters</option>
+                {units.map(u => (
+                  <option key={u._id || u.id} value={u._id || u.id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </motion.div>
       </section>
 
@@ -49,7 +102,7 @@ export default function Programs() {
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
               <Loader2 size={36} color="var(--primary-blue)" className="animate-spin" />
             </div>
-          ) : programs.length === 0 ? (
+          ) : filteredPrograms.length === 0 ? (
             <div style={{
               textAlign: 'center',
               padding: '4.5rem 2rem',
@@ -65,7 +118,7 @@ export default function Programs() {
                 Programs will be announced soon.
               </h2>
               <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-                Our chapter coordinators and formation directors are finalizing upcoming youth initiatives. Please check back soon or register to stay informed.
+                Our chapter coordinators and formation directors are finalizing upcoming youth initiatives for this unit. Please check back soon or register to stay informed.
               </p>
               <Link to="/join" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.75rem 1.75rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800 }}>
                 Join as a Change Agent <ArrowRight size={15} />
@@ -73,7 +126,7 @@ export default function Programs() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-              {programs.map((prog, idx) => (
+              {filteredPrograms.map((prog, idx) => (
                 <motion.article 
                   key={prog._id || prog.id || idx}
                   style={{ backgroundColor: 'white', borderRadius: '1rem', border: '1px solid var(--border-color)', padding: '2.5rem', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' }}
@@ -91,11 +144,18 @@ export default function Programs() {
                         {prog.title}
                       </h2>
                     </div>
-                    {prog.academicYearId?.year && (
-                      <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#64748B', backgroundColor: '#F1F5F9', padding: '0.35rem 0.75rem', borderRadius: '999px' }}>
-                        {prog.academicYearId.year}
-                      </span>
-                    )}
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {prog.academicYearId?.year && (
+                        <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#64748B', backgroundColor: '#F1F5F9', padding: '0.35rem 0.75rem', borderRadius: '999px' }}>
+                          {prog.academicYearId.year}
+                        </span>
+                      )}
+                      {prog.status && (
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: '0.25rem 0.65rem', borderRadius: '999px', textTransform: 'uppercase' }}>
+                          {prog.status}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.75, marginBottom: '2rem' }}>

@@ -12,6 +12,10 @@ export default function Home() {
   const [stats, setStats] = useState({ events: null, units: null, members: null, initialized: false });
   const [recentPhotos, setRecentPhotos] = useState([]);
   const [recentEvents, setRecentEvents] = useState([]);
+  const [publishedPrograms, setPublishedPrograms] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [selectedUnit, setSelectedUnit] = useState('All');
+  const [stories, setStories] = useState([]);
   
   // Video Controls State
   const [isMuted, setIsMuted] = useState(true);
@@ -31,8 +35,10 @@ export default function Home() {
         const eventsRes = await fetch('/api/events');
         const eventsData = await eventsRes.json();
         if (eventsData.success) {
-          eCount = eventsData.data.length;
-          setRecentEvents(eventsData.data.sort((a,b) => new Date(b.startDate || b.start_date) - new Date(a.startDate || a.start_date)).slice(0, 3));
+          const progs = eventsData.data || [];
+          eCount = progs.length;
+          setPublishedPrograms(progs);
+          setRecentEvents([...progs].sort((a,b) => new Date(b.date || b.startDate || b.start_date || b.created_at) - new Date(a.date || a.startDate || a.start_date || a.created_at)).slice(0, 3));
         }
 
         const galleryRes = await fetch('/api/gallery');
@@ -44,13 +50,27 @@ export default function Home() {
         const unitsRes = await fetch('/api/units?includeInactive=false');
         const unitsData = await unitsRes.json();
         if (unitsData.success) {
-          uCount = unitsData.data.length;
+          const uList = unitsData.data || [];
+          uCount = uList.length;
+          setUnits(uList);
+          const alietMatch = uList.find(u => u.name?.toUpperCase().includes('ALIET') || u.code?.toUpperCase().includes('ALIET'));
+          if (alietMatch) {
+            setSelectedUnit(alietMatch._id || alietMatch.id);
+          } else if (uList.length > 0) {
+            setSelectedUnit(uList[0]._id || uList[0].id);
+          }
         }
 
         const teamsRes = await fetch('/api/teams');
         const teamsData = await teamsRes.json();
         if (teamsData.success && teamsData.data.length > 0) {
           mCount = teamsData.data.reduce((acc, t) => acc + (t.memberCount || 0), 0);
+        }
+
+        const storiesRes = await fetch('/api/testimonials');
+        const storiesData = await storiesRes.json();
+        if (storiesData.success) {
+          setStories(storiesData.data || []);
         }
         
         setStats({ events: eCount, units: uCount, members: mCount, initialized: true });
@@ -127,7 +147,7 @@ export default function Home() {
     },
     {
       q: 'What kind of activities do student members lead?',
-      a: 'Student members organize remedial tutoring (Project Shiksha), environmental action (Green Footprints), leadership summits (MAGIS), and grassroots social innovation projects.'
+      a: 'Student members organize community literacy outreach, environmental sustainability campaigns, youth leadership summits, and grassroots social solidarity initiatives.'
     }
   ];
 
@@ -556,62 +576,118 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 6. PROGRAMS PREVIEW */}
+      {/* 6. PROGRAMS PREVIEW (DATABASE-DRIVEN, STRICTLY ADMIN-MANAGED) */}
       <section style={{ backgroundColor: 'white', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '3.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '3rem' }}>
             <div>
               <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
                 <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Key Initiatives
               </div>
-              <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: 0 }}>
                 Flagship Programs
               </h2>
             </div>
-            <Link to="/programs" className="btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: 'var(--primary-blue)', borderColor: 'var(--border-color)' }}>
-              View All Programs <ArrowRight size={16} />
-            </Link>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              {units.length > 1 && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', borderRadius: '999px', padding: '0.4rem 0.85rem' }}>
+                  <Building size={14} style={{ color: 'var(--primary-blue)' }} />
+                  <select 
+                    value={selectedUnit} 
+                    onChange={(e) => setSelectedUnit(e.target.value)}
+                    style={{ background: 'none', border: 'none', outline: 'none', fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.8125rem', cursor: 'pointer' }}
+                  >
+                    <option value="All">All Chapters</option>
+                    {units.map(u => (
+                      <option key={u._id || u.id} value={u._id || u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <Link to="/programs" className="btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: 'var(--primary-blue)', borderColor: 'var(--border-color)' }}>
+                View All Programs <ArrowRight size={16} />
+              </Link>
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem' }}>
-            {[
-              { name: 'Project Shiksha', tag: 'Education Outreach', desc: 'Providing academic support, literacy campaigns, and mentoring for underprivileged students.', icon: BookOpen },
-              { name: 'Green Footprints', tag: 'Environment', desc: 'Promoting eco-conservation, campus clean drives, and climate awareness initiatives.', icon: Leaf },
-              { name: 'MAGIS / YES-J Yuvotsavaalu', tag: 'Youth Gathering', desc: 'Annual convention celebrating student culture, social reflection, and solidarity.', icon: Sparkles },
-              { name: 'Elevate X', tag: 'Social Innovation', desc: 'Student-led social entrepreneurship incubation addressing grassroots challenges.', icon: Rocket }
-            ].map((prog, i) => {
-              const IconComp = prog.icon;
+          {(() => {
+            const displayedPrograms = publishedPrograms.filter(p => {
+              if (selectedUnit === 'All') return true;
               return (
-                <motion.div 
-                  key={i} 
-                  style={{ backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', padding: '2.5rem 1.75rem', borderRadius: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                  initial="hidden" 
-                  whileInView="visible" 
-                  viewport={{ once: true }} 
-                  variants={fadeUp} 
-                  transition={{ delay: i * 0.1 }}
-                >
-                  <div>
-                    <div style={{ width: '42px', height: '42px', borderRadius: '0.5rem', backgroundColor: 'white', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
-                      <IconComp size={20} style={{ color: 'var(--primary-blue)' }} />
-                    </div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>
-                      <span style={{ color: 'var(--primary-pink)', marginRight: '4px' }}>●</span> {prog.tag}
-                    </div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
-                      {prog.name}
-                    </h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                      {prog.desc}
-                    </p>
-                  </div>
-                  <Link to="/programs" style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.875rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                    Explore &rarr;
-                  </Link>
-                </motion.div>
+                p.unitId?._id === selectedUnit ||
+                p.unitId?.id === selectedUnit ||
+                p.unit_id === selectedUnit
               );
-            })}
-          </div>
+            });
+
+            if (displayedPrograms.length === 0) {
+              return (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '3.5rem 2rem',
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: '1rem',
+                  border: '1px dashed var(--border-color)',
+                  maxWidth: '650px',
+                  margin: '0 auto'
+                }}>
+                  <BookOpen size={40} color="var(--primary-blue)" style={{ margin: '0 auto 1.25rem', opacity: 0.6 }} />
+                  <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                    Programs will be announced soon.
+                  </h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: '1.75rem' }}>
+                    Our chapter coordinators and formation directors are finalizing upcoming youth initiatives. Please check back soon or connect with our campus leads.
+                  </p>
+                  <Link to="/join" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.65rem 1.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem' }}>
+                    Join as a Change Agent &rarr;
+                  </Link>
+                </div>
+              );
+            }
+
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem' }}>
+                {displayedPrograms.map((prog, i) => {
+                  const catLower = (prog.category || '').toLowerCase();
+                  let IconComp = BookOpen;
+                  if (catLower.includes('env') || catLower.includes('green') || catLower.includes('eco')) IconComp = Leaf;
+                  else if (catLower.includes('summit') || catLower.includes('cult') || catLower.includes('gather') || catLower.includes('magis') || catLower.includes('camp')) IconComp = Sparkles;
+                  else if (catLower.includes('innov') || catLower.includes('tech') || catLower.includes('elevate') || catLower.includes('lead')) IconComp = Rocket;
+
+                  return (
+                    <motion.div 
+                      key={prog._id || prog.id || i} 
+                      style={{ backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', padding: '2.5rem 1.75rem', borderRadius: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                      initial="hidden" 
+                      whileInView="visible" 
+                      viewport={{ once: true }} 
+                      variants={fadeUp} 
+                      transition={{ delay: i * 0.08 }}
+                    >
+                      <div>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '0.5rem', backgroundColor: 'white', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
+                          <IconComp size={20} style={{ color: 'var(--primary-blue)' }} />
+                        </div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>
+                          <span style={{ color: 'var(--primary-pink)', marginRight: '4px' }}>●</span> {prog.category || 'Initiative'}
+                        </div>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
+                          {prog.title}
+                        </h3>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                          {prog.description}
+                        </p>
+                      </div>
+                      <Link to="/programs" style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.875rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                        Explore &rarr;
+                      </Link>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       </section>
 
@@ -652,61 +728,47 @@ export default function Home() {
         </section>
       )}
 
-      {/* 8. STORIES & TESTIMONIALS */}
-      <section style={{ backgroundColor: 'white', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-            <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
-              <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Student Voices
+      {/* 8. STORIES & TESTIMONIALS (DATABASE-DRIVEN) */}
+      {stories.length > 0 && (
+        <section style={{ backgroundColor: 'white', padding: '6rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+              <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.75rem' }}>
+                <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Student Voices
+              </div>
+              <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                Stories of <span style={{ color: 'var(--primary-blue)' }}>Transformation</span>
+              </h2>
             </div>
-            <h2 style={{ fontSize: 'clamp(2rem, 3.5vw, 2.75rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Stories of <span style={{ color: 'var(--primary-blue)' }}>Transformation</span>
-            </h2>
-          </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
-            {[
-              {
-                quote: "MAGIC taught me that youth leadership is not about occupying titles, but about listening deeply to marginalized communities and taking consistent, humble action.",
-                author: "Student Coordinator",
-                chapter: "ALIET Chapter"
-              },
-              {
-                quote: "Through rural immersion visits, I experienced realities that textbooks never touched. That exposure shaped my career decisions toward community development.",
-                author: "Core Committee Member",
-                chapter: "Vijayawada Unit"
-              },
-              {
-                quote: "Participating in Project Shiksha transformed our entire campus culture into one of active volunteerism and educational solidarity.",
-                author: "Volunteer Lead",
-                chapter: "Campus Executive"
-              }
-            ].map((story, i) => (
-              <motion.div 
-                key={i} 
-                style={{ backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', padding: '2.5rem', borderRadius: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                initial="hidden" 
-                whileInView="visible" 
-                viewport={{ once: true }} 
-                variants={fadeUp} 
-                transition={{ delay: i * 0.1 }}
-              >
-                <p style={{ color: 'var(--text-primary)', fontSize: '1.05rem', lineHeight: 1.7, fontStyle: 'italic', marginBottom: '2rem' }}>
-                  "{story.quote}"
-                </p>
-                <div>
-                  <div style={{ fontWeight: 800, color: 'var(--primary-blue)', fontSize: '0.9375rem' }}>
-                    {story.author}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
+              {stories.slice(0, 3).map((story, i) => (
+                <motion.div 
+                  key={story._id || story.id || i} 
+                  style={{ backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', padding: '2.5rem', borderRadius: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                  initial="hidden" 
+                  whileInView="visible" 
+                  viewport={{ once: true }} 
+                  variants={fadeUp} 
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <p style={{ color: 'var(--text-primary)', fontSize: '1.05rem', lineHeight: 1.7, fontStyle: 'italic', marginBottom: '2rem' }}>
+                    "{story.quote || story.excerpt || story.fullStory}"
+                  </p>
+                  <div>
+                    <div style={{ fontWeight: 800, color: 'var(--primary-blue)', fontSize: '0.9375rem' }}>
+                      {story.author || story.name || 'Student Changemaker'}
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
+                      {story.unit || story.chapter || story.role || 'MAGIC Youth Member'}
+                    </div>
                   </div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>
-                    {story.chapter}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 9. LEADERSHIP & GUIDANCE */}
       <section className="leadership-section">
