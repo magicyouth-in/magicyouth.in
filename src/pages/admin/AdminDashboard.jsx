@@ -753,6 +753,7 @@ function TeamsModule({ toast, units, academicYears }) {
       organization: '',
       batchYear: '', 
       biography: '', 
+      experience: '',
       displayOrder: (membersMap[teamId] || []).length 
     });
     setMemberPhoto(null);
@@ -762,14 +763,16 @@ function TeamsModule({ toast, units, academicYears }) {
   const openEditMember = (teamId, m) => {
     setActiveTeamId(teamId);
     setEditingMember(m);
+    const exp = m.experience || m.biography || '';
     setMemberForm({ 
       name: m.name || '', 
-      section: m.section || (/animator|faculty advisor|mentor/i.test(m.position) ? 'Main Animator' : 'Team Member'),
+      section: (m.section === 'Animator' || m.section === 'Main Animator' || /animator|faculty advisor|mentor/i.test(m.position)) ? 'Animator' : 'Team Member',
       position: m.position || '', 
       department: m.department || m.organization || '', 
       organization: m.organization || m.department || '',
       batchYear: m.batchYear || '', 
-      biography: m.biography || '', 
+      biography: exp, 
+      experience: exp,
       displayOrder: m.displayOrder ?? 0 
     });
     setMemberPhoto(null);
@@ -784,13 +787,15 @@ function TeamsModule({ toast, units, academicYears }) {
     }
     try {
       const fd = new FormData();
+      const expValue = memberForm.experience !== undefined ? memberForm.experience : (memberForm.biography || '');
       fd.append('name', memberForm.name);
-      fd.append('section', memberForm.section);
+      fd.append('section', memberForm.section === 'Main Animator' ? 'Animator' : memberForm.section);
       fd.append('position', memberForm.position);
       fd.append('organization', memberForm.organization || memberForm.department || '');
       fd.append('department', memberForm.organization || memberForm.department || '');
       fd.append('batchYear', memberForm.batchYear || '');
-      fd.append('biography', memberForm.biography || '');
+      fd.append('biography', expValue);
+      fd.append('experience', expValue);
       fd.append('displayOrder', memberForm.displayOrder ?? 0);
       if (memberPhoto) fd.append('photo', memberPhoto);
 
@@ -854,7 +859,7 @@ function TeamsModule({ toast, units, academicYears }) {
       <div className="admin-module-header">
         <div>
           <h1 className="admin-module-title">Teams &amp; Student Leaders</h1>
-          <p className="admin-module-subtitle">Directly manage chapter team rosters, Main Animators, and student leads displayed on the public /teams page.</p>
+          <p className="admin-module-subtitle">Directly manage chapter team rosters, Animators, and student leads displayed on the public /teams page.</p>
         </div>
         <button onClick={openCreateTeamModal} className="admin-btn-primary">
           <Plus size={16} /> Create Team Body
@@ -948,7 +953,8 @@ function TeamsModule({ toast, units, academicYears }) {
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
                     {teamMembers.map((m, idx) => {
-                      const isAnimator = m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position);
+                      const isAnimator = m.section === 'Animator' || m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position);
+                      const displayRole = m.position && /^main\s+animator$/i.test(m.position.trim()) ? 'ANIMATOR' : m.position;
                       return (
                         <div key={m._id || m.id} style={{ backgroundColor: '#F8FAFC', border: `1.5px solid ${isAnimator ? '#FDA4AF' : 'var(--border-color)'}`, borderRadius: '0.75rem', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -972,7 +978,7 @@ function TeamsModule({ toast, units, academicYears }) {
                                 )}
                               </div>
                               <div style={{ fontSize: '0.75rem', fontWeight: 700, color: isAnimator ? 'var(--primary-pink)' : 'var(--primary-blue)', textTransform: 'uppercase' }}>
-                                {m.position}
+                                {displayRole}
                               </div>
                               {(m.organization || m.department) && (
                                 <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
@@ -1143,25 +1149,25 @@ function TeamsModule({ toast, units, academicYears }) {
                       setMemberForm({ 
                         ...memberForm, 
                         section: sec,
-                        position: sec === 'Main Animator' ? 'Main Animator' : (memberForm.position === 'Main Animator' ? 'First Lead' : memberForm.position)
+                        position: sec === 'Animator' ? 'ANIMATOR' : (memberForm.position === 'ANIMATOR' || memberForm.position === 'Main Animator' ? 'First Lead' : memberForm.position)
                       });
                     }} 
                     className="admin-select"
                   >
-                    <option value="Main Animator">MAIN ANIMATOR</option>
+                    <option value="Animator">ANIMATOR</option>
                     <option value="Team Member">TEAM MEMBER</option>
                   </select>
                 </div>
                 <div>
                   <label className="admin-label">Role / Position Title *</label>
-                  <input required placeholder="e.g. Main Animator, First Lead, President" value={memberForm.position} onChange={e => setMemberForm({ ...memberForm, position: e.target.value })} className="admin-input" />
+                  <input required placeholder="e.g. ANIMATOR, First Lead, Secretary, President" value={memberForm.position} onChange={e => setMemberForm({ ...memberForm, position: e.target.value })} className="admin-input" />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label className="admin-label">Organization / College / Dept</label>
-                  <input placeholder="e.g. ALIET or CSE (AI & ML) Department" value={memberForm.organization || memberForm.department} onChange={e => setMemberForm({ ...memberForm, organization: e.target.value, department: e.target.value })} className="admin-input" />
+                  <input placeholder="e.g. ALIET or Mechanical Department" value={memberForm.organization || memberForm.department} onChange={e => setMemberForm({ ...memberForm, organization: e.target.value, department: e.target.value })} className="admin-input" />
                 </div>
                 <div>
                   <label className="admin-label">Display Order (Optional)</label>
@@ -1170,8 +1176,8 @@ function TeamsModule({ toast, units, academicYears }) {
               </div>
 
               <div className="admin-input-group">
-                <label className="admin-label">Biography / Role Summary</label>
-                <textarea rows={2} placeholder="Brief summary of member responsibilities..." value={memberForm.biography} onChange={e => setMemberForm({ ...memberForm, biography: e.target.value })} className="admin-textarea" />
+                <label className="admin-label">Experience &amp; Profile Details (Clickable on Teams page)</label>
+                <textarea rows={3} placeholder="Enter the person's experience, background, responsibilities, or bio details displayed when clicking their profile card..." value={memberForm.experience || memberForm.biography} onChange={e => setMemberForm({ ...memberForm, experience: e.target.value, biography: e.target.value })} className="admin-textarea" />
               </div>
 
               <div className="admin-input-group">

@@ -97,8 +97,9 @@ router.get('/:id/members', async (req, res) => {
 
     const formatted = (members || []).map(m => {
       const social = typeof m.social_links === 'string' ? JSON.parse(m.social_links || '{}') : (m.social_links || {});
-      const isAnimator = social.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position);
+      const isAnimator = social.section === 'Animator' || social.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position);
       const canonicalDept = m.department || social.organization || '';
+      const canonicalBio = m.biography || social.experience || social.bio || '';
       return {
         ...m,
         _id: m.id,
@@ -106,8 +107,10 @@ router.get('/:id/members', async (req, res) => {
         batchYear: m.batch_year,
         department: canonicalDept,
         organization: canonicalDept,
+        biography: canonicalBio,
+        experience: canonicalBio,
         socialLinks: social,
-        section: social.section || (isAnimator ? 'Main Animator' : 'Team Member'),
+        section: social.section || (isAnimator ? 'Animator' : 'Team Member'),
         isActive: m.is_active,
         displayOrder: m.display_order ?? 0,
       };
@@ -226,10 +229,11 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
     if (!team) return res.status(404).json({ success: false, message: 'Team not found.' });
     if (!canAccessUnit(req.admin, team.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    const { name, position, biography, department, batchYear, socialLinks, displayOrder, isActive, section, organization } = req.body;
+    const { name, position, biography, experience, department, batchYear, socialLinks, displayOrder, isActive, section, organization } = req.body;
     if (!name || !position) return res.status(400).json({ success: false, message: 'Name and position are required.' });
 
     const deptValue = (department !== undefined ? department : organization) || '';
+    const bioValue = experience !== undefined ? experience : (biography || '');
 
     // Upload photo to Supabase Storage if provided
     let photoUrl = null;
@@ -242,6 +246,7 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
     let parsedSocial = socialLinks ? (typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks) : {};
     if (section) parsedSocial.section = section;
     parsedSocial.organization = deptValue;
+    parsedSocial.experience = bioValue;
 
     const { data: member, error } = await supabase
       .from('team_members')
@@ -249,7 +254,7 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
         team_id: team.id,
         name,
         position,
-        biography: biography || '',
+        biography: bioValue,
         department: deptValue,
         batch_year: batchYear || '',
         photo: photoUrl,
@@ -272,6 +277,8 @@ router.post('/:id/members', authenticateAdmin, requireAnyAdmin, uploadPhoto.sing
         photo: member.photo,
         department: member.department,
         organization: member.department,
+        biography: member.biography,
+        experience: member.biography,
         section: parsedSocial.section || 'Team Member',
       }, 
       message: 'Team member added.' 
@@ -293,12 +300,14 @@ router.put('/members/:memberId', authenticateAdmin, requireAnyAdmin, uploadPhoto
     const { data: team } = await supabase.from('teams').select('*').eq('id', member.team_id).single();
     if (team && !canAccessUnit(req.admin, team.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
-    const { name, position, biography, department, batchYear, socialLinks, displayOrder, isActive, section, organization } = req.body;
+    const { name, position, biography, experience, department, batchYear, socialLinks, displayOrder, isActive, section, organization } = req.body;
     const updates = { updated_at: new Date().toISOString() };
 
     if (name) updates.name = name;
     if (position) updates.position = position;
-    if (biography !== undefined) updates.biography = biography;
+    
+    const bioValue = experience !== undefined ? experience : biography;
+    if (bioValue !== undefined) updates.biography = bioValue;
     
     const deptValue = department !== undefined ? department : organization;
     if (deptValue !== undefined) updates.department = deptValue;
@@ -311,6 +320,7 @@ router.put('/members/:memberId', authenticateAdmin, requireAnyAdmin, uploadPhoto
     let parsedSocial = socialLinks ? (typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks) : { ...existingSocial };
     if (section !== undefined) parsedSocial.section = section;
     if (deptValue !== undefined) parsedSocial.organization = deptValue;
+    if (bioValue !== undefined) parsedSocial.experience = bioValue;
     updates.social_links = parsedSocial;
 
     if (tmpFile) {
@@ -338,6 +348,8 @@ router.put('/members/:memberId', authenticateAdmin, requireAnyAdmin, uploadPhoto
         photo: updated.photo,
         department: updated.department,
         organization: updated.department,
+        biography: updated.biography,
+        experience: updated.biography,
         section: parsedSocial.section || 'Team Member',
       }, 
       message: 'Member updated.' 

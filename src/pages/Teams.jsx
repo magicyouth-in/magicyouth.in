@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Filter, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Filter, Loader2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import '../styles/home.css';
 import '../styles/teams.css';
 
@@ -12,6 +12,7 @@ export default function Teams() {
 
   const [selectedUnit, setSelectedUnit] = useState('All');
   const [selectedYear, setSelectedYear] = useState('All');
+  const [expandedMemberId, setExpandedMemberId] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -88,14 +89,19 @@ export default function Teams() {
     return cleanCampus ? `${cleanCampus} MAGIC YOUTH TEAM` : 'MAGIC YOUTH TEAM';
   };
 
-  const fadeUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } }
+  const toggleExpand = (id) => {
+    setExpandedMemberId(prev => prev === id ? null : id);
   };
 
   const getInitials = (name) => {
     if (!name) return 'MY';
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
+
+  const getCleanRole = (pos) => {
+    if (!pos) return 'TEAM MEMBER';
+    if (/^main\s+animator$/i.test(pos.trim())) return 'ANIMATOR';
+    return pos;
   };
 
   return (
@@ -159,10 +165,10 @@ export default function Teams() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5rem', maxWidth: '1280px', margin: '0 auto' }}>
-            {filteredTeams.map((team, i) => {
+            {filteredTeams.map((team) => {
               const allMembers = (team.members || []).slice().sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-              const animators = allMembers.filter(m => m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position));
-              const teamMembers = allMembers.filter(m => !(m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position)));
+              const animators = allMembers.filter(m => m.section === 'Animator' || m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position));
+              const teamMembers = allMembers.filter(m => !(m.section === 'Animator' || m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position)));
 
               return (
                 <article key={team._id || team.id} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -180,7 +186,7 @@ export default function Teams() {
 
                   {allMembers.length > 0 ? (
                     <div>
-                      {/* 1. MAIN ANIMATOR SECTION */}
+                      {/* 1. ANIMATOR SECTION */}
                       {animators.length > 0 && (
                         <div style={{ marginBottom: '4rem' }}>
                           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
@@ -188,60 +194,82 @@ export default function Teams() {
                               <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Chapter Guidance &amp; Mentorship
                             </div>
                             <h3 style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.85rem)', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '-0.02em', margin: 0 }}>
-                              MAIN ANIMATOR
+                              ANIMATOR
                             </h3>
                           </div>
 
                           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2rem' }}>
-                            {animators.map((animator) => (
-                              <div 
-                                key={animator._id || animator.id}
-                                style={{
-                                  backgroundColor: 'var(--bg-secondary)',
-                                  border: '2px solid rgba(2, 132, 199, 0.25)',
-                                  borderRadius: '1rem',
-                                  padding: '2.5rem 2rem',
-                                  maxWidth: '360px',
-                                  width: '100%',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: 'center',
-                                  textAlign: 'center',
-                                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.04)',
-                                  transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-                                }}
-                              >
-                                <div style={{ width: '130px', height: '130px', borderRadius: '50%', marginBottom: '1.25rem', overflow: 'hidden', border: '4px solid #FFFFFF', boxShadow: '0 6px 18px rgba(2, 132, 199, 0.15)' }}>
-                                  {animator.photo ? (
-                                    <img src={animator.photo} alt={animator.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                  ) : (
-                                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0F9FF', color: 'var(--primary-blue)', fontWeight: 800, fontSize: '1.75rem' }}>
-                                      {getInitials(animator.name)}
-                                    </div>
+                            {animators.map((animator) => {
+                              const memberId = animator._id || animator.id;
+                              const isExpanded = expandedMemberId === memberId;
+                              const expText = (animator.experience || animator.biography || '').trim();
+                              const hasExp = Boolean(expText);
+
+                              return (
+                                <div 
+                                  key={memberId}
+                                  onClick={() => hasExp && toggleExpand(memberId)}
+                                  onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && hasExp) { e.preventDefault(); toggleExpand(memberId); } }}
+                                  tabIndex={hasExp ? 0 : undefined}
+                                  role={hasExp ? "button" : undefined}
+                                  aria-expanded={hasExp ? isExpanded : undefined}
+                                  className={`animator-card-interactive ${isExpanded ? 'expanded' : ''}`}
+                                  style={{ cursor: hasExp ? 'pointer' : 'default' }}
+                                >
+                                  <div style={{ width: '130px', height: '130px', borderRadius: '50%', marginBottom: '1.25rem', overflow: 'hidden', border: '4px solid #FFFFFF', boxShadow: '0 6px 18px rgba(2, 132, 199, 0.15)', flexShrink: 0 }}>
+                                    {animator.photo ? (
+                                      <img src={animator.photo} alt={animator.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0F9FF', color: 'var(--primary-blue)', fontWeight: 800, fontSize: '1.75rem' }}>
+                                        {getInitials(animator.name)}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <h4 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                                    {animator.name}
+                                  </h4>
+
+                                  <div style={{ color: 'var(--primary-pink)', fontWeight: 800, fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
+                                    {getCleanRole(animator.position)}
+                                  </div>
+
+                                  {(animator.department || animator.organization) && (
+                                    <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>
+                                      {animator.department || animator.organization}
+                                    </p>
                                   )}
+
+                                  {hasExp && !isExpanded && (
+                                    <span className="member-exp-prompt">
+                                      <Sparkles size={11} /> View Experience <ChevronDown size={11} />
+                                    </span>
+                                  )}
+
+                                  <AnimatePresence>
+                                    {hasExp && isExpanded && (
+                                      <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                                        className="member-experience-container"
+                                      >
+                                        <div className="member-experience-heading">
+                                          <Sparkles size={12} /> EXPERIENCE / DETAILS
+                                        </div>
+                                        <p className="member-experience-text">
+                                          {expText}
+                                        </p>
+                                        <div className="member-collapse-row">
+                                          <ChevronUp size={12} /> Click to collapse
+                                        </div>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
                                 </div>
-
-                                <h4 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                                  {animator.name}
-                                </h4>
-
-                                <div style={{ color: 'var(--primary-pink)', fontWeight: 800, fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
-                                  {animator.position || 'MAIN ANIMATOR'}
-                                </div>
-
-                                {(animator.department || animator.organization) && (
-                                  <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>
-                                    {animator.department || animator.organization}
-                                  </p>
-                                )}
-
-                                {animator.biography && (
-                                  <p style={{ fontSize: '0.85rem', color: '#64748B', lineHeight: 1.5, marginTop: '0.75rem', marginBottom: 0 }}>
-                                    {animator.biography}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
@@ -259,36 +287,76 @@ export default function Teams() {
                           </div>
 
                           <div className="team-members-5col-grid">
-                            {teamMembers.map((member) => (
-                              <div 
-                                key={member._id || member.id}
-                                className="team-member-card-5col"
-                              >
-                                <div className="member-avatar-box">
-                                  {member.photo ? (
-                                    <img src={member.photo} alt={member.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                  ) : (
-                                    <div className="member-avatar-initials">
-                                      {getInitials(member.name)}
-                                    </div>
+                            {teamMembers.map((member) => {
+                              const memberId = member._id || member.id;
+                              const isExpanded = expandedMemberId === memberId;
+                              const expText = (member.experience || member.biography || '').trim();
+                              const hasExp = Boolean(expText);
+
+                              return (
+                                <div 
+                                  key={memberId}
+                                  onClick={() => hasExp && toggleExpand(memberId)}
+                                  onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && hasExp) { e.preventDefault(); toggleExpand(memberId); } }}
+                                  tabIndex={hasExp ? 0 : undefined}
+                                  role={hasExp ? "button" : undefined}
+                                  aria-expanded={hasExp ? isExpanded : undefined}
+                                  className={`team-member-card-5col ${hasExp ? 'interactive' : ''} ${isExpanded ? 'expanded' : ''}`}
+                                >
+                                  <div className="member-avatar-box">
+                                    {member.photo ? (
+                                      <img src={member.photo} alt={member.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <div className="member-avatar-initials">
+                                        {getInitials(member.name)}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <h4 className="member-name-heading">
+                                    {member.name}
+                                  </h4>
+
+                                  <div className="member-role-badge">
+                                    {getCleanRole(member.position)}
+                                  </div>
+
+                                  {(member.department || member.organization) && (
+                                    <p className="member-dept-text">
+                                      {member.department || member.organization}
+                                    </p>
                                   )}
+
+                                  {hasExp && !isExpanded && (
+                                    <span className="member-exp-prompt">
+                                      <Sparkles size={10} /> View Profile <ChevronDown size={10} />
+                                    </span>
+                                  )}
+
+                                  <AnimatePresence>
+                                    {hasExp && isExpanded && (
+                                      <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                                        className="member-experience-container"
+                                      >
+                                        <div className="member-experience-heading">
+                                          <Sparkles size={11} /> EXPERIENCE / DETAILS
+                                        </div>
+                                        <p className="member-experience-text">
+                                          {expText}
+                                        </p>
+                                        <div className="member-collapse-row">
+                                          <ChevronUp size={11} /> Click to collapse
+                                        </div>
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
                                 </div>
-
-                                <h4 className="member-name-heading">
-                                  {member.name}
-                                </h4>
-
-                                <div className="member-role-badge">
-                                  {member.position}
-                                </div>
-
-                                {(member.department || member.organization) && (
-                                  <p className="member-dept-text">
-                                    {member.department || member.organization}
-                                  </p>
-                                )}
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}
