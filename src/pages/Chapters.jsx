@@ -49,10 +49,16 @@ export default function Chapters() {
       {/* Chapters Directory */}
       <section style={{ backgroundColor: '#F8FAFC', padding: '3.5rem 1.5rem', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          {/* Active Units */}
           <div style={{ marginBottom: '3.5rem' }}>
-            <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-              Active Collegiate Units
-            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+              <h2 style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+                Active Units
+              </h2>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.75rem', backgroundColor: '#ECFDF5', color: '#059669', borderRadius: '999px', border: '1px solid #A7F3D0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Operational
+              </span>
+            </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem' }}>
               Verified YES-J chartered campus chapters actively conducting youth formation and community outreach.
             </p>
@@ -62,59 +68,149 @@ export default function Chapters() {
             <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
               Loading chapters...
             </div>
-          ) : units.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
-              {units.map((unit, idx) => (
-                <motion.div 
-                  key={unit.id || idx}
-                  style={{ backgroundColor: 'white', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '2.5rem 2rem', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  variants={fadeUp}
-                  transition={{ delay: idx * 0.05 }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                      <Building2 size={24} style={{ color: 'var(--primary-blue)' }} />
-                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                        {unit.code || 'Campus Chapter'}
-                      </div>
-                    </div>
+          ) : (() => {
+            const activeUnits = units.filter(u => u.status === 'Active' || (!u.status && u.status !== 'Upcoming'));
+            const upcomingUnits = units.filter(u => u.status === 'Upcoming');
 
-                    <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
-                      {unit.name || unit.institution_name}
-                    </h3>
+            return (
+              <>
+                {activeUnits.length > 0 ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', marginBottom: upcomingUnits.length > 0 ? '4rem' : '0' }}>
+                    {activeUnits.map((unit, idx) => (
+                      <motion.div 
+                        key={unit.id || unit._id || idx}
+                        style={{ backgroundColor: 'white', border: '1px solid var(--border-color)', borderRadius: '1rem', padding: '2.5rem 2rem', boxShadow: '0 4px 20px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeUp}
+                        transition={{ delay: idx * 0.05 }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <Building2 size={24} style={{ color: 'var(--primary-blue)' }} />
+                              <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                {unit.code || 'Campus Chapter'}
+                              </div>
+                            </div>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.5rem', backgroundColor: '#ECFDF5', color: '#059669', borderRadius: '6px' }}>
+                              ACTIVE
+                            </span>
+                          </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-                      <MapPin size={16} style={{ color: 'var(--text-secondary)' }} />
-                      <span>{unit.city || unit.location || 'Andhra Pradesh, India'}</span>
-                    </div>
+                          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                            {unit.name}
+                          </h3>
 
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-                      {unit.description || 'Active student wing conducting grassroots community immersion, literacy mentoring, and environmental campaigns.'}
-                    </p>
+                          {unit.institution && (
+                            <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary-blue)', marginBottom: '0.75rem' }}>
+                              {unit.institution}
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+                            <MapPin size={16} style={{ color: 'var(--text-secondary)' }} />
+                            <span>{unit.location || unit.city || 'Andhra Pradesh, India'}</span>
+                          </div>
+
+                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+                            {unit.description || 'Active student wing conducting grassroots community immersion, literacy mentoring, and environmental campaigns.'}
+                          </p>
+                        </div>
+
+                        <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem', textAlign: 'center' }}>
+                          Join This Chapter &rarr;
+                        </Link>
+                      </motion.div>
+                    ))}
                   </div>
+                ) : (
+                  <div style={{ backgroundColor: 'white', padding: '3rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center', marginBottom: '3rem' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                      ALIET MAGIC YOUTH
+                    </h3>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                      Andhra Loyola Institute of Engineering and Technology — Primary founding campus chapter in Vijayawada.
+                    </p>
+                    <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.75rem 1.75rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700 }}>
+                      Join ALIET Chapter &rarr;
+                    </Link>
+                  </div>
+                )}
 
-                  <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem', textAlign: 'center' }}>
-                    Join This Chapter &rarr;
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ backgroundColor: 'white', padding: '3rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                Andhra Loyola Institute of Engineering and Technology (ALIET)
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                Primary founding campus chapter active in Vijayawada, Andhra Pradesh.
-              </p>
-              <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.75rem 1.75rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700 }}>
-                Join ALIET Chapter &rarr;
-              </Link>
-            </div>
-          )}
+                {/* Upcoming Units */}
+                {upcomingUnits.length > 0 && (
+                  <div style={{ marginTop: '3.5rem', paddingTop: '3rem', borderTop: '1px dashed var(--border-color)' }}>
+                    <div style={{ marginBottom: '2.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                        <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+                          Upcoming Units
+                        </h2>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.75rem', backgroundColor: '#FEF3C7', color: '#B45309', borderRadius: '999px', border: '1px solid #FDE68A', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Chartering In Progress
+                        </span>
+                      </div>
+                      <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
+                        Collegiate wings currently undergoing formation, leadership alignment, and institutional onboarding.
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
+                      {upcomingUnits.map((unit, idx) => (
+                        <motion.div 
+                          key={unit.id || unit._id || idx}
+                          style={{ backgroundColor: 'white', border: '1px dashed #CBD5E1', borderRadius: '1rem', padding: '2.5rem 2rem', boxShadow: '0 4px 20px rgba(0,0,0,0.01)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                          initial="hidden"
+                          whileInView="visible"
+                          viewport={{ once: true }}
+                          variants={fadeUp}
+                          transition={{ delay: idx * 0.05 }}
+                        >
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <Building2 size={24} style={{ color: '#D97706' }} />
+                                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                  {unit.code || 'Upcoming Chapter'}
+                                </div>
+                              </div>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.5rem', backgroundColor: '#FEF3C7', color: '#B45309', borderRadius: '6px' }}>
+                                UPCOMING
+                              </span>
+                            </div>
+
+                            <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                              {unit.name}
+                            </h3>
+
+                            {unit.institution && (
+                              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                                {unit.institution}
+                              </div>
+                            )}
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+                              <MapPin size={16} style={{ color: 'var(--text-secondary)' }} />
+                              <span>{unit.location || unit.city || 'Andhra Pradesh, India'}</span>
+                            </div>
+
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+                              {unit.description || 'Formation committee being onboarded for official chapter launch.'}
+                            </p>
+                          </div>
+
+                          <Link to="/contact" className="btn-secondary" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', padding: '0.75rem 1.5rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem', textAlign: 'center' }}>
+                            Inquire About Launch &rarr;
+                          </Link>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       </section>
 

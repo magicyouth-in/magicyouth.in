@@ -160,14 +160,14 @@ export default function Home() {
           />
         )}
 
-        {/* Floating Minimal Video Sound Control (Bottom-Right) */}
+        {/* Floating Minimal Video Sound Control (Bottom-Right, Compact Icon Only) */}
         <button
           onClick={toggleSound}
-          aria-label={isMuted ? "Turn Sound On" : "Turn Sound Off"}
-          className={`video-sound-toggle ${!isMuted ? 'unmuted' : ''}`}
+          aria-label={isMuted ? "Unmute Video" : "Mute Video"}
+          title={isMuted ? "Unmute Video" : "Mute Video"}
+          className={`video-sound-toggle-icon ${!isMuted ? 'unmuted' : ''}`}
         >
-          {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          <span>{isMuted ? 'Sound Off' : 'Sound On'}</span>
+          {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
         </button>
       </section>
 

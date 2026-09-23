@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
   try {
     let query = supabase.from('units').select('*').order('name', { ascending: true });
     if (req.query.includeInactive !== 'true') {
-      query = query.eq('status', 'Active');
+      query = query.in('status', ['Active', 'Upcoming']);
     }
     const { data: units, error } = await query;
     if (error) throw error;
