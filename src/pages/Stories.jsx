@@ -1,20 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, X, Sparkles, Loader2, BookOpen } from 'lucide-react';
+import { ArrowRight, X, Sparkles, Loader2, BookOpen, CalendarDays, MapPin } from 'lucide-react';
 import '../styles/home.css';
 
 export default function Stories() {
-  const [dbTestimonials, setDbTestimonials] = useState([]);
+  const [dbStories, setDbStories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStory, setSelectedStory] = useState(null);
 
   useEffect(() => {
-    fetch('/api/testimonials')
+    // Fetch stories from /api/stories with fallback to /api/testimonials
+    fetch('/api/stories')
       .then(res => res.json())
       .then(data => {
         if (data.success && Array.isArray(data.data)) {
-          setDbTestimonials(data.data);
+          setDbStories(data.data);
+        } else {
+          return fetch('/api/testimonials').then(r => r.json());
+        }
+      })
+      .then(fallbackData => {
+        if (fallbackData && fallbackData.success && Array.isArray(fallbackData.data)) {
+          setDbStories(fallbackData.data);
         }
       })
       .catch(console.error)
@@ -36,14 +44,20 @@ export default function Stories() {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } }
   };
 
-  const storiesData = dbTestimonials.map(t => ({
+  const storiesData = dbStories.map(t => ({
+    id: t._id || t.id,
     title: t.title || `Transformation Journey`,
-    category: t.category || "Student Experience",
+    subtitle: t.subtitle || '',
+    coverImage: t.coverImage || t.cover_image || t.avatarUrl || null,
+    category: t.program || t.category || "Student Experience",
     author: t.author || t.name || "Student Changemaker",
-    unit: t.unit || t.role || "MAGIC Youth Member",
-    excerpt: t.excerpt || t.quote,
-    fullStory: t.fullStory || t.full_story || t.quote,
-    tag: t.tag || "Verified Testimony"
+    unit: t.chapter || t.unit || t.role || "MAGIC Youth",
+    academicYear: t.academicYear || t.academic_year || "",
+    program: t.program || "",
+    impact: t.impact || "",
+    excerpt: t.subtitle || t.excerpt || t.quote || (t.content ? t.content.slice(0, 160) + '...' : ''),
+    fullStory: t.content || t.fullStory || t.full_story || t.quote || '',
+    tag: t.tag || (t.impact ? "Impact Milestone" : "Verified Story")
   }));
 
   return (
@@ -95,7 +109,7 @@ export default function Stories() {
           <div className="stories-grid">
             {storiesData.map((story, idx) => (
               <motion.article 
-                key={idx}
+                key={story.id || idx}
                 className="story-card"
                 initial="hidden"
                 whileInView="visible"
@@ -104,16 +118,43 @@ export default function Stories() {
                 transition={{ delay: (idx % 3) * 0.1 }}
               >
                 <div>
+                  {story.coverImage && (
+                    <div className="story-card-cover-wrapper">
+                      <img 
+                        src={story.coverImage} 
+                        alt={story.title} 
+                        className="story-card-cover"
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
+
                   <div className="story-card-header">
                     <span className="story-card-category">
                       <span style={{ color: 'var(--primary-pink)' }}>●</span> {story.category}
                     </span>
-                    {story.tag && <span className="story-card-tag">{story.tag}</span>}
+                    {story.academicYear && (
+                      <span className="story-card-tag">{story.academicYear}</span>
+                    )}
                   </div>
 
                   <h2 className="story-card-title">
                     {story.title}
                   </h2>
+
+                  {story.subtitle && (
+                    <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--primary-blue)', marginBottom: '0.625rem', lineHeight: 1.4 }}>
+                      {story.subtitle}
+                    </p>
+                  )}
+
+                  {story.impact && (
+                    <div className="story-impact-badge">
+                      <Sparkles size={14} style={{ flexShrink: 0, marginTop: '2px', color: '#15803D' }} />
+                      <span>{story.impact}</span>
+                    </div>
+                  )}
 
                   <p className="story-card-excerpt">
                     "{story.excerpt}"
@@ -155,9 +196,29 @@ export default function Stories() {
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-                <div className="story-card-category">
-                  <span style={{ color: 'var(--primary-pink)' }}>●</span> {selectedStory.category}
+              {selectedStory.coverImage && (
+                <div className="story-modal-cover-wrapper">
+                  <img 
+                    src={selectedStory.coverImage} 
+                    alt={selectedStory.title} 
+                    className="story-modal-cover"
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span className="story-card-category">
+                    <span style={{ color: 'var(--primary-pink)' }}>●</span> {selectedStory.category}
+                  </span>
+                  {selectedStory.academicYear && (
+                    <span className="story-card-tag">{selectedStory.academicYear}</span>
+                  )}
+                  {selectedStory.unit && (
+                    <span className="story-card-tag" style={{ color: 'var(--primary-blue)', backgroundColor: '#F0F9FF' }}>
+                      {selectedStory.unit}
+                    </span>
+                  )}
                 </div>
                 <button 
                   onClick={() => setSelectedStory(null)} 
@@ -168,9 +229,25 @@ export default function Stories() {
                 </button>
               </div>
 
-              <h2 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0F172A', lineHeight: 1.3, marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0F172A', lineHeight: 1.3, marginBottom: '0.5rem' }}>
                 {selectedStory.title}
               </h2>
+
+              {selectedStory.subtitle && (
+                <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-blue)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                  {selectedStory.subtitle}
+                </p>
+              )}
+
+              {selectedStory.impact && (
+                <div className="story-impact-badge" style={{ padding: '0.75rem 1rem', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                  <Sparkles size={16} style={{ flexShrink: 0, marginTop: '2px', color: '#15803D' }} />
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#15803D', marginBottom: '0.15rem' }}>Impact Highlight</div>
+                    <div>{selectedStory.impact}</div>
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #F1F5F9' }}>
                 <div style={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: 'var(--primary-blue-light)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>
@@ -182,20 +259,21 @@ export default function Stories() {
                 </div>
               </div>
 
-              <div style={{ color: '#334155', fontSize: '1.05rem', lineHeight: 1.8, marginBottom: '2rem' }}>
-                <p style={{ fontWeight: 600, color: '#0F172A', marginBottom: '1rem', fontStyle: 'italic' }}>
-                  "{selectedStory.excerpt}"
-                </p>
-                {selectedStory.fullStory && selectedStory.fullStory !== selectedStory.excerpt && (
-                  <p style={{ marginTop: '1rem' }}>
-                    {selectedStory.fullStory}
-                  </p>
+              <div style={{ color: '#334155', fontSize: '1rem', lineHeight: 1.8, marginBottom: '2rem' }}>
+                {selectedStory.fullStory ? (
+                  selectedStory.fullStory.split('\n').filter(Boolean).map((paragraph, pIdx) => (
+                    <p key={pIdx} style={{ marginBottom: '1rem' }}>
+                      {paragraph}
+                    </p>
+                  ))
+                ) : (
+                  <p>"{selectedStory.excerpt}"</p>
                 )}
               </div>
 
               <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                 <span style={{ fontSize: '0.8125rem', color: '#64748B' }}>
-                  YES-J Chartered Student Formation
+                  MAGIC Youth Student Formation
                 </span>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <button 

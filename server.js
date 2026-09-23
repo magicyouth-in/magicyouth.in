@@ -77,6 +77,7 @@ app.use('/api/contact',        require('./routes/contact'));
 app.use('/api/join',           require('./routes/join'));
 app.use('/api/notifications',  require('./routes/notifications'));
 app.use('/api/testimonials',   require('./routes/testimonials'));
+app.use('/api/stories',        require('./routes/stories'));
 app.use('/api/announcements',  require('./routes/announcements'));
 app.use('/api/about',          require('./routes/about'));
 app.use('/api/timeline',       require('./routes/timeline'));

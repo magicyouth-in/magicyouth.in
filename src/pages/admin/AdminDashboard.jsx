@@ -280,6 +280,7 @@ export default function AdminDashboard() {
           {activeTab === 'teams'          && <TeamsModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'programs'       && <ProgramsModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'events'         && <EventsModule toast={showToast} units={units} academicYears={academicYears} />}
+          {activeTab === 'stories'        && <StoriesModule toast={showToast} units={units} academicYears={academicYears} />}
           {(activeTab === 'media' || activeTab === 'gallery' || activeTab === 'resources') && <MediaModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'faqs'           && <FaqModule toast={showToast} />}
           {activeTab === 'join-apps'      && <JoinApplicationsModule toast={showToast} />}
@@ -1501,218 +1502,767 @@ function EventsModule({ toast, units, academicYears }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 6. STORIES MODULE (Connected directly to /api/testimonials CRUD)
+// 6. STORIES MODULE (Full CRUD with Image Upload, Status, Academic Year & Chapter)
 // ═════════════════════════════════════════════════════════════════════════════
-function StoriesModule({ toast, units }) {
+function StoriesModule({ toast, units = [], academicYears = [] }) {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewStory, setPreviewStory] = useState(null);
   const [editingStory, setEditingStory] = useState(null);
+
+  // Filters & Search
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [unitFilter, setUnitFilter] = useState('All');
+  const [yearFilter, setYearFilter] = useState('All');
+
+  // Form State
   const [storyForm, setStoryForm] = useState({
     title: '',
-    author: '',
-    unit: '',
-    category: 'Leadership Journey',
-    excerpt: '',
-    fullStory: '',
-    tag: 'Conscience & Action',
-    isFeatured: true
+    subtitle: '',
+    coverImage: '',
+    content: '',
+    impact: '',
+    academicYear: '',
+    academicYearId: '',
+    chapter: '',
+    unitId: '',
+    program: '',
+    status: 'Published',
+    author: 'MAGIC Youth'
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
 
   const loadStories = useCallback(() => {
     setLoading(true);
-    api('/api/testimonials')
+    api('/api/stories?all=1')
       .then(d => { setStories(d.data || []); setLoading(false); })
-      .catch(e => { toast(e.message, 'error'); setLoading(false); });
+      .catch(e => {
+        // Fallback to /api/testimonials if needed
+        api('/api/testimonials')
+          .then(d => { setStories(d.data || []); setLoading(false); })
+          .catch(err => { toast(err.message, 'error'); setLoading(false); });
+      });
   }, [toast]);
 
   useEffect(() => { loadStories(); }, [loadStories]);
 
   const openAdd = () => {
     setEditingStory(null);
+    setImageFile(null);
+    setImagePreview('');
+    const defaultUnit = units[0]?.name || '';
+    const defaultUnitId = units[0]?._id || '';
+    const defaultYear = academicYears[0]?.year || '';
+    const defaultYearId = academicYears[0]?._id || '';
+
     setStoryForm({
       title: '',
-      author: '',
-      unit: units[0]?.name || 'Student Member',
-      category: 'Leadership Journey',
-      excerpt: '',
-      fullStory: '',
-      tag: 'Conscience & Action',
-      isFeatured: true
+      subtitle: '',
+      coverImage: '',
+      content: '',
+      impact: '',
+      academicYear: defaultYear,
+      academicYearId: defaultYearId,
+      chapter: defaultUnit,
+      unitId: defaultUnitId,
+      program: '',
+      status: 'Published',
+      author: 'MAGIC Youth'
     });
     setShowModal(true);
   };
 
   const openEdit = (s) => {
     setEditingStory(s);
+    setImageFile(null);
+    setImagePreview(s.coverImage || '');
     setStoryForm({
       title: s.title || '',
-      author: s.author || s.name || '',
-      unit: s.unit || s.role || '',
-      category: s.category || 'Student Experience',
-      excerpt: s.excerpt || s.quote || '',
-      fullStory: s.fullStory || s.full_story || s.quote || '',
-      tag: s.tag || 'Verified Story',
-      isFeatured: s.isFeatured ?? s.is_featured ?? true
+      subtitle: s.subtitle || '',
+      coverImage: s.coverImage || '',
+      content: s.content || s.fullStory || s.quote || '',
+      impact: s.impact || '',
+      academicYear: s.academicYear || s.academic_year || academicYears[0]?.year || '',
+      academicYearId: s.academicYearId || s.academic_year_id || academicYears[0]?._id || '',
+      chapter: s.chapter || s.unit || units[0]?.name || '',
+      unitId: s.unitId || s.unit_id || units[0]?._id || '',
+      program: s.program || '',
+      status: s.status || 'Published',
+      author: s.author || s.name || 'MAGIC Youth'
     });
     setShowModal(true);
   };
 
-  const handleSave = async (e) => {
-    e.preventDefault();
-    if (!storyForm.author || !storyForm.excerpt) {
-      toast('Author name and excerpt are required.', 'error');
+  const openPreview = (s) => {
+    setPreviewStory(s);
+    setShowPreviewModal(true);
+  };
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate image format
+    const validFormats = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validFormats.includes(file.type) && !/\.(jpe?g|png|webp|gif)$/i.test(file.name)) {
+      toast('Please select a valid image file (JPG, PNG, or WEBP).', 'error');
       return;
     }
+
+    if (file.size > 15 * 1024 * 1024) {
+      toast('Image file size must be less than 15MB.', 'error');
+      return;
+    }
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (loadEvt) => {
+      setImagePreview(loadEvt.target?.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setStoryForm(prev => ({ ...prev, coverImage: '' }));
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!storyForm.title.trim()) {
+      toast('Story Title is required.', 'error');
+      return;
+    }
+    if (!imageFile && !imagePreview && !storyForm.coverImage) {
+      toast('Cover Image is required.', 'error');
+      return;
+    }
+    if (!storyForm.content.trim()) {
+      toast('Story Content is required.', 'error');
+      return;
+    }
+
+    setSaving(true);
     try {
-      if (editingStory) {
-        await api(`/api/testimonials/${editingStory._id || editingStory.id}`, {
-          method: 'PUT',
-          body: JSON.stringify(storyForm)
-        });
-        toast('Story updated successfully.');
-      } else {
-        await api('/api/testimonials', {
-          method: 'POST',
-          body: JSON.stringify(storyForm)
-        });
-        toast('Story created successfully.');
+      const formData = new FormData();
+      formData.append('title', storyForm.title);
+      formData.append('subtitle', storyForm.subtitle || '');
+      formData.append('content', storyForm.content);
+      formData.append('impact', storyForm.impact || '');
+      formData.append('academicYear', storyForm.academicYear || '');
+      if (storyForm.academicYearId) formData.append('academicYearId', storyForm.academicYearId);
+      formData.append('chapter', storyForm.chapter || '');
+      if (storyForm.unitId) formData.append('unitId', storyForm.unitId);
+      formData.append('program', storyForm.program || '');
+      formData.append('status', storyForm.status || 'Published');
+      formData.append('author', storyForm.author || 'MAGIC Youth');
+
+      if (imageFile) {
+        formData.append('coverImage', imageFile);
+      } else if (imagePreview) {
+        formData.append('coverImage', imagePreview);
       }
+
+      const url = editingStory 
+        ? `/api/stories/${editingStory._id || editingStory.id}`
+        : '/api/stories';
+      const method = editingStory ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        body: formData,
+        credentials: 'include'
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data?.message || 'Failed to save story.');
+      }
+
+      toast(editingStory ? 'Story updated successfully.' : 'Story created successfully.');
       setShowModal(false);
       loadStories();
-    } catch (e) { toast(e.message, 'error'); }
+    } catch (err) {
+      toast(err.message, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this story?')) return;
+    if (!confirm('Are you sure you want to delete this story? This cannot be undone.')) return;
     try {
-      await api(`/api/testimonials/${id}`, { method: 'DELETE' });
-      toast('Story deleted.');
+      await api(`/api/stories/${id}`, { method: 'DELETE' });
+      toast('Story deleted successfully.');
       loadStories();
-    } catch (e) { toast(e.message, 'error'); }
+    } catch (err) {
+      toast(err.message, 'error');
+    }
   };
 
-  const toggleFeatured = async (s) => {
-    try {
-      const newStatus = !(s.isFeatured ?? s.is_featured);
-      await api(`/api/testimonials/${s._id || s.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ isFeatured: newStatus })
-      });
-      toast('Featured status updated.');
-      loadStories();
-    } catch (e) { toast(e.message, 'error'); }
-  };
+  // Filtered stories
+  const filteredStories = stories.filter(s => {
+    if (statusFilter !== 'All' && s.status !== statusFilter) return false;
+    if (unitFilter !== 'All' && s.unitId !== unitFilter && s.chapter !== unitFilter) return false;
+    if (yearFilter !== 'All' && s.academicYearId !== yearFilter && s.academicYear !== yearFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const matchTitle = (s.title || '').toLowerCase().includes(q);
+      const matchSubtitle = (s.subtitle || '').toLowerCase().includes(q);
+      const matchProgram = (s.program || '').toLowerCase().includes(q);
+      const matchImpact = (s.impact || '').toLowerCase().includes(q);
+      const matchAuthor = (s.author || s.name || '').toLowerCase().includes(q);
+      return matchTitle || matchSubtitle || matchProgram || matchImpact || matchAuthor;
+    }
+    return true;
+  });
 
   return (
     <div>
+      {/* ── MODULE HEADER ─────────────────────────────────────────── */}
       <div className="admin-module-header">
         <div>
-          <h1 className="admin-module-title">Transformation Stories</h1>
-          <p className="admin-module-subtitle">Manage student voice testimonials and inspirational changemaker journeys displayed on /stories.</p>
+          <h1 className="admin-module-title">Stories</h1>
+          <p className="admin-module-subtitle">Manage and publish impact stories from MAGIC Youth.</p>
         </div>
         <button onClick={openAdd} className="admin-btn-primary">
           <Plus size={16} /> Add Story
         </button>
       </div>
 
+      {/* ── FILTER & SEARCH BAR ───────────────────────────────────── */}
+      <div className="admin-filter-bar" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.875rem', marginBottom: '1.5rem', backgroundColor: '#FFFFFF', padding: '1rem 1.25rem', borderRadius: '0.75rem', border: '1px solid var(--border-color)' }}>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <Search size={15} style={{ position: 'absolute', left: '0.85rem', color: '#94A3B8' }} />
+          <input 
+            type="text"
+            placeholder="Search stories, programs, impacts..." 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="admin-input"
+            style={{ paddingLeft: '2.4rem', height: '2.4rem', fontSize: '0.8125rem' }}
+          />
+        </div>
+
+        <select 
+          value={statusFilter} 
+          onChange={e => setStatusFilter(e.target.value)} 
+          className="admin-select"
+          style={{ height: '2.4rem', fontSize: '0.8125rem' }}
+        >
+          <option value="All">All Statuses</option>
+          <option value="Published">Published</option>
+          <option value="Draft">Draft</option>
+        </select>
+
+        <select 
+          value={unitFilter} 
+          onChange={e => setUnitFilter(e.target.value)} 
+          className="admin-select"
+          style={{ height: '2.4rem', fontSize: '0.8125rem' }}
+        >
+          <option value="All">All Chapters</option>
+          {units.map(u => (
+            <option key={u._id} value={u._id}>{u.name}</option>
+          ))}
+        </select>
+
+        <select 
+          value={yearFilter} 
+          onChange={e => setYearFilter(e.target.value)} 
+          className="admin-select"
+          style={{ height: '2.4rem', fontSize: '0.8125rem' }}
+        >
+          <option value="All">All Academic Years</option>
+          {academicYears.map(y => (
+            <option key={y._id} value={y._id}>{y.year}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* ── CONTENT AREA ─────────────────────────────────────────── */}
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
-      ) : stories.length === 0 ? (
-        <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
-          No transformation stories added yet. Click "+ Add Story" to create one.
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
+          <Loader2 size={32} className="animate-spin" color="var(--primary-blue)" />
+        </div>
+      ) : filteredStories.length === 0 ? (
+        <div className="admin-card" style={{ textAlign: 'center', padding: '4.5rem 2rem', backgroundColor: '#FFFFFF', border: '1px dashed var(--border-color)', borderRadius: '1rem' }}>
+          <Sparkles size={48} color="var(--primary-blue)" style={{ margin: '0 auto 1.25rem', opacity: 0.6 }} />
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+            No stories added yet.
+          </h3>
+          <p style={{ color: '#64748B', fontSize: '0.9375rem', marginBottom: '1.75rem', maxWidth: '480px', margin: '0 auto 1.75rem' }}>
+            Create your first story to showcase the impact of MAGIC Youth.
+          </p>
+          <button onClick={openAdd} className="admin-btn-primary" style={{ margin: '0 auto', display: 'inline-flex' }}>
+            <Plus size={16} /> Add Story
+          </button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-          {stories.map(s => (
-            <div key={s._id || s.id} className="admin-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <span className="admin-badge" style={{ backgroundColor: '#F0F9FF', color: 'var(--primary-blue)' }}>
-                    {s.category || 'Story'}
-                  </span>
-                  <button 
-                    onClick={() => toggleFeatured(s)}
-                    className={`admin-badge ${s.isFeatured || s.is_featured ? 'badge-featured' : 'badge-archived'}`}
-                    style={{ cursor: 'pointer', border: 'none' }}
-                  >
-                    {s.isFeatured || s.is_featured ? '★ Featured' : 'Normal'}
-                  </button>
-                </div>
-                {s.title && <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{s.title}</h3>}
-                <p style={{ fontStyle: 'italic', color: '#334155', lineHeight: 1.6, marginBottom: '1.25rem', fontSize: '0.9rem' }}>
-                  "{s.excerpt || s.quote}"
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.85rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+          {filteredStories.map(s => {
+            const isPublished = s.status === 'Published';
+            return (
+              <div 
+                key={s._id || s.id} 
+                className="admin-card" 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  justifyContent: 'space-between', 
+                  padding: '1.25rem',
+                  border: '1px solid var(--border-color)',
+                  position: 'relative'
+                }}
+              >
                 <div>
-                  <div style={{ fontWeight: 800, color: 'var(--primary-blue)', fontSize: '0.875rem' }}>{s.author || s.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{s.unit || s.role}</div>
+                  {/* Cover Image Thumbnail */}
+                  <div style={{ position: 'relative', width: '100%', height: '160px', borderRadius: '0.5rem', overflow: 'hidden', backgroundColor: '#F1F5F9', marginBottom: '1rem' }}>
+                    {s.coverImage ? (
+                      <img 
+                        src={s.coverImage} 
+                        alt={s.title} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
+                        <Image size={36} />
+                      </div>
+                    )}
+                    <span 
+                      style={{ 
+                        position: 'absolute', 
+                        top: '0.625rem', 
+                        right: '0.625rem',
+                        padding: '0.25rem 0.65rem',
+                        borderRadius: '999px',
+                        fontSize: '0.6875rem',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        backgroundColor: isPublished ? '#DCFCE7' : '#FEF3C7',
+                        color: isPublished ? '#15803D' : '#B45309',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                      }}
+                    >
+                      {s.status || 'Published'}
+                    </span>
+                  </div>
+
+                  {/* Metadata Tags */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.625rem' }}>
+                    {s.academicYear && (
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 700, backgroundColor: '#F1F5F9', color: '#475569', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                        {s.academicYear}
+                      </span>
+                    )}
+                    {s.chapter && (
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 700, backgroundColor: '#F0F9FF', color: 'var(--primary-blue)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                        {s.chapter}
+                      </span>
+                    )}
+                    {s.program && (
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 700, backgroundColor: '#FAF5FF', color: '#7E22CE', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                        {s.program}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Title & Subtitle */}
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.35rem', lineHeight: 1.3 }}>
+                    {s.title}
+                  </h3>
+                  {s.subtitle && (
+                    <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--primary-blue)', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                      {s.subtitle}
+                    </p>
+                  )}
+
+                  {/* Impact snippet */}
+                  {s.impact && (
+                    <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'flex-start', gap: '0.4rem', fontSize: '0.75rem', color: '#166534', lineHeight: 1.4 }}>
+                      <Sparkles size={13} style={{ flexShrink: 0, marginTop: '2px', color: '#15803D' }} />
+                      <span style={{ fontWeight: 600 }}>{s.impact}</span>
+                    </div>
+                  )}
+
+                  {/* Content Excerpt */}
+                  <p style={{ fontSize: '0.8125rem', color: '#475569', lineHeight: 1.5, marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {s.content || s.fullStory || s.quote || ''}
+                  </p>
                 </div>
-                <div style={{ display: 'flex', gap: '0.35rem' }}>
-                  <button onClick={() => openEdit(s)} className="admin-btn-action" style={{ padding: '0.35rem' }}><Edit size={13} /></button>
-                  <button onClick={() => handleDelete(s._id || s.id)} className="admin-btn-danger" style={{ padding: '0.35rem' }}><Trash2 size={13} /></button>
+
+                {/* Card Actions Footer */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+                    {s.author || 'MAGIC Youth'}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <button 
+                      onClick={() => openPreview(s)} 
+                      className="admin-btn-action" 
+                      style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                      title="Preview Story"
+                    >
+                      <Eye size={13} /> Preview
+                    </button>
+                    <button 
+                      onClick={() => openEdit(s)} 
+                      className="admin-btn-action" 
+                      style={{ padding: '0.35rem', color: 'var(--primary-blue)' }}
+                      title="Edit Story"
+                    >
+                      <Edit size={14} />
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(s._id || s.id)} 
+                      className="admin-btn-danger" 
+                      style={{ padding: '0.35rem' }}
+                      title="Delete Story"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
+      {/* ── CREATE / EDIT STORY MODAL ─────────────────────────────── */}
       {showModal && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
-                {editingStory ? 'Edit Transformation Story' : 'Add Transformation Story'}
-              </h3>
-              <button onClick={() => setShowModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+          <div className="admin-modal-box" style={{ maxWidth: '720px', maxHeight: '92vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.85rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#0F172A' }}>
+                  {editingStory ? 'Edit Story' : 'Add Story'}
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: '#64748B', margin: '0.2rem 0 0' }}>
+                  Provide complete narrative and impact details for the public portal.
+                </p>
+              </div>
+              <button onClick={() => setShowModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}>
+                <X size={16} />
+              </button>
             </div>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+              {/* 1. Story Title */}
               <div className="admin-input-group">
                 <label className="admin-label">Story Title *</label>
-                <input required placeholder="e.g. From Passive Student to Community Advocate" value={storyForm.title} onChange={e => setStoryForm({ ...storyForm, title: e.target.value })} className="admin-input" />
+                <input 
+                  required 
+                  placeholder="e.g. Compassion Connect" 
+                  value={storyForm.title} 
+                  onChange={e => setStoryForm({ ...storyForm, title: e.target.value })} 
+                  className="admin-input" 
+                />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="admin-label">Student Name / Author *</label>
-                  <input required placeholder="e.g. Student Coordinator" value={storyForm.author} onChange={e => setStoryForm({ ...storyForm, author: e.target.value })} className="admin-input" />
-                </div>
-                <div>
-                  <label className="admin-label">Chapter / Unit *</label>
-                  <input required placeholder="e.g. ALIET Chapter" value={storyForm.unit} onChange={e => setStoryForm({ ...storyForm, unit: e.target.value })} className="admin-input" />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label className="admin-label">Category</label>
-                  <input placeholder="e.g. Leadership Journey" value={storyForm.category} onChange={e => setStoryForm({ ...storyForm, category: e.target.value })} className="admin-input" />
-                </div>
-                <div>
-                  <label className="admin-label">Tag</label>
-                  <input placeholder="e.g. Conscience & Action" value={storyForm.tag} onChange={e => setStoryForm({ ...storyForm, tag: e.target.value })} className="admin-input" />
-                </div>
-              </div>
+
+              {/* 2. Short Subtitle / Tagline */}
               <div className="admin-input-group">
-                <label className="admin-label">Short Excerpt (2–3 lines) *</label>
-                <textarea rows={2} required placeholder="Brief highlight displayed on the card..." value={storyForm.excerpt} onChange={e => setStoryForm({ ...storyForm, excerpt: e.target.value })} className="admin-textarea" />
+                <label className="admin-label">Short Subtitle / Tagline (Optional)</label>
+                <input 
+                  placeholder="e.g. A Journey of Compassion, Care and Dignity" 
+                  value={storyForm.subtitle} 
+                  onChange={e => setStoryForm({ ...storyForm, subtitle: e.target.value })} 
+                  className="admin-input" 
+                />
               </div>
+
+              {/* 3. Cover Image Upload */}
               <div className="admin-input-group">
-                <label className="admin-label">Full Narrative Story</label>
-                <textarea rows={4} placeholder="Complete reflection story opened in modal reader..." value={storyForm.fullStory} onChange={e => setStoryForm({ ...storyForm, fullStory: e.target.value })} className="admin-textarea" />
+                <label className="admin-label">Cover Image * (JPG, JPEG, PNG, WEBP up to 15MB)</label>
+                {imagePreview ? (
+                  <div style={{ position: 'relative', width: '100%', height: '200px', borderRadius: '0.75rem', overflow: 'hidden', border: '1.5px solid var(--border-color)', backgroundColor: '#F8FAFC', marginBottom: '0.5rem' }}>
+                    <img 
+                      src={imagePreview} 
+                      alt="Cover Preview" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                    <div style={{ position: 'absolute', bottom: '0.75rem', right: '0.75rem', display: 'flex', gap: '0.5rem' }}>
+                      <label 
+                        className="admin-btn-secondary" 
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', cursor: 'pointer', backgroundColor: '#FFFFFF', boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}
+                      >
+                        <RefreshCw size={13} /> Replace Image
+                        <input 
+                          type="file" 
+                          accept="image/jpeg,image/jpg,image/png,image/webp" 
+                          onChange={handleImageSelect} 
+                          style={{ display: 'none' }} 
+                        />
+                      </label>
+                      <button 
+                        type="button" 
+                        onClick={handleRemoveImage} 
+                        className="admin-btn-danger" 
+                        style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', backgroundColor: '#BE123C', color: '#FFFFFF', border: 'none', borderRadius: '0.5rem', cursor: 'pointer' }}
+                      >
+                        <Trash2 size={13} /> Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label 
+                    style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      padding: '2rem 1.5rem', 
+                      border: '2px dashed #CBD5E1', 
+                      borderRadius: '0.75rem', 
+                      cursor: 'pointer',
+                      backgroundColor: '#F8FAFC',
+                      transition: 'border-color 0.2s ease'
+                    }}
+                  >
+                    <Upload size={28} color="var(--primary-blue)" style={{ marginBottom: '0.5rem' }} />
+                    <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#0F172A' }}>
+                      Click to upload cover image
+                    </span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.25rem' }}>
+                      Supports JPG, JPEG, PNG, WEBP
+                    </span>
+                    <input 
+                      type="file" 
+                      accept="image/jpeg,image/jpg,image/png,image/webp" 
+                      onChange={handleImageSelect} 
+                      style={{ display: 'none' }} 
+                    />
+                  </label>
+                )}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => setShowModal(false)} className="admin-btn-secondary">Cancel</button>
-                <button type="submit" className="admin-btn-primary">{editingStory ? 'Save Changes' : 'Create Story'}</button>
+
+              {/* 4. Story Content */}
+              <div className="admin-input-group">
+                <label className="admin-label">Story Content * (Paragraphs &amp; Narrative)</label>
+                <textarea 
+                  required 
+                  rows={6} 
+                  placeholder="Enter the full narrative reflection. You can use multiple paragraphs to describe the journey, community response, and personal transformation..." 
+                  value={storyForm.content} 
+                  onChange={e => setStoryForm({ ...storyForm, content: e.target.value })} 
+                  className="admin-textarea" 
+                  style={{ lineHeight: 1.6 }}
+                />
+              </div>
+
+              {/* 5. Impact / Highlight */}
+              <div className="admin-input-group">
+                <label className="admin-label">Impact / Highlight (Optional)</label>
+                <textarea 
+                  rows={2} 
+                  placeholder="e.g. 21 individuals supported through YES-J's Compassion Connect initiative during 2025–26." 
+                  value={storyForm.impact} 
+                  onChange={e => setStoryForm({ ...storyForm, impact: e.target.value })} 
+                  className="admin-textarea" 
+                />
+              </div>
+
+              {/* 6. Chapter, Academic Year & Program Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div className="admin-input-group">
+                  <label className="admin-label">Chapter / Unit</label>
+                  <select 
+                    value={storyForm.unitId} 
+                    onChange={e => {
+                      const selUnit = units.find(u => u._id === e.target.value);
+                      setStoryForm({ 
+                        ...storyForm, 
+                        unitId: e.target.value,
+                        chapter: selUnit?.name || ''
+                      });
+                    }} 
+                    className="admin-select"
+                  >
+                    <option value="">Select Chapter (Optional)</option>
+                    {units.map(u => (
+                      <option key={u._id} value={u._id}>{u.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="admin-input-group">
+                  <label className="admin-label">Academic Year</label>
+                  <select 
+                    value={storyForm.academicYearId} 
+                    onChange={e => {
+                      const selYear = academicYears.find(y => y._id === e.target.value);
+                      setStoryForm({ 
+                        ...storyForm, 
+                        academicYearId: e.target.value,
+                        academicYear: selYear?.year || ''
+                      });
+                    }} 
+                    className="admin-select"
+                  >
+                    <option value="">Select Year (Optional)</option>
+                    {academicYears.map(y => (
+                      <option key={y._id} value={y._id}>{y.year}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="admin-input-group">
+                  <label className="admin-label">Linked Program (Optional)</label>
+                  <input 
+                    placeholder="e.g. Compassion Connect, Green Footprints" 
+                    value={storyForm.program} 
+                    onChange={e => setStoryForm({ ...storyForm, program: e.target.value })} 
+                    className="admin-input" 
+                  />
+                </div>
+              </div>
+
+              {/* 7. Status & Author Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="admin-input-group">
+                  <label className="admin-label">Publish Status *</label>
+                  <select 
+                    value={storyForm.status} 
+                    onChange={e => setStoryForm({ ...storyForm, status: e.target.value })} 
+                    className="admin-select"
+                  >
+                    <option value="Published">Published (Visible on /stories)</option>
+                    <option value="Draft">Draft (Admin Only)</option>
+                  </select>
+                </div>
+
+                <div className="admin-input-group">
+                  <label className="admin-label">Author / Attributed By</label>
+                  <input 
+                    placeholder="e.g. MAGIC Youth or Student Lead" 
+                    value={storyForm.author} 
+                    onChange={e => setStoryForm({ ...storyForm, author: e.target.value })} 
+                    className="admin-input" 
+                  />
+                </div>
+              </div>
+
+              {/* Form Action Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem', borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowModal(false)} 
+                  className="admin-btn-secondary" 
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="admin-btn-primary" 
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Saving Story...
+                    </>
+                  ) : (
+                    editingStory ? 'Update Story' : 'Save Story'
+                  )}
+                </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── STORY PREVIEW MODAL ───────────────────────────────────── */}
+      {showPreviewModal && previewStory && (
+        <div className="admin-modal-overlay" onClick={() => setShowPreviewModal(false)}>
+          <div 
+            className="admin-modal-box" 
+            style={{ maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {previewStory.coverImage && (
+              <div style={{ width: '100%', height: '220px', borderRadius: '0.75rem', overflow: 'hidden', marginBottom: '1.25rem', backgroundColor: '#F1F5F9' }}>
+                <img 
+                  src={previewStory.coverImage} 
+                  alt={previewStory.title} 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <span className="admin-badge" style={{ backgroundColor: '#F0F9FF', color: 'var(--primary-blue)' }}>
+                  {previewStory.program || previewStory.category || 'Impact Story'}
+                </span>
+                {previewStory.academicYear && (
+                  <span className="admin-badge" style={{ backgroundColor: '#F1F5F9', color: '#475569' }}>
+                    {previewStory.academicYear}
+                  </span>
+                )}
+                {previewStory.chapter && (
+                  <span className="admin-badge" style={{ backgroundColor: '#FAF5FF', color: '#7E22CE' }}>
+                    {previewStory.chapter}
+                  </span>
+                )}
+              </div>
+              <button 
+                onClick={() => setShowPreviewModal(false)} 
+                className="admin-btn-action" 
+                style={{ padding: '0.35rem' }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0F172A', marginBottom: '0.35rem', lineHeight: 1.3 }}>
+              {previewStory.title}
+            </h2>
+
+            {previewStory.subtitle && (
+              <p style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--primary-blue)', marginBottom: '1rem', lineHeight: 1.4 }}>
+                {previewStory.subtitle}
+              </p>
+            )}
+
+            {previewStory.impact && (
+              <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #BBF7D0', padding: '0.75rem 1rem', borderRadius: '0.625rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: '#166534', fontSize: '0.875rem' }}>
+                <Sparkles size={16} style={{ flexShrink: 0, marginTop: '2px', color: '#15803D' }} />
+                <div>
+                  <div style={{ fontWeight: 800, color: '#15803D', marginBottom: '0.15rem' }}>Impact Highlight</div>
+                  <div>{previewStory.impact}</div>
+                </div>
+              </div>
+            )}
+
+            <div style={{ color: '#334155', fontSize: '0.9375rem', lineHeight: 1.7, marginBottom: '1.5rem', borderTop: '1px solid #F1F5F9', paddingTop: '1rem' }}>
+              {(previewStory.content || previewStory.fullStory || '').split('\n').filter(Boolean).map((p, idx) => (
+                <p key={idx} style={{ marginBottom: '0.85rem' }}>{p}</p>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '0.85rem' }}>
+              <button 
+                onClick={() => setShowPreviewModal(false)} 
+                className="admin-btn-secondary"
+              >
+                Close Preview
+              </button>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 }
+
 
 // ═════════════════════════════════════════════════════════════════════════════
 // 7. MEDIA & PUBLICATIONS MODULE (Unified: Publications, Documents, Toolkits & Gallery)
