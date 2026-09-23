@@ -5,7 +5,7 @@ import {
   Sparkles, Image, FileText, HelpCircle, HeartHandshake,
   Building, MessageSquare, CalendarDays, Settings, LogOut,
   Plus, Check, AlertCircle, Edit, Trash2, ShieldCheck,
-  Filter, Search, X, Loader2, ArrowRight, Eye, Download,
+  Filter, Search, X, Loader2, ArrowRight, Eye, EyeOff, Download,
   CheckCircle2, Clock, Globe, User, GraduationCap, Phone, Mail, MapPin, RefreshCw,
   ArrowUp, ArrowDown, ChevronUp, ChevronDown, Upload, ExternalLink
 } from 'lucide-react';
@@ -3000,6 +3000,12 @@ function UsersModule({ toast, units, admin }) {
   const [showResetModal, setShowResetModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  // Password visibility controls
+  const [showAddPassword, setShowAddPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [sessionPasswords, setSessionPasswords] = useState({});
+  const [revealedRows, setRevealedRows] = useState({});
+
   const [userForm, setUserForm] = useState({
     name: '',
     email: '',
@@ -3029,6 +3035,7 @@ function UsersModule({ toast, units, admin }) {
       assignedUnitIds: units.length > 0 ? [units[0]._id] : [],
       status: 'Active'
     });
+    setShowAddPassword(false);
     setShowAddModal(true);
   };
 
@@ -3047,13 +3054,14 @@ function UsersModule({ toast, units, admin }) {
   const openReset = (u) => {
     setSelectedUser(u);
     setNewPassword('');
+    setShowResetPassword(false);
     setShowResetModal(true);
   };
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
     if (!userForm.name || !userForm.email || !userForm.password) {
-      toast('Name, email, and password are required.', 'error');
+      toast('Name, username/email, and password are required.', 'error');
       return;
     }
     if (userForm.password.length < 8) {
@@ -3061,12 +3069,17 @@ function UsersModule({ toast, units, admin }) {
       return;
     }
     try {
-      await api('/api/administrators', {
+      const res = await api('/api/administrators', {
         method: 'POST',
         body: JSON.stringify(userForm)
       });
+      const newId = res.data?._id || res.data?.id;
+      if (newId) {
+        setSessionPasswords(prev => ({ ...prev, [newId]: userForm.password }));
+      }
       toast(`User account "${userForm.name}" created successfully.`);
       setShowAddModal(false);
+      setShowAddPassword(false);
       loadUsers();
     } catch (e) {
       toast(e.message, 'error');
@@ -3102,10 +3115,13 @@ function UsersModule({ toast, units, admin }) {
         method: 'PATCH',
         body: JSON.stringify({ newPassword })
       });
+      const uId = selectedUser._id || selectedUser.id;
+      setSessionPasswords(prev => ({ ...prev, [uId]: newPassword }));
       toast(`Password for ${selectedUser.name || selectedUser.email} has been reset.`);
       setShowResetModal(false);
       setSelectedUser(null);
       setNewPassword('');
+      setShowResetPassword(false);
     } catch (e) {
       toast(e.message, 'error');
     }
@@ -3171,7 +3187,7 @@ function UsersModule({ toast, units, admin }) {
       <div className="admin-module-header">
         <div>
           <h1 className="admin-module-title">User Management &amp; Role Control</h1>
-          <p className="admin-module-subtitle">Manage administrative accounts, role assignments, unit-wise permissions, and password security.</p>
+          <p className="admin-module-subtitle">Manage administrative accounts, role assignments, unit-wise permissions, and credentials.</p>
         </div>
         <button onClick={openAdd} className="admin-btn-primary">
           <Plus size={16} /> Add Admin / Lead User
@@ -3184,7 +3200,7 @@ function UsersModule({ toast, units, admin }) {
             <Search size={15} color="#94A3B8" />
             <input 
               type="text" 
-              placeholder="Search by name or email..." 
+              placeholder="Search by name, username, email..." 
               value={search} 
               onChange={e => setSearch(e.target.value)}
               style={{ background: 'none', border: 'none', outline: 'none', fontSize: '0.875rem', width: '100%', color: 'var(--text-primary)' }}
@@ -3221,8 +3237,10 @@ function UsersModule({ toast, units, admin }) {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>User Details</th>
-                <th>Role &amp; Permissions</th>
+                <th>Name</th>
+                <th>Username / Login ID</th>
+                <th>Password</th>
+                <th>Role</th>
                 <th>Assigned Chapter(s)</th>
                 <th>Status</th>
                 <th>Last Login</th>
@@ -3234,7 +3252,28 @@ function UsersModule({ toast, units, admin }) {
                 <tr key={u._id || u.id}>
                   <td>
                     <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{u.name}</div>
-                    <div style={{ fontSize: '0.78125rem', color: '#64748B' }}>{u.email}</div>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--primary-blue)', wordBreak: 'break-all' }}>
+                      {u.email}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#F8FAFC', padding: '0.25rem 0.6rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {revealedRows[u._id || u.id]
+                          ? (sessionPasswords[u._id || u.id] || '•••••••• (Protected)')
+                          : '••••••••'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setRevealedRows(prev => ({ ...prev, [u._id || u.id]: !prev[u._id || u.id] }))}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: '#64748B' }}
+                        title={revealedRows[u._id || u.id] ? "Hide password" : "Show password"}
+                      >
+                        {revealedRows[u._id || u.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
                   </td>
                   <td>
                     <span className="admin-badge" style={{
@@ -3310,12 +3349,30 @@ function UsersModule({ toast, units, admin }) {
                 <input required placeholder="e.g. John Doe" value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })} className="admin-input" />
               </div>
               <div className="admin-input-group">
-                <label className="admin-label">Email Address / Login ID *</label>
+                <label className="admin-label">Username / Login ID (Email) *</label>
                 <input type="email" required placeholder="lead@magicyouth.in" value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} className="admin-input" />
               </div>
               <div className="admin-input-group">
                 <label className="admin-label">Password (Min. 8 characters) *</label>
-                <input type="password" required placeholder="••••••••" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} className="admin-input" />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input 
+                    type={showAddPassword ? "text" : "password"} 
+                    required 
+                    placeholder="••••••••" 
+                    value={userForm.password} 
+                    onChange={e => setUserForm({ ...userForm, password: e.target.value })} 
+                    className="admin-input" 
+                    style={{ paddingRight: '2.5rem', width: '100%' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAddPassword(!showAddPassword)}
+                    style={{ position: 'absolute', right: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}
+                    title={showAddPassword ? "Hide password" : "Show password"}
+                  >
+                    {showAddPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
@@ -3378,7 +3435,7 @@ function UsersModule({ toast, units, admin }) {
                 <input required value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })} className="admin-input" />
               </div>
               <div className="admin-input-group">
-                <label className="admin-label">Email Address *</label>
+                <label className="admin-label">Username / Login ID (Email) *</label>
                 <input type="email" required value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} className="admin-input" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -3442,14 +3499,25 @@ function UsersModule({ toast, units, admin }) {
               </p>
               <div className="admin-input-group">
                 <label className="admin-label">New Password (Min. 8 characters) *</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                  className="admin-input"
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type={showResetPassword ? "text" : "password"}
+                    required
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="admin-input"
+                    style={{ paddingRight: '2.5rem', width: '100%' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    style={{ position: 'absolute', right: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: '#64748B', display: 'flex', alignItems: 'center' }}
+                    title={showResetPassword ? "Hide password" : "Show password"}
+                  >
+                    {showResetPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => { setShowResetModal(false); setSelectedUser(null); }} className="admin-btn-secondary">Cancel</button>

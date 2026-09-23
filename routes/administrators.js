@@ -100,12 +100,12 @@ router.post('/', async (req, res) => {
     // Check if email already exists
     const { data: existing } = await supabase
       .from('admin_users')
-      .select('id')
-      .eq('email', cleanEmail)
-      .single();
+      .select('id, email')
+      .ilike('email', cleanEmail)
+      .maybeSingle();
 
     if (existing) {
-      return res.status(409).json({ success: false, message: 'An account with that email already exists.' });
+      return res.status(409).json({ success: false, message: 'An account with that email/username already exists.' });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
@@ -161,7 +161,21 @@ router.put('/:id', async (req, res) => {
     const updates = { updated_at: new Date().toISOString() };
 
     if (name) updates.name = name.trim();
-    if (email) updates.email = email.toLowerCase().trim();
+    if (email) {
+      const cleanEmail = email.toLowerCase().trim();
+      if (cleanEmail !== existing.email?.toLowerCase()) {
+        const { data: duplicate } = await supabase
+          .from('admin_users')
+          .select('id')
+          .ilike('email', cleanEmail)
+          .maybeSingle();
+
+        if (duplicate && duplicate.id !== req.params.id) {
+          return res.status(409).json({ success: false, message: 'An account with that email/username already exists.' });
+        }
+      }
+      updates.email = cleanEmail;
+    }
     if (role) {
       const validRoles = ['MAIN_ADMIN', 'FIRST_LEAD', 'SECRETARY', 'SOCIAL_MEDIA', 'SUB_ADMIN'];
       if (validRoles.includes(role)) updates.role = role;
