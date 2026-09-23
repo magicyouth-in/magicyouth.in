@@ -154,9 +154,10 @@ export default function AdminDashboard() {
       ]
     },
     {
-      group: 'SYSTEM',
+      group: 'SYSTEM & ACCESS',
       items: [
         { id: 'academic-years', label: 'Academic Years', icon: CalendarDays },
+        ...(admin?.role === 'MAIN_ADMIN' ? [{ id: 'users', label: 'User Management', icon: ShieldCheck }] : []),
         { id: 'settings',       label: 'Admin Settings', icon: Settings }
       ]
     }
@@ -231,7 +232,7 @@ export default function AdminDashboard() {
             </div>
             <div style={{ lineHeight: 1.2 }}>
               <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0F172A' }}>{admin?.name?.split(' ')[0]}</div>
-              <div style={{ fontSize: '0.6875rem', color: '#64748B', fontWeight: 600 }}>{admin?.role === 'MAIN_ADMIN' ? 'Apex Admin' : 'Chapter Admin'}</div>
+              <div style={{ fontSize: '0.6875rem', color: '#64748B', fontWeight: 600 }}>{admin?.role === 'MAIN_ADMIN' ? 'Apex Admin' : admin?.role?.replace('_', ' ') || 'Chapter Admin'}</div>
             </div>
           </div>
           <button onClick={handleLogout} title="Sign Out" className="admin-btn-action" style={{ color: '#BE123C', padding: '0.35rem' }}>
@@ -263,6 +264,9 @@ export default function AdminDashboard() {
                 <span style={{ color: 'var(--primary-pink)', marginRight: '4px' }}>●</span> All Chapters
               </span>
             )}
+            <a href="/documentation" target="_blank" rel="noopener noreferrer" className="admin-btn-secondary" style={{ fontSize: '0.78125rem', padding: '0.4rem 0.9rem' }}>
+              Private Archive <FileText size={13} />
+            </a>
             <a href="/" target="_blank" rel="noopener noreferrer" className="admin-btn-secondary" style={{ fontSize: '0.78125rem', padding: '0.4rem 0.9rem' }}>
               View Public Site <Globe size={13} />
             </a>
@@ -282,6 +286,7 @@ export default function AdminDashboard() {
           {activeTab === 'chapter-apps'   && <ChapterApplicationsModule toast={showToast} />}
           {activeTab === 'enquiries'      && <EnquiriesModule toast={showToast} />}
           {activeTab === 'academic-years' && <AcademicYearsModule toast={showToast} units={units} refreshYears={fetchGlobalData} />}
+          {activeTab === 'users'          && <UsersModule toast={showToast} units={units} admin={admin} />}
           {activeTab === 'settings'       && <SettingsModule toast={showToast} admin={admin} units={units} />}
         </div>
       </div>
@@ -2975,7 +2980,485 @@ function AcademicYearsModule({ toast, units, refreshYears }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 14. ADMIN SETTINGS MODULE
+// 14. USER MANAGEMENT & ACCESS CONTROL MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function UsersModule({ toast, units, admin }) {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
+
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const [userForm, setUserForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'SUB_ADMIN',
+    assignedUnitIds: [],
+    status: 'Active'
+  });
+
+  const [newPassword, setNewPassword] = useState('');
+
+  const loadUsers = useCallback(() => {
+    setLoading(true);
+    api('/api/administrators')
+      .then(d => { setUsers(d.data || []); setLoading(false); })
+      .catch(e => { toast(e.message, 'error'); setLoading(false); });
+  }, [toast]);
+
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+
+  const openAdd = () => {
+    setUserForm({
+      name: '',
+      email: '',
+      password: '',
+      role: 'SUB_ADMIN',
+      assignedUnitIds: units.length > 0 ? [units[0]._id] : [],
+      status: 'Active'
+    });
+    setShowAddModal(true);
+  };
+
+  const openEdit = (u) => {
+    setSelectedUser(u);
+    setUserForm({
+      name: u.name || '',
+      email: u.email || '',
+      role: u.role || 'SUB_ADMIN',
+      assignedUnitIds: (u.assigned_unit_ids || u.assignedUnitIds?.map(x => x._id || x.id) || []),
+      status: u.status || 'Active'
+    });
+    setShowEditModal(true);
+  };
+
+  const openReset = (u) => {
+    setSelectedUser(u);
+    setNewPassword('');
+    setShowResetModal(true);
+  };
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    if (!userForm.name || !userForm.email || !userForm.password) {
+      toast('Name, email, and password are required.', 'error');
+      return;
+    }
+    if (userForm.password.length < 8) {
+      toast('Password must be at least 8 characters long.', 'error');
+      return;
+    }
+    try {
+      await api('/api/administrators', {
+        method: 'POST',
+        body: JSON.stringify(userForm)
+      });
+      toast(`User account "${userForm.name}" created successfully.`);
+      setShowAddModal(false);
+      loadUsers();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    if (!selectedUser) return;
+    try {
+      await api(`/api/administrators/${selectedUser._id || selectedUser.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(userForm)
+      });
+      toast('User details updated successfully.');
+      setShowEditModal(false);
+      setSelectedUser(null);
+      loadUsers();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!selectedUser || !newPassword) return;
+    if (newPassword.length < 8) {
+      toast('Password must be at least 8 characters long.', 'error');
+      return;
+    }
+    try {
+      await api(`/api/administrators/${selectedUser._id || selectedUser.id}/reset-password`, {
+        method: 'PATCH',
+        body: JSON.stringify({ newPassword })
+      });
+      toast(`Password for ${selectedUser.name || selectedUser.email} has been reset.`);
+      setShowResetModal(false);
+      setSelectedUser(null);
+      setNewPassword('');
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
+  const handleToggleStatus = async (u) => {
+    const nextStatus = u.status === 'Active' ? 'Inactive' : 'Active';
+    try {
+      await api(`/api/administrators/${u._id || u.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: nextStatus })
+      });
+      toast(`Account ${nextStatus === 'Active' ? 'activated' : 'disabled'}.`);
+      loadUsers();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
+  const handleDeleteUser = async (u) => {
+    if (!confirm(`Are you sure you want to permanently delete the account for ${u.name || u.email}?`)) return;
+    try {
+      await api(`/api/administrators/${u._id || u.id}`, { method: 'DELETE' });
+      toast('User account deleted.');
+      loadUsers();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
+  const toggleUnitSelection = (unitId) => {
+    setUserForm(prev => {
+      const current = prev.assignedUnitIds || [];
+      if (current.includes(unitId)) {
+        return { ...prev, assignedUnitIds: current.filter(id => id !== unitId) };
+      } else {
+        return { ...prev, assignedUnitIds: [...current, unitId] };
+      }
+    });
+  };
+
+  const filteredUsers = users.filter(u => {
+    const q = search.toLowerCase().trim();
+    const matchesSearch = !q || (u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
+    const matchesRole = roleFilter === 'All' || u.role === roleFilter;
+    const matchesStatus = statusFilter === 'All' || u.status === statusFilter;
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+
+  const getRoleLabel = (role) => {
+    switch (role) {
+      case 'MAIN_ADMIN': return 'Main Admin (Apex)';
+      case 'FIRST_LEAD': return 'First Lead';
+      case 'SECRETARY': return 'Formation Secretary';
+      case 'SOCIAL_MEDIA': return 'Media & Documentation Lead';
+      case 'SUB_ADMIN': return 'Chapter Coordinator';
+      default: return role || 'Sub Admin';
+    }
+  };
+
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">User Management &amp; Role Control</h1>
+          <p className="admin-module-subtitle">Manage administrative accounts, role assignments, unit-wise permissions, and password security.</p>
+        </div>
+        <button onClick={openAdd} className="admin-btn-primary">
+          <Plus size={16} /> Add Admin / Lead User
+        </button>
+      </div>
+
+      <div className="admin-table-container">
+        <div className="admin-table-toolbar" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#FFFFFF', padding: '0.4rem 0.8rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)', minWidth: 240 }}>
+            <Search size={15} color="#94A3B8" />
+            <input 
+              type="text" 
+              placeholder="Search by name or email..." 
+              value={search} 
+              onChange={e => setSearch(e.target.value)}
+              style={{ background: 'none', border: 'none', outline: 'none', fontSize: '0.875rem', width: '100%', color: 'var(--text-primary)' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="admin-select" style={{ fontSize: '0.8125rem', padding: '0.4rem 0.75rem' }}>
+              <option value="All">All Roles</option>
+              <option value="MAIN_ADMIN">Main Admin</option>
+              <option value="FIRST_LEAD">First Lead</option>
+              <option value="SECRETARY">Formation Secretary</option>
+              <option value="SOCIAL_MEDIA">Media Lead</option>
+              <option value="SUB_ADMIN">Chapter Coordinator</option>
+            </select>
+
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="admin-select" style={{ fontSize: '0.8125rem', padding: '0.4rem 0.75rem' }}>
+              <option value="All">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        {loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+            <Loader2 size={32} className="animate-spin" color="var(--primary-blue)" />
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+            No administrative accounts found matching your filters.
+          </div>
+        ) : (
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>User Details</th>
+                <th>Role &amp; Permissions</th>
+                <th>Assigned Chapter(s)</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredUsers.map(u => (
+                <tr key={u._id || u.id}>
+                  <td>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{u.name}</div>
+                    <div style={{ fontSize: '0.78125rem', color: '#64748B' }}>{u.email}</div>
+                  </td>
+                  <td>
+                    <span className="admin-badge" style={{
+                      backgroundColor: u.role === 'MAIN_ADMIN' ? '#F0F9FF' : u.role === 'FIRST_LEAD' ? '#FEF3C7' : '#F1F5F9',
+                      color: u.role === 'MAIN_ADMIN' ? 'var(--primary-blue)' : u.role === 'FIRST_LEAD' ? '#B45309' : '#334155',
+                      fontWeight: 800
+                    }}>
+                      {getRoleLabel(u.role)}
+                    </span>
+                  </td>
+                  <td>
+                    {u.role === 'MAIN_ADMIN' ? (
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--primary-blue)', fontWeight: 700 }}>● All Chapters (Apex Access)</span>
+                    ) : u.assignedUnitIds?.length > 0 ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                        {u.assignedUnitIds.map((au, i) => (
+                          <span key={i} style={{ fontSize: '0.75rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '0.15rem 0.5rem', borderRadius: '4px', color: '#475569' }}>
+                            {au.name || 'Chapter'}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '0.78125rem', color: '#94A3B8', fontStyle: 'italic' }}>None assigned</span>
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => handleToggleStatus(u)}
+                      disabled={u._id === admin?.id || u.id === admin?.id}
+                      className={`admin-badge ${u.status === 'Active' ? 'badge-active' : 'badge-inactive'}`}
+                      style={{ cursor: u._id === admin?.id || u.id === admin?.id ? 'default' : 'pointer', border: 'none' }}
+                      title="Click to toggle status"
+                    >
+                      {u.status || 'Active'}
+                    </button>
+                  </td>
+                  <td style={{ fontSize: '0.78125rem', color: '#64748B' }}>
+                    {u.lastLoginAt || u.last_login_at ? new Date(u.lastLoginAt || u.last_login_at).toLocaleString() : 'Never'}
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem' }}>
+                      <button onClick={() => openReset(u)} className="admin-btn-action" title="Reset Password" style={{ padding: '0.35rem' }}>
+                        <Settings size={13} />
+                      </button>
+                      <button onClick={() => openEdit(u)} className="admin-btn-action" title="Edit User" style={{ padding: '0.35rem' }}>
+                        <Edit size={13} />
+                      </button>
+                      {u._id !== admin?.id && u.id !== admin?.id && (
+                        <button onClick={() => handleDeleteUser(u)} className="admin-btn-danger" title="Delete User" style={{ padding: '0.35rem' }}>
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* ── CREATE USER MODAL ── */}
+      {showAddModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box" style={{ maxWidth: 540 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Add Administrator / Lead Account</h3>
+              <button onClick={() => setShowAddModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="admin-input-group">
+                <label className="admin-label">Full Name *</label>
+                <input required placeholder="e.g. John Doe" value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })} className="admin-input" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Email Address / Login ID *</label>
+                <input type="email" required placeholder="lead@magicyouth.in" value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} className="admin-input" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Password (Min. 8 characters) *</label>
+                <input type="password" required placeholder="••••••••" value={userForm.password} onChange={e => setUserForm({ ...userForm, password: e.target.value })} className="admin-input" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">User Role</label>
+                  <select value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })} className="admin-select">
+                    <option value="MAIN_ADMIN">Main Admin (Apex)</option>
+                    <option value="FIRST_LEAD">First Lead</option>
+                    <option value="SECRETARY">Formation Secretary</option>
+                    <option value="SOCIAL_MEDIA">Media &amp; Documentation</option>
+                    <option value="SUB_ADMIN">Chapter Coordinator</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="admin-label">Account Status</label>
+                  <select value={userForm.status} onChange={e => setUserForm({ ...userForm, status: e.target.value })} className="admin-select">
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              {userForm.role !== 'MAIN_ADMIN' && (
+                <div className="admin-input-group">
+                  <label className="admin-label">Assigned Campus Chapter(s)</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 150, overflowY: 'auto', padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem', backgroundColor: '#F8FAFC' }}>
+                    {units.map(u => (
+                      <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={userForm.assignedUnitIds.includes(u._id)}
+                          onChange={() => toggleUnitSelection(u._id)}
+                        />
+                        <span>{u.name} ({u.code})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setShowAddModal(false)} className="admin-btn-secondary">Cancel</button>
+                <button type="submit" className="admin-btn-primary">Create Account</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── EDIT USER MODAL ── */}
+      {showEditModal && selectedUser && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box" style={{ maxWidth: 540 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Edit User Account</h3>
+              <button onClick={() => { setShowEditModal(false); setSelectedUser(null); }} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleUpdateUser} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="admin-input-group">
+                <label className="admin-label">Full Name *</label>
+                <input required value={userForm.name} onChange={e => setUserForm({ ...userForm, name: e.target.value })} className="admin-input" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Email Address *</label>
+                <input type="email" required value={userForm.email} onChange={e => setUserForm({ ...userForm, email: e.target.value })} className="admin-input" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">User Role</label>
+                  <select value={userForm.role} onChange={e => setUserForm({ ...userForm, role: e.target.value })} className="admin-select">
+                    <option value="MAIN_ADMIN">Main Admin (Apex)</option>
+                    <option value="FIRST_LEAD">First Lead</option>
+                    <option value="SECRETARY">Formation Secretary</option>
+                    <option value="SOCIAL_MEDIA">Media &amp; Documentation</option>
+                    <option value="SUB_ADMIN">Chapter Coordinator</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="admin-label">Account Status</label>
+                  <select value={userForm.status} onChange={e => setUserForm({ ...userForm, status: e.target.value })} className="admin-select">
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              {userForm.role !== 'MAIN_ADMIN' && (
+                <div className="admin-input-group">
+                  <label className="admin-label">Assigned Campus Chapter(s)</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 150, overflowY: 'auto', padding: '0.5rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem', backgroundColor: '#F8FAFC' }}>
+                    {units.map(u => (
+                      <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={userForm.assignedUnitIds?.includes(u._id)}
+                          onChange={() => toggleUnitSelection(u._id)}
+                        />
+                        <span>{u.name} ({u.code})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => { setShowEditModal(false); setSelectedUser(null); }} className="admin-btn-secondary">Cancel</button>
+                <button type="submit" className="admin-btn-primary">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── RESET PASSWORD MODAL ── */}
+      {showResetModal && selectedUser && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box" style={{ maxWidth: 460 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Reset User Password</h3>
+              <button onClick={() => { setShowResetModal(false); setSelectedUser(null); }} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0 }}>
+                Set a new password for <strong>{selectedUser.name}</strong> ({selectedUser.email}).
+              </p>
+              <div className="admin-input-group">
+                <label className="admin-label">New Password (Min. 8 characters) *</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="admin-input"
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => { setShowResetModal(false); setSelectedUser(null); }} className="admin-btn-secondary">Cancel</button>
+                <button type="submit" className="admin-btn-primary">Reset Password</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 15. ADMIN SETTINGS MODULE
 // ═════════════════════════════════════════════════════════════════════════════
 function SettingsModule({ toast, admin }) {
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });

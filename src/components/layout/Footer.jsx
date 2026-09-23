@@ -27,9 +27,9 @@ export default function Footer() {
           </h4>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
             <li><Link to="/about" className="footer-link">About Us</Link></li>
-            <li><Link to="/programs" className="footer-link">Flagship Programs</Link></li>
+            <li><Link to="/programs" className="footer-link">Programs &amp; Initiatives</Link></li>
             <li><Link to="/chapters" className="footer-link">Campus Chapters</Link></li>
-            <li><Link to="/impact" className="footer-link">Impact & Events</Link></li>
+            <li><Link to="/impact" className="footer-link">Impact &amp; Events</Link></li>
             <li><Link to="/stories" className="footer-link">Transformation Stories</Link></li>
           </ul>
         </div>
@@ -47,14 +47,20 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* AFFILIATION */}
+        {/* INSTITUTIONAL BASE */}
         <div>
           <h4 style={{ color: 'white', fontSize: '0.9375rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.25rem' }}>
-            Institutional Base
+            Central Secretariat
           </h4>
-          <p style={{ color: '#64748B', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '1rem' }}>
-            YES-J Central Headquarters<br/>
-            Vijayawada, Andhra Pradesh, India
+          <p style={{ color: '#64748B', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '0.75rem' }}>
+            YES-J Centre for Excellence,<br/>
+            Andhra Loyola College Campus,<br/>
+            Vijayawada, AP - 522 008, India
+          </p>
+          <p style={{ margin: '0 0 1rem 0' }}>
+            <a href="tel:+918686727202" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', textDecoration: 'none', fontWeight: 700 }}>
+              +91-868-672-7202
+            </a>
           </p>
           <a href="https://yesj.org" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-blue)', fontSize: '0.875rem', textDecoration: 'none', fontWeight: 700 }}>
             Visit YES-J Official Site &rarr;

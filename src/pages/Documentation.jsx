@@ -81,8 +81,10 @@ export default function Documentation() {
   }, [authenticated]);
 
   useEffect(() => {
-    if (!filters.unitId) { setYears([]); return; }
-    fetch(`/api/academic-years?unitId=${filters.unitId}`, { credentials: 'include' }).then(r => r.json()).then(d => { if (d.success) setYears(d.data || []); });
+    const url = filters.unitId ? `/api/academic-years?unitId=${filters.unitId}` : '/api/academic-years';
+    fetch(url, { credentials: 'include' })
+      .then(r => r.json())
+      .then(d => { if (d.success) setYears(d.data || []); });
   }, [filters.unitId]);
 
   const handleLogin = async (e) => {

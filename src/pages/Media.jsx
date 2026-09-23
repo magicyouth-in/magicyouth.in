@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, Loader2, FileText, ExternalLink, Download, Search, Image as ImageIcon, BookOpen, Layers } from 'lucide-react';
+import { Filter, Loader2, Download, Search, Image as ImageIcon, BookOpen, ExternalLink, Sparkles } from 'lucide-react';
 import '../styles/home.css';
 
 export default function Media() {
@@ -13,7 +13,7 @@ export default function Media() {
   const [academicYears, setAcademicYears] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState('All');
   const [selectedYear, setSelectedYear] = useState('All');
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'publications' | 'toolkits' | 'resources' | 'gallery'
+  const [activeTab, setActiveTab] = useState('publications'); // 'publications' | 'gallery'
   const [searchQuery, setSearchQuery] = useState('');
   const [lightboxImage, setLightboxImage] = useState(null);
 
@@ -40,7 +40,7 @@ export default function Media() {
     })
     .catch(console.error);
 
-    // 3. Fetch Public Documents & Resources
+    // 3. Fetch Public Publications & Magazines
     fetch('/api/documents/public')
       .then(res => res.json())
       .then(data => {
@@ -61,11 +61,11 @@ export default function Media() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Filtered documents
+  // Filtered publications
   const filteredDocuments = useMemo(() => {
     return documents.filter(doc => {
-      const unitMatch = selectedUnit === 'All' || doc.unitId?._id === selectedUnit || doc.unit_id === selectedUnit;
-      const yearMatch = selectedYear === 'All' || doc.academicYearId?._id === selectedYear || doc.academic_year_id === selectedYear;
+      const unitMatch = selectedUnit === 'All' || doc.unitId?._id === selectedUnit || doc.unit_id === selectedUnit || doc.unitId?.id === selectedUnit;
+      const yearMatch = selectedYear === 'All' || doc.academicYearId?._id === selectedYear || doc.academic_year_id === selectedYear || doc.academicYearId?.id === selectedYear;
       
       const q = searchQuery.toLowerCase().trim();
       const searchMatch = !q || (
@@ -74,29 +74,15 @@ export default function Media() {
         (doc.documentType && doc.documentType.toLowerCase().includes(q))
       );
 
-      let tabMatch = true;
-      if (activeTab === 'publications') {
-        tabMatch = /publication|magazine|report|review/i.test(doc.documentType || '');
-      } else if (activeTab === 'toolkits') {
-        tabMatch = /toolkit|guide|manual|framework/i.test(doc.documentType || '');
-      } else if (activeTab === 'resources') {
-        tabMatch = !(/publication|magazine/i.test(doc.documentType || ''));
-      } else if (activeTab === 'gallery') {
-        tabMatch = false;
-      }
-
-      return unitMatch && yearMatch && searchMatch && tabMatch;
+      return unitMatch && yearMatch && searchMatch;
     });
-  }, [documents, selectedUnit, selectedYear, searchQuery, activeTab]);
+  }, [documents, selectedUnit, selectedYear, searchQuery]);
 
   // Filtered photos
   const filteredPhotos = useMemo(() => {
-    if (activeTab === 'publications' || activeTab === 'toolkits' || activeTab === 'resources') {
-      return [];
-    }
     return photos.filter(p => {
-      const unitMatch = selectedUnit === 'All' || p.unitId?._id === selectedUnit || p.unit_id === selectedUnit;
-      const yearMatch = selectedYear === 'All' || p.academicYearId?._id === selectedYear || p.academic_year_id === selectedYear;
+      const unitMatch = selectedUnit === 'All' || p.unitId?._id === selectedUnit || p.unit_id === selectedUnit || p.unitId?.id === selectedUnit;
+      const yearMatch = selectedYear === 'All' || p.academicYearId?._id === selectedYear || p.academic_year_id === selectedYear || p.academicYearId?.id === selectedYear;
       
       const q = searchQuery.toLowerCase().trim();
       const searchMatch = !q || (
@@ -108,7 +94,7 @@ export default function Media() {
 
       return unitMatch && yearMatch && searchMatch;
     });
-  }, [photos, selectedUnit, selectedYear, searchQuery, activeTab]);
+  }, [photos, selectedUnit, selectedYear, searchQuery]);
 
   const fadeUp = {
     hidden: { opacity: 0, y: 20 },
@@ -129,13 +115,13 @@ export default function Media() {
       <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
         <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
           <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-            <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Publications, Documents &amp; Media Hub
+            <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Archival &amp; Media Repository
           </div>
           <h1 className="page-header-title" style={{ color: 'var(--text-primary)', fontSize: 'clamp(2.25rem, 4vw, 3rem)', fontWeight: 900, letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
-            Media, Publications &amp; Resources
+            Media &amp; Publications
           </h1>
-          <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '700px', margin: '0 auto' }}>
-            Access official formation handbooks, annual magazines, chapter toolkits, and photographic archives documenting youth leadership across all chapters.
+          <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto' }}>
+            Access official annual magazines, formation publications, and photographic archives documenting youth leadership across campuses.
           </p>
         </motion.div>
       </section>
@@ -144,37 +130,49 @@ export default function Media() {
       <section style={{ borderBottom: '1px solid var(--border-color)', position: 'sticky', top: '68px', zIndex: 100, backdropFilter: 'blur(10px)', backgroundColor: 'rgba(255,255,255,0.95)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           
-          {/* Main Category Tabs */}
-          <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.25rem', scrollbarWidth: 'none' }}>
+          {/* Main Category Tabs: ONLY Publications & Photo Gallery */}
+          <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.25rem', scrollbarWidth: 'none' }}>
             {[
-              { id: 'all', label: 'All Media & Knowledge', icon: Layers },
-              { id: 'publications', label: '📰 Magazines & Publications', icon: BookOpen },
-              { id: 'toolkits', label: '📄 Toolkits & Manuals', icon: FileText },
-              { id: 'resources', label: '📚 Chapter Resources', icon: FileText },
-              { id: 'gallery', label: '📸 Photo Galleries', icon: ImageIcon }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  borderRadius: '999px',
-                  border: activeTab === tab.id ? '2px solid var(--primary-blue)' : '1px solid var(--border-color)',
-                  backgroundColor: activeTab === tab.id ? 'var(--primary-blue)' : '#F8FAFC',
-                  color: activeTab === tab.id ? '#FFFFFF' : 'var(--text-primary)',
-                  fontWeight: 700,
-                  fontSize: '0.875rem',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
+              { id: 'publications', label: '📰 Publications & Magazines', icon: BookOpen, count: documents.length },
+              { id: 'gallery', label: '📸 Photo Gallery', icon: ImageIcon, count: photos.length }
+            ].map(tab => {
+              const IconComp = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    padding: '0.625rem 1.35rem',
+                    borderRadius: '999px',
+                    border: isActive ? '2px solid var(--primary-blue)' : '1px solid var(--border-color)',
+                    backgroundColor: isActive ? 'var(--primary-blue)' : '#F8FAFC',
+                    color: isActive ? '#FFFFFF' : 'var(--text-primary)',
+                    fontWeight: 700,
+                    fontSize: '0.9rem',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <IconComp size={16} />
+                  <span>{tab.label}</span>
+                  <span style={{
+                    fontSize: '0.75rem',
+                    backgroundColor: isActive ? 'rgba(255,255,255,0.25)' : '#E2E8F0',
+                    color: isActive ? '#FFFFFF' : '#475569',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '999px',
+                    fontWeight: 800
+                  }}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Secondary Filters: Chapter, Academic Year & Search */}
@@ -191,7 +189,7 @@ export default function Media() {
                   style={{ background: 'none', border: 'none', outline: 'none', fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem', cursor: 'pointer' }}
                 >
                   <option value="All">All Campuses</option>
-                  {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                  {units.map(u => <option key={u._id || u.id} value={u._id || u.id}>{u.name}</option>)}
                 </select>
               </div>
 
@@ -207,7 +205,7 @@ export default function Media() {
                   <option value="All">All Academic Years</option>
                   {Array.from(new Set(academicYears.map(y => y.year))).map(yr => {
                     const matching = academicYears.find(y => y.year === yr);
-                    return <option key={matching._id} value={matching._id}>{yr}</option>;
+                    return <option key={matching._id || matching.id} value={matching._id || matching.id}>{yr}</option>;
                   })}
                 </select>
               </div>
@@ -219,7 +217,7 @@ export default function Media() {
               <Search size={15} color="#94A3B8" />
               <input
                 type="text"
-                placeholder="Search publications &amp; photos..."
+                placeholder={activeTab === 'publications' ? 'Search publications & magazines...' : 'Search photo gallery...'}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ background: 'none', border: 'none', outline: 'none', fontSize: '0.875rem', width: '100%', color: 'var(--text-primary)' }}
@@ -232,22 +230,22 @@ export default function Media() {
       </section>
 
       {/* ─── MAIN CONTENT CONTAINER ─────────────────────────────────────────── */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '3rem 1.5rem 5rem', display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '3rem 1.5rem 5rem' }}>
         
-        {/* ─── 1. PUBLICATIONS & RESOURCES SECTION ───────────────────────────── */}
-        {activeTab !== 'gallery' && (
+        {/* ─── 1. PUBLICATIONS SECTION ──────────────────────────────────────── */}
+        {activeTab === 'publications' && (
           <section>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.75rem', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.75rem' }}>
               <div>
                 <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
-                  {activeTab === 'publications' ? 'Official Magazines & Publications' : activeTab === 'toolkits' ? 'Toolkits & Formation Manuals' : activeTab === 'resources' ? 'Chapter Knowledge & Resources' : 'Publications, Toolkits & Resources'}
+                  Official Publications &amp; Magazines
                 </h2>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem', marginBottom: 0 }}>
-                  Official guides and documents published for students, coordinators, and institutions.
+                  Official publications, annual magazines, and special releases authorized by MAGIC Youth leadership.
                 </p>
               </div>
               <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#64748B', backgroundColor: '#F1F5F9', padding: '0.35rem 0.75rem', borderRadius: '999px' }}>
-                {filteredDocuments.length} document{filteredDocuments.length === 1 ? '' : 's'}
+                {filteredDocuments.length} publication{filteredDocuments.length === 1 ? '' : 's'}
               </span>
             </div>
 
@@ -256,8 +254,12 @@ export default function Media() {
                 <Loader2 size={36} className="animate-spin" color="var(--primary-blue)" />
               </div>
             ) : filteredDocuments.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', color: 'var(--text-secondary)' }}>
-                No publications or resources found matching the selected criteria.
+              <div style={{ textAlign: 'center', padding: '4rem 2rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', color: 'var(--text-secondary)' }}>
+                <BookOpen size={40} color="var(--primary-blue)" style={{ margin: '0 auto 1rem', opacity: 0.6 }} />
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>No Publications Available</h3>
+                <p style={{ maxWidth: '480px', margin: '0 auto', fontSize: '0.95rem' }}>
+                  Publications and official magazines will appear here once released by chapter editorial boards.
+                </p>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
@@ -285,7 +287,7 @@ export default function Media() {
                       {/* Badges */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                         <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.08em', backgroundColor: 'rgba(2, 132, 199, 0.08)', padding: '0.25rem 0.6rem', borderRadius: '4px' }}>
-                          {doc.documentType || doc.document_type || 'Official Resource'}
+                          {doc.documentType || doc.document_type || 'Publication'}
                         </span>
                         <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', backgroundColor: '#F1F5F9', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
                           {doc.academicYearId?.year || '2025-26'}
@@ -299,7 +301,7 @@ export default function Media() {
 
                       {/* Description */}
                       <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.55, marginBottom: '1.5rem' }}>
-                        {doc.description || 'Official resource and handbook authorized by chapter leadership.'}
+                        {doc.description || 'Official publication authorized by MAGIC Youth leadership.'}
                       </p>
                     </div>
 
@@ -323,7 +325,7 @@ export default function Media() {
                             textDecoration: 'none'
                           }}
                         >
-                          <Download size={15} /> Open &rarr;
+                          <Download size={15} /> Read / PDF &rarr;
                         </a>
                       ) : (
                         <span style={{ fontSize: '0.8125rem', color: '#94A3B8' }}>In Print</span>
@@ -337,15 +339,15 @@ export default function Media() {
         )}
 
         {/* ─── 2. PHOTO GALLERY SECTION ───────────────────────────────────────── */}
-        {activeTab !== 'publications' && activeTab !== 'toolkits' && activeTab !== 'resources' && (
+        {activeTab === 'gallery' && (
           <section>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.75rem', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.75rem' }}>
               <div>
                 <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
-                  Photo &amp; Media Archives
+                  Photo Gallery &amp; Archives
                 </h2>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem', marginBottom: 0 }}>
-                  Documentary images and community action captures from student-led interventions.
+                  Documentary images and community action captures from student-led initiatives.
                 </p>
               </div>
               <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#64748B', backgroundColor: '#F1F5F9', padding: '0.35rem 0.75rem', borderRadius: '999px' }}>
@@ -358,8 +360,12 @@ export default function Media() {
                 <Loader2 size={36} className="animate-spin" color="var(--primary-blue)" />
               </div>
             ) : filteredPhotos.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', color: 'var(--text-secondary)' }}>
-                No gallery photographs found matching the selected filters.
+              <div style={{ textAlign: 'center', padding: '4rem 2rem', backgroundColor: '#F8FAFC', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', color: 'var(--text-secondary)' }}>
+                <ImageIcon size={40} color="var(--primary-blue)" style={{ margin: '0 auto 1rem', opacity: 0.6 }} />
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>No Photos Found</h3>
+                <p style={{ maxWidth: '480px', margin: '0 auto', fontSize: '0.95rem' }}>
+                  No gallery photographs found matching the selected filters.
+                </p>
               </div>
             ) : (
               <div className="gallery-masonry" style={{ maxWidth: '1200px', margin: '0 auto' }}>
