@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS membership_drives (
   id_format           TEXT NOT NULL DEFAULT 'MAGIC-{UNIT}-{NUMBER}',
   start_number        INTEGER NOT NULL DEFAULT 1,
   next_number         INTEGER NOT NULL DEFAULT 1,
-  number_padding      INTEGER NOT NULL DEFAULT 3,
+  padding_digits      INTEGER NOT NULL DEFAULT 3,
   description         TEXT DEFAULT '',
   created_at          TIMESTAMPTZ DEFAULT NOW(),
   updated_at          TIMESTAMPTZ DEFAULT NOW()
@@ -66,7 +66,7 @@ $$;
 
 -- ─── 4. SEED INITIAL MEMBERSHIP DRIVES FOR EXISTING UNITS ─────────────────────
 -- If no drive exists for active units, create an OPEN 2026-27 drive
-INSERT INTO membership_drives (name, unit_id, academic_year_id, status, id_format, start_number, next_number, number_padding, start_date, end_date)
+INSERT INTO membership_drives (name, unit_id, academic_year_id, status, id_format, start_number, next_number, padding_digits, start_date, end_date)
 SELECT 
   u.name || ' Membership Drive 2026–27',
   u.id,
@@ -81,3 +81,6 @@ SELECT
 FROM units u
 WHERE (u.status ILIKE 'Active' OR u.status IS NULL)
   AND NOT EXISTS (SELECT 1 FROM membership_drives WHERE unit_id = u.id);
+
+-- ─── 5. RELOAD SCHEMA CACHE ──────────────────────────────────────────────────
+NOTIFY pgrst, 'reload schema';

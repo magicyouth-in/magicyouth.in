@@ -36,7 +36,7 @@ router.get('/active', async (req, res) => {
       return res.status(400).json({ success: false, message: 'unitId is required.' });
     }
 
-    const { data: drive, error } = await supabase
+    let { data: drive, error } = await supabase
       .from('membership_drives')
       .select('*, units(name, code), academic_years(year)')
       .eq('unit_id', unitId)
@@ -45,7 +45,15 @@ router.get('/active', async (req, res) => {
       .limit(1)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      // If table doesn't exist yet, return no active drive gracefully
+      return res.json({
+        success: true,
+        hasActiveDrive: false,
+        data: null,
+        message: 'No open membership drive for this chapter.'
+      });
+    }
 
     if (!drive) {
       return res.json({
@@ -84,7 +92,12 @@ router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
     }
 
     const { data: drives, count, error } = await query;
-    if (error) throw error;
+    if (error) {
+      if (error.message?.includes('membership_drives') || error.code === 'PGRST204') {
+        return res.json({ success: true, data: [], total: 0 });
+      }
+      throw error;
+    }
 
     res.json({
       success: true,

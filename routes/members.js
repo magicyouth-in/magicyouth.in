@@ -228,11 +228,21 @@ router.post('/approve/:joinRequestId', authenticateAdmin, requireAnyAdmin, async
   try {
     const { assignedRole, electionStatus } = req.body;
 
-    const { data: application, error: appError } = await supabase
+    let { data: application, error: appError } = await supabase
       .from('join_requests')
       .select('*, units(name, code), academic_years(year), membership_drives(*)')
       .eq('id', req.params.joinRequestId)
       .single();
+
+    if (appError && (appError.message?.includes('membership_drives') || appError.message?.includes('membership_drive_id'))) {
+      const fallback = await supabase
+        .from('join_requests')
+        .select('*, units(name, code), academic_years(year)')
+        .eq('id', req.params.joinRequestId)
+        .single();
+      application = fallback.data;
+      appError = fallback.error;
+    }
 
     if (appError || !application) {
       return res.status(404).json({ success: false, message: 'Application not found.' });
@@ -259,37 +269,53 @@ router.post('/approve/:joinRequestId', authenticateAdmin, requireAnyAdmin, async
     const finalRoleLabel = finalAssignedRole || 'Member';
     const finalElectionStatus = electionStatus || (finalAssignedRole ? 'SELECTED' : application.election_status || 'PENDING');
 
+    const memberInsertPayload = {
+      member_id:                 memberId,
+      join_request_id:           application.id,
+      unit_id:                   application.unit_id,
+      academic_year_id:          application.academic_year_id,
+      name:                      application.name,
+      email:                     application.email,
+      phone:                     application.phone,
+      gender:                    application.gender,
+      dob:                       application.dob,
+      college:                   application.college,
+      department:                application.department,
+      year:                      application.year,
+      city:                      application.city,
+      interests:                 application.interests || [],
+      skills:                    application.skills || [],
+      profile_photo:             null,
+      password_hash:             passwordHash,
+      status:                    'Active',
+      membership_type:           memType,
+      preferred_leadership_role: application.preferred_leadership_role || null,
+      election_status:           finalElectionStatus,
+      assigned_role:             finalAssignedRole,
+      role_label:                finalRoleLabel,
+    };
+
+    if (application.membership_drive_id) {
+      memberInsertPayload.membership_drive_id = application.membership_drive_id;
+    }
+
     // Create member account
-    const { data: member, error: memberError } = await supabase
+    let { data: member, error: memberError } = await supabase
       .from('members')
-      .insert([{
-        member_id:                 memberId,
-        join_request_id:           application.id,
-        unit_id:                   application.unit_id,
-        academic_year_id:          application.academic_year_id,
-        membership_drive_id:       application.membership_drive_id || null,
-        name:                      application.name,
-        email:                     application.email,
-        phone:                     application.phone,
-        gender:                    application.gender,
-        dob:                       application.dob,
-        college:                   application.college,
-        department:                application.department,
-        year:                      application.year,
-        city:                      application.city,
-        interests:                 application.interests || [],
-        skills:                    application.skills || [],
-        profile_photo:             null,
-        password_hash:             passwordHash,
-        status:                    'Active',
-        membership_type:           memType,
-        preferred_leadership_role: application.preferred_leadership_role || null,
-        election_status:           finalElectionStatus,
-        assigned_role:             finalAssignedRole,
-        role_label:                finalRoleLabel,
-      }])
+      .insert([memberInsertPayload])
       .select()
       .single();
+
+    if (memberError && (memberError.message?.includes('membership_drive_id') || memberError.code === 'PGRST204')) {
+      delete memberInsertPayload.membership_drive_id;
+      const retry = await supabase
+        .from('members')
+        .insert([memberInsertPayload])
+        .select()
+        .single();
+      member = retry.data;
+      memberError = retry.error;
+    }
 
     if (memberError) throw memberError;
 
@@ -333,33 +359,49 @@ router.post('/approve/:joinRequestId', authenticateAdmin, requireAnyAdmin, async
  */
 router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    let query = supabase
-      .from('members')
-      .select('*, units(name, code), academic_years(year), membership_drives(name, id_format, status)', { count: 'exact' })
-      .order('joined_at', { ascending: false });
-
-    // Unit isolation
-    if (req.admin.role === 'SUB_ADMIN' && req.admin.assigned_unit_ids?.length > 0) {
-      query = query.in('unit_id', req.admin.assigned_unit_ids);
-    }
-
-    if (req.query.unitId)            query = query.eq('unit_id', req.query.unitId);
-    if (req.query.status)            query = query.eq('status', req.query.status);
-    if (req.query.membershipType)    query = query.eq('membership_type', req.query.membershipType);
-    if (req.query.academicYearId)    query = query.eq('academic_year_id', req.query.academicYearId);
-    if (req.query.membershipDriveId) query = query.eq('membership_drive_id', req.query.membershipDriveId);
-    if (req.query.year)              query = query.eq('year', req.query.year);
-    if (req.query.search) {
-      query = query.or(`name.ilike.%${req.query.search}%,email.ilike.%${req.query.search}%,member_id.ilike.%${req.query.search}%,college.ilike.%${req.query.search}%`);
-    }
-
     const page  = parseInt(req.query.page)  || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip  = (page - 1) * limit;
-    query = query.range(skip, skip + limit - 1);
 
-    const { data, count, error } = await query;
+    const buildQuery = (includeDrive = true) => {
+      const selectStr = includeDrive
+        ? '*, units(name, code), academic_years(year), membership_drives(name, id_format, status)'
+        : '*, units(name, code), academic_years(year)';
+      let q = supabase.from('members').select(selectStr, { count: 'exact' }).order('joined_at', { ascending: false });
+      if (req.admin.role === 'SUB_ADMIN' && req.admin.assigned_unit_ids?.length > 0) {
+        q = q.in('unit_id', req.admin.assigned_unit_ids);
+      }
+      if (req.query.unitId)            q = q.eq('unit_id', req.query.unitId);
+      if (req.query.status)            q = q.eq('status', req.query.status);
+      if (req.query.membershipType)    q = q.eq('membership_type', req.query.membershipType);
+      if (req.query.academicYearId)    q = q.eq('academic_year_id', req.query.academicYearId);
+      if (includeDrive && req.query.membershipDriveId) q = q.eq('membership_drive_id', req.query.membershipDriveId);
+      if (req.query.year)              q = q.eq('year', req.query.year);
+      if (req.query.search) {
+        q = q.or(`name.ilike.%${req.query.search}%,email.ilike.%${req.query.search}%,member_id.ilike.%${req.query.search}%,college.ilike.%${req.query.search}%`);
+      }
+      return q.range(skip, skip + limit - 1);
+    };
+
+    let { data, count, error } = await buildQuery(true);
+    if (error && (error.message?.includes('membership_drives') || error.message?.includes('membership_drive_id'))) {
+      const fallback = await buildQuery(false);
+      data = fallback.data;
+      count = fallback.count;
+      error = fallback.error;
+    }
+
     if (error) throw error;
+
+    res.json({
+      success: true,
+      data: (data || []).map(mapMember),
+      pagination: { page, limit, total: count || 0, pages: Math.ceil((count || 0) / limit) },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
     res.json({
       success: true,

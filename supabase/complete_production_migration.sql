@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS membership_drives (
   id_format           TEXT NOT NULL DEFAULT 'MAGIC-{UNIT}-{NUMBER}',
   start_number        INTEGER NOT NULL DEFAULT 1,
   next_number         INTEGER NOT NULL DEFAULT 1,
-  number_padding      INTEGER NOT NULL DEFAULT 3,
+  padding_digits      INTEGER NOT NULL DEFAULT 3,
   description         TEXT DEFAULT '',
   created_at          TIMESTAMPTZ DEFAULT NOW(),
   updated_at          TIMESTAMPTZ DEFAULT NOW()
@@ -347,3 +347,6 @@ CREATE OR REPLACE VIEW member_overview AS
   LEFT JOIN units u               ON m.unit_id = u.id
   LEFT JOIN academic_years ay       ON m.academic_year_id = ay.id
   LEFT JOIN membership_drives md   ON m.membership_drive_id = md.id;
+
+-- ─── 13. RELOAD SCHEMA CACHE ──────────────────────────────────────────────────
+NOTIFY pgrst, 'reload schema';

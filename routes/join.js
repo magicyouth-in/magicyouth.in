@@ -80,33 +80,50 @@ router.post('/', upload.fields([{ name: 'resume', maxCount: 1 }, { name: 'profil
     const type = membershipType === 'LEADERSHIP' ? 'LEADERSHIP' : 'MEMBER';
     const preferredRole = type === 'LEADERSHIP' ? (preferredLeadershipRole || null) : null;
 
-    const { data: application, error } = await supabase
+    const insertPayload = {
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: phone.trim(),
+      gender: gender || 'Male',
+      dob: dob || null,
+      college: college.trim(),
+      department: department.trim(),
+      year: year.trim(),
+      city: city.trim(),
+      unit_id: finalUnitId,
+      academic_year_id: finalAcademicYearId,
+      skills: parseArray(skills),
+      interests: parseArray(interests),
+      previous_experience: previousExperience || '',
+      reason: reason.trim(),
+      membership_type: type,
+      preferred_leadership_role: preferredRole,
+      election_status: 'PENDING',
+      assigned_role: null,
+      status: 'Pending',
+    };
+
+    if (finalDriveId) {
+      insertPayload.membership_drive_id = finalDriveId;
+    }
+
+    let { data: application, error } = await supabase
       .from('join_requests')
-      .insert([{
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim(),
-        gender: gender || 'Male',
-        dob: dob || null,
-        college: college.trim(),
-        department: department.trim(),
-        year: year.trim(),
-        city: city.trim(),
-        unit_id: finalUnitId,
-        academic_year_id: finalAcademicYearId,
-        membership_drive_id: finalDriveId,
-        skills: parseArray(skills),
-        interests: parseArray(interests),
-        previous_experience: previousExperience || '',
-        reason: reason.trim(),
-        membership_type: type,
-        preferred_leadership_role: preferredRole,
-        election_status: type === 'LEADERSHIP' ? 'PENDING' : 'PENDING',
-        assigned_role: null,
-        status: 'Pending',
-      }])
+      .insert([insertPayload])
       .select()
       .single();
+
+    // If membership_drive_id is not yet in the database schema, retry without it
+    if (error && (error.message?.includes('membership_drive_id') || error.code === 'PGRST204')) {
+      delete insertPayload.membership_drive_id;
+      const retry = await supabase
+        .from('join_requests')
+        .insert([insertPayload])
+        .select()
+        .single();
+      application = retry.data;
+      error = retry.error;
+    }
 
     if (error) throw error;
 
@@ -129,33 +146,37 @@ router.post('/', upload.fields([{ name: 'resume', maxCount: 1 }, { name: 'profil
 /** GET /api/join — Admin: list applications with unit & membership type filters */
 router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    let query = supabase
-      .from('join_requests')
-      .select('*, units(name, code, institution), academic_years(year), membership_drives(name, id_format, status)', { count: 'exact' })
-      .order('created_at', { ascending: false });
-
-    if (req.query.status) query = query.eq('status', req.query.status);
-    if (req.query.unitId) query = query.eq('unit_id', req.query.unitId);
-    if (req.query.membershipType) query = query.eq('membership_type', req.query.membershipType);
-    if (req.query.electionStatus) query = query.eq('election_status', req.query.electionStatus);
-    if (req.query.membershipDriveId) query = query.eq('membership_drive_id', req.query.membershipDriveId);
-
-    // Unit access restriction for sub-admins
-    if (req.admin.role === 'SUB_ADMIN' && req.admin.assigned_unit_ids?.length > 0) {
-      query = query.in('unit_id', req.admin.assigned_unit_ids);
-    }
-
-    if (req.query.search) {
-      query = query.or(`name.ilike.%${req.query.search}%,email.ilike.%${req.query.search}%,college.ilike.%${req.query.search}%,department.ilike.%${req.query.search}%`);
-    }
-
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    query = query.range(skip, skip + limit - 1);
+    const buildQuery = (includeDrive = true) => {
+      const selectStr = includeDrive
+        ? '*, units(name, code, institution), academic_years(year), membership_drives(name, id_format, status)'
+        : '*, units(name, code, institution), academic_years(year)';
+      let q = supabase.from('join_requests').select(selectStr, { count: 'exact' }).order('created_at', { ascending: false });
+      if (req.query.status) query = q.eq('status', req.query.status);
+      if (req.query.unitId) query = q.eq('unit_id', req.query.unitId);
+      if (req.query.membershipType) query = q.eq('membership_type', req.query.membershipType);
+      if (req.query.electionStatus) query = q.eq('election_status', req.query.electionStatus);
+      if (includeDrive && req.query.membershipDriveId) query = q.eq('membership_drive_id', req.query.membershipDriveId);
+      if (req.admin.role === 'SUB_ADMIN' && req.admin.assigned_unit_ids?.length > 0) {
+        query = q.in('unit_id', req.admin.assigned_unit_ids);
+      }
+      if (req.query.search) {
+        query = q.or(`name.ilike.%${req.query.search}%,email.ilike.%${req.query.search}%,college.ilike.%${req.query.search}%,department.ilike.%${req.query.search}%`);
+      }
+      return q.range(skip, skip + limit - 1);
+    };
 
-    const { data, count, error } = await query;
+    let { data, count, error } = await buildQuery(true);
+    if (error && (error.message?.includes('membership_drives') || error.message?.includes('membership_drive_id'))) {
+      const fallback = await buildQuery(false);
+      data = fallback.data;
+      count = fallback.count;
+      error = fallback.error;
+    }
+
     if (error) throw error;
 
     const formatted = (data || []).map(j => ({
@@ -183,11 +204,21 @@ router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
 /** GET /api/join/:id — Admin: detail view */
 router.get('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    const { data: req_, error } = await supabase
+    let { data: req_, error } = await supabase
       .from('join_requests')
       .select('*, units(name, code, institution), academic_years(year), membership_drives(name, id_format, status)')
       .eq('id', req.params.id)
       .single();
+
+    if (error && (error.message?.includes('membership_drives') || error.message?.includes('membership_drive_id'))) {
+      const fallback = await supabase
+        .from('join_requests')
+        .select('*, units(name, code, institution), academic_years(year)')
+        .eq('id', req.params.id)
+        .single();
+      req_ = fallback.data;
+      error = fallback.error;
+    }
 
     if (error || !req_) return res.status(404).json({ success: false, message: 'Application not found.' });
     if (req_.unit_id && !canAccessUnit(req.admin, req_.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
@@ -207,6 +238,12 @@ router.get('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
       membershipDriveId: req_.membership_drive_id || null,
       driveName: req_.membership_drives?.name || '',
     };
+
+    res.json({ success: true, data: formatted });
+  } catch (err) {
+    res.status(400).json({ success: false, message: 'Invalid ID.' });
+  }
+});
 
     res.json({ success: true, data: formatted });
   } catch (err) {
