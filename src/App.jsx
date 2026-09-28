@@ -8,6 +8,7 @@ import Footer  from './components/layout/Footer';
 const Home          = React.lazy(() => import('./pages/Home'));
 const About         = React.lazy(() => import('./pages/About'));
 const Programs      = React.lazy(() => import('./pages/Programs'));
+const Events        = React.lazy(() => import('./pages/Events'));
 const Chapters      = React.lazy(() => import('./pages/Chapters'));
 const Stories       = React.lazy(() => import('./pages/Stories'));
 const Resources     = React.lazy(() => import('./pages/Resources'));
@@ -89,6 +90,7 @@ export default function App() {
         <Route path="/"              element={<PublicLayout><Home          /></PublicLayout>} />
         <Route path="/about"         element={<PublicLayout><About         /></PublicLayout>} />
         <Route path="/programs"      element={<PublicLayout><Programs      /></PublicLayout>} />
+        <Route path="/events"        element={<PublicLayout><Events        /></PublicLayout>} />
         <Route path="/chapters"      element={<PublicLayout><Chapters      /></PublicLayout>} />
         <Route path="/stories"       element={<PublicLayout><Stories       /></PublicLayout>} />
         <Route path="/impact"        element={<PublicLayout><Impact        /></PublicLayout>} />

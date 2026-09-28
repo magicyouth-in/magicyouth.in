@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { BookOpen, Calendar, MapPin, ArrowRight, Loader2, Building, Filter, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, ArrowRight, Loader2, Building, Filter, Sparkles, CheckCircle2 } from 'lucide-react';
 import FormattedText from '../components/common/FormattedText';
 import '../styles/home.css';
 
-export default function Programs() {
-  const [programs, setPrograms] = useState([]);
+export default function Events() {
+  const [events, setEvents] = useState([]);
   const [units, setUnits] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState('All');
@@ -17,17 +17,17 @@ export default function Programs() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [programsRes, unitsRes, yearsRes] = await Promise.all([
-          fetch('/api/programs'),
+        const [eventsRes, unitsRes, yearsRes] = await Promise.all([
+          fetch('/api/events'),
           fetch('/api/units?includeInactive=false'),
           fetch('/api/academic-years')
         ]);
-        const programsData = await programsRes.json();
+        const eventsData = await eventsRes.json();
         const unitsData = await unitsRes.json();
         const yearsData = await yearsRes.json();
 
-        if (programsData.success && Array.isArray(programsData.data)) {
-          setPrograms(programsData.data);
+        if (eventsData.success && Array.isArray(eventsData.data)) {
+          setEvents(eventsData.data);
         }
 
         if (unitsData.success && Array.isArray(unitsData.data)) {
@@ -43,7 +43,7 @@ export default function Programs() {
           setAcademicYears(yearsData.data);
         }
       } catch (err) {
-        console.error('Error fetching programs:', err);
+        console.error('Error fetching events:', err);
       } finally {
         setLoading(false);
       }
@@ -56,37 +56,39 @@ export default function Programs() {
     visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } }
   };
 
-  const filteredPrograms = programs.filter(p => {
+  const filteredEvents = events.filter(e => {
     const unitMatch = selectedUnit === 'All' ||
-      p.unitId?._id === selectedUnit ||
-      p.unitId?.id === selectedUnit ||
-      p.unit_id === selectedUnit;
+      e.unitId?._id === selectedUnit ||
+      e.unitId?.id === selectedUnit ||
+      e.unit_id === selectedUnit;
 
     const yearMatch = selectedYear === 'All' ||
-      p.academicYearId?._id === selectedYear ||
-      p.academicYearId?.id === selectedYear ||
-      p.academic_year_id === selectedYear ||
-      (p.academicYearId?.year && p.academicYearId.year === selectedYear);
+      e.academicYearId?._id === selectedYear ||
+      e.academicYearId?.id === selectedYear ||
+      e.academic_year_id === selectedYear ||
+      (e.academicYearId?.year && e.academicYearId.year === selectedYear);
 
     const statusMatch = statusFilter === 'All' ||
-      (p.status && p.status.toLowerCase() === statusFilter.toLowerCase());
+      (statusFilter === 'Upcoming' && (/upcoming|scheduled/i.test(e.status) || (!e.status && new Date(e.date) >= new Date()))) ||
+      (statusFilter === 'Ongoing' && /ongoing|active/i.test(e.status)) ||
+      (statusFilter === 'Past' && (/past|completed|finished/i.test(e.status) || new Date(e.date) < new Date()));
 
     return unitMatch && yearMatch && statusMatch;
   });
 
   return (
-    <div className="programs-page-wrapper" style={{ minHeight: '100vh', backgroundColor: '#FFFFFF' }}>
+    <div className="events-page-wrapper" style={{ minHeight: '100vh', backgroundColor: '#FFFFFF' }}>
       {/* Header */}
       <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
         <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
           <div className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-            <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Regular Initiatives
+            <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Date-Specific Activities
           </div>
           <h1 style={{ fontSize: 'clamp(2.25rem, 4vw, 3rem)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '0.75rem' }}>
-            Flagship Programs
+            Events &amp; Exposure Camps
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto', marginBottom: '2rem' }}>
-            Structured institutional initiatives run regularly by MAGIC Youth to form student leaders in education, environment, and social solidarity.
+            Workshops, campus awareness drives, rural exposure camps, and youth summits organized on specific dates.
           </p>
 
           {/* Unit & Academic Year Filters */}
@@ -132,7 +134,7 @@ export default function Programs() {
       {/* Status Filter Tabs */}
       <section style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: '#FFFFFF', padding: '1rem 1.5rem' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {['All', 'Ongoing', 'Upcoming', 'Past'].map(st => (
+          {['All', 'Upcoming', 'Ongoing', 'Past'].map(st => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
@@ -149,20 +151,20 @@ export default function Programs() {
                 transition: 'all 0.15s ease'
               }}
             >
-              {st === 'All' ? 'All Programs' : st}
+              {st === 'All' ? 'All Events' : st}
             </button>
           ))}
         </div>
       </section>
 
-      {/* Program Details List */}
+      {/* Events List */}
       <section style={{ backgroundColor: '#F8FAFC', padding: '3.5rem 1.5rem 5rem' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
               <Loader2 size={36} color="var(--primary-blue)" className="animate-spin" />
             </div>
-          ) : filteredPrograms.length === 0 ? (
+          ) : filteredEvents.length === 0 ? (
             <div style={{
               textAlign: 'center',
               padding: '4.5rem 2rem',
@@ -173,22 +175,22 @@ export default function Programs() {
               maxWidth: '650px',
               margin: '0 auto'
             }}>
-              <BookOpen size={48} color="var(--primary-blue)" style={{ margin: '0 auto 1.25rem', opacity: 0.6 }} />
+              <Calendar size={48} color="var(--primary-blue)" style={{ margin: '0 auto 1.25rem', opacity: 0.6 }} />
               <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                No programs found for this selection.
+                No events found for this filter.
               </h2>
               <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-                Our coordinators and directors are preparing upcoming flagship initiatives. Please check back soon or register to participate.
+                Check back soon for newly scheduled chapter activities, or register to receive notifications.
               </p>
               <Link to="/join" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.75rem 1.75rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 800 }}>
-                Join as a Change Agent <ArrowRight size={15} />
+                Join MAGIC Youth <ArrowRight size={15} />
               </Link>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
-              {filteredPrograms.map((prog, idx) => (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '2rem' }}>
+              {filteredEvents.map((ev, idx) => (
                 <motion.article 
-                  key={prog._id || prog.id || idx}
+                  key={ev._id || ev.id || idx}
                   style={{ backgroundColor: 'white', borderRadius: '1rem', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column' }}
                   initial="hidden"
                   whileInView="visible"
@@ -196,64 +198,59 @@ export default function Programs() {
                   variants={fadeUp}
                   transition={{ delay: idx * 0.05 }}
                 >
-                  {prog.poster && (
-                    <div style={{ width: '100%', maxHeight: '380px', overflow: 'hidden', backgroundColor: '#0F172A', position: 'relative' }}>
+                  {ev.poster && (
+                    <div style={{ width: '100%', height: '200px', overflow: 'hidden', backgroundColor: '#0F172A' }}>
                       <img
-                        src={prog.poster}
-                        alt={prog.title}
+                        src={ev.poster}
+                        alt={ev.title}
                         loading="lazy"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', maxHeight: '380px' }}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     </div>
                   )}
 
-                  <div style={{ padding: '2rem 2.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
-                      <div>
-                        <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem' }}>
-                          {prog.category || 'Regular Initiative'}
+                  <div style={{ padding: '1.75rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', backgroundColor: '#F0F9FF', padding: '0.2rem 0.6rem', borderRadius: '4px', textTransform: 'uppercase' }}>
+                        {ev.category || 'Event'}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: ev.status === 'Completed' || ev.status === 'Past' ? '#64748B' : '#15803D', backgroundColor: ev.status === 'Completed' || ev.status === 'Past' ? '#F1F5F9' : '#DCFCE7', padding: '0.2rem 0.6rem', borderRadius: '4px', textTransform: 'uppercase' }}>
+                        {ev.status || 'Upcoming'}
+                      </span>
+                    </div>
+
+                    <h2 style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.75rem', lineHeight: 1.3 }}>
+                      <FormattedText text={ev.title} />
+                    </h2>
+
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.6, marginBottom: '1.5rem', flex: 1 }}>
+                      <FormattedText text={ev.description} />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid #F1F5F9', paddingTop: '1rem', marginTop: 'auto', fontSize: '0.825rem', color: '#64748B' }}>
+                      {ev.date && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
+                          <Calendar size={14} color="var(--primary-blue)" /> {new Date(ev.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                         </div>
-                        <h2 style={{ fontSize: 'clamp(1.5rem, 2.5vw, 2rem)', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
-                          <FormattedText text={prog.title} />
-                        </h2>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        {prog.academicYearId?.year && (
-                          <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#64748B', backgroundColor: '#F1F5F9', padding: '0.35rem 0.75rem', borderRadius: '999px' }}>
-                            {prog.academicYearId.year}
-                          </span>
-                        )}
-                        {prog.status && (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: '0.25rem 0.65rem', borderRadius: '999px', textTransform: 'uppercase' }}>
-                            {prog.status}
-                          </span>
-                        )}
+                      )}
+                      {(ev.startTime || ev.start_time) && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <Clock size={14} color="var(--primary-blue)" /> {ev.startTime || ev.start_time} {ev.endTime || ev.end_time ? `– ${ev.endTime || ev.end_time}` : ''}
+                        </div>
+                      )}
+                      {ev.location && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <MapPin size={14} color="var(--primary-blue)" /> {ev.location}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.25rem' }}>
+                        {ev.unitId?.name || 'MAGIC Youth'} &bull; {ev.academicYearId?.year || '2025-26'}
                       </div>
                     </div>
 
-                    {prog.shortDescription && (
-                      <div style={{ color: 'var(--primary-blue)', fontSize: '1.05rem', fontWeight: 700, marginBottom: '1rem', lineHeight: 1.5 }}>
-                        <FormattedText text={prog.shortDescription} />
-                      </div>
-                    )}
-
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '1.025rem', lineHeight: 1.75, marginBottom: '2rem' }}>
-                      <FormattedText text={prog.description} paragraphs={true} />
-                    </div>
-
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
-                      {prog.unitId?.name && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748B', fontSize: '0.875rem', fontWeight: 600 }}>
-                          <MapPin size={15} color="var(--primary-blue)" /> {prog.unitId.name}
-                        </div>
-                      )}
-                      {prog.startDate && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748B', fontSize: '0.875rem', fontWeight: 600 }}>
-                          <Calendar size={15} color="var(--primary-blue)" /> Active Since {new Date(prog.startDate).toLocaleDateString()}
-                        </div>
-                      )}
-                      <Link to="/join" className="btn-primary" style={{ marginLeft: 'auto', backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.5rem 1.25rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem' }}>
-                        Join Initiative &rarr;
+                    <div style={{ marginTop: '1.25rem' }}>
+                      <Link to="/join" className="btn-primary" style={{ display: 'block', textAlign: 'center', backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.6rem 1rem', borderRadius: '0.5rem', textDecoration: 'none', fontWeight: 700, fontSize: '0.85rem' }}>
+                        Participate in Activity &rarr;
                       </Link>
                     </div>
                   </div>

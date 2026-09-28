@@ -22,10 +22,10 @@ export default function Navbar() {
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
     { name: 'Programs', path: '/programs' },
-    { name: 'Chapters', path: '/chapters' },
+    { name: 'Events', path: '/events' },
     { name: 'Impact', path: '/impact' },
-    { name: 'Media', path: '/media' },
     { name: 'Stories', path: '/stories' },
+    { name: 'Media', path: '/media' },
     { name: 'Team', path: '/teams' },
     { name: 'Contact', path: '/contact' },
   ];

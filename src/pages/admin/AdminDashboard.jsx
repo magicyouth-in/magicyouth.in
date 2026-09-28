@@ -7,7 +7,7 @@ import {
   Plus, Check, AlertCircle, Edit, Trash2, ShieldCheck,
   Filter, Search, X, Loader2, ArrowRight, Eye, EyeOff, Download,
   CheckCircle2, Clock, Globe, User, GraduationCap, Phone, Mail, MapPin, RefreshCw,
-  ArrowUp, ArrowDown, ChevronUp, ChevronDown, Upload, ExternalLink, Layers, CreditCard
+  ArrowUp, ArrowDown, ChevronUp, ChevronDown, Upload, ExternalLink, Layers, CreditCard, TrendingUp
 } from 'lucide-react';
 import magicLogo from '../../assets/magic-logo.png';
 import FormattedText from '../../components/common/FormattedText';
@@ -145,8 +145,9 @@ export default function AdminDashboard() {
         { id: 'chapters',   label: 'Chapters',             icon: Building2 },
         { id: 'teams',      label: 'Teams & Leads',        icon: Users },
         { id: 'programs',   label: 'Programs',             icon: BookOpen },
-        { id: 'events',     label: 'Events & Impact',      icon: Calendar },
+        { id: 'events',     label: 'Events',               icon: Calendar },
         { id: 'stories',    label: 'Stories',              icon: Sparkles },
+        { id: 'impact',     label: 'Impact & Outcomes',    icon: TrendingUp },
         { id: 'media',      label: 'Media & Publications', icon: Image },
         { id: 'faqs',       label: 'FAQs',                 icon: HelpCircle }
       ]
@@ -296,6 +297,7 @@ export default function AdminDashboard() {
           {activeTab === 'programs'       && <ProgramsModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'events'         && <EventsModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'stories'        && <StoriesModule toast={showToast} units={units} academicYears={academicYears} />}
+          {activeTab === 'impact'         && <ImpactModule toast={showToast} units={units} academicYears={academicYears} />}
           {(activeTab === 'media' || activeTab === 'gallery' || activeTab === 'resources') && <MediaModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'faqs'           && <FaqModule toast={showToast} />}
           {activeTab === 'join-apps'      && <JoinApplicationsModule toast={showToast} units={units} admin={admin} />}
@@ -1283,20 +1285,26 @@ function TeamsModule({ toast, units, academicYears }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 4. FLAGSHIP PROGRAMS MODULE (Connected to /api/events)
+// ═════════════════════════════════════════════════════════════════════════════
+// 4. FLAGSHIP PROGRAMS MODULE (Connected to /api/programs)
 // ═════════════════════════════════════════════════════════════════════════════
 function ProgramsModule({ toast, units, academicYears }) {
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProg, setEditingProg] = useState(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [unitFilter, setUnitFilter] = useState('All');
+  const [yearFilter, setYearFilter] = useState('All');
+
   const [progForm, setProgForm] = useState({
     title: '',
     category: 'Flagship Initiative',
     description: '',
     unitId: '',
     academicYearId: '',
-    status: 'Upcoming'
+    status: 'Ongoing'
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -1304,7 +1312,7 @@ function ProgramsModule({ toast, units, academicYears }) {
 
   const loadPrograms = useCallback(() => {
     setLoading(true);
-    api('/api/events')
+    api('/api/programs?all=1')
       .then(d => { setPrograms(d.data || []); setLoading(false); })
       .catch(e => { toast(e.message, 'error'); setLoading(false); });
   }, [toast]);
@@ -1319,7 +1327,7 @@ function ProgramsModule({ toast, units, academicYears }) {
       description: '',
       unitId: units[0]?._id || '',
       academicYearId: academicYears[0]?._id || '',
-      status: 'Upcoming'
+      status: 'Ongoing'
     });
     setImageFile(null);
     setImagePreview(null);
@@ -1333,9 +1341,9 @@ function ProgramsModule({ toast, units, academicYears }) {
       title: p.title || '',
       category: p.category || 'Flagship Initiative',
       description: p.description || '',
-      unitId: p.unitId?._id || p.unitId?.id || units[0]?._id || '',
-      academicYearId: p.academicYearId?._id || p.academicYearId?.id || academicYears[0]?._id || '',
-      status: p.status || 'Upcoming'
+      unitId: p.unitId?._id || p.unitId?.id || p.unitId || units[0]?._id || '',
+      academicYearId: p.academicYearId?._id || p.academicYearId?.id || p.academicYearId || academicYears[0]?._id || '',
+      status: p.status || 'Ongoing'
     });
     setImageFile(null);
     setImagePreview(p.poster || null);
@@ -1348,7 +1356,7 @@ function ProgramsModule({ toast, units, academicYears }) {
     if (!file) return;
 
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type.toLowerCase())) {
+    if (!validTypes.includes(file.type.toLowerCase()) && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
       toast('Please upload a valid image file (JPG, PNG, WEBP).', 'error');
       return;
     }
@@ -1370,8 +1378,8 @@ function ProgramsModule({ toast, units, academicYears }) {
 
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!progForm.title || !progForm.unitId || !progForm.academicYearId) {
-      toast('Title, Chapter, and Academic Year are required.', 'error');
+    if (!progForm.title) {
+      toast('Program Title is required.', 'error');
       return;
     }
     try {
@@ -1379,9 +1387,9 @@ function ProgramsModule({ toast, units, academicYears }) {
       formData.append('title', progForm.title);
       formData.append('category', progForm.category || 'Flagship Initiative');
       formData.append('description', progForm.description || '');
-      formData.append('unitId', progForm.unitId);
-      formData.append('academicYearId', progForm.academicYearId);
-      formData.append('status', progForm.status || 'Upcoming');
+      if (progForm.unitId) formData.append('unitId', progForm.unitId);
+      if (progForm.academicYearId) formData.append('academicYearId', progForm.academicYearId);
+      formData.append('status', progForm.status || 'Ongoing');
 
       if (imageFile) {
         formData.append('poster', imageFile);
@@ -1390,10 +1398,10 @@ function ProgramsModule({ toast, units, academicYears }) {
       }
 
       if (editingProg) {
-        await api(`/api/events/${editingProg._id}`, { method: 'PUT', body: formData });
+        await api(`/api/programs/${editingProg._id || editingProg.id}`, { method: 'PUT', body: formData });
         toast('Program updated successfully.');
       } else {
-        await api('/api/events', { method: 'POST', body: formData });
+        await api('/api/programs', { method: 'POST', body: formData });
         toast('Program created successfully.');
       }
       setShowModal(false);
@@ -1404,44 +1412,112 @@ function ProgramsModule({ toast, units, academicYears }) {
   const handleDelete = async (id) => {
     if (!confirm('Delete this program?')) return;
     try {
-      await api(`/api/events/${id}`, { method: 'DELETE' });
+      await api(`/api/programs/${id}`, { method: 'DELETE' });
       toast('Program deleted.');
       loadPrograms();
     } catch (e) { toast(e.message, 'error'); }
   };
+
+  const filtered = programs.filter(p => {
+    if (statusFilter !== 'All' && (p.status || 'Ongoing').toLowerCase() !== statusFilter.toLowerCase()) return false;
+    if (unitFilter !== 'All') {
+      const uId = p.unitId?._id || p.unitId?.id || p.unitId;
+      if (uId !== unitFilter) return false;
+    }
+    if (yearFilter !== 'All') {
+      const yId = p.academicYearId?._id || p.academicYearId?.id || p.academicYearId;
+      if (yId !== yearFilter) return false;
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const match = (p.title || '').toLowerCase().includes(q) ||
+                    (p.category || '').toLowerCase().includes(q) ||
+                    (p.description || '').toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
+  });
 
   return (
     <div>
       <div className="admin-module-header">
         <div>
           <h1 className="admin-module-title">Flagship Programs &amp; Initiatives</h1>
-          <p className="admin-module-subtitle">Manage official programs, community campaigns, and campus events displayed across the public portal.</p>
+          <p className="admin-module-subtitle">Manage recurring initiatives, mentorship series, and long-term youth projects.</p>
         </div>
         <button onClick={openAdd} className="admin-btn-primary">
           <Plus size={16} /> Add Program
         </button>
       </div>
 
+      {/* Filter Bar */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 200px' }}>
+          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+          <input
+            type="text"
+            placeholder="Search programs..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="admin-input"
+            style={{ paddingLeft: '2.25rem', height: '38px', fontSize: '0.85rem' }}
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="admin-select"
+          style={{ width: 'auto', minWidth: '130px', height: '38px', fontSize: '0.85rem' }}
+        >
+          <option value="All">All Statuses</option>
+          <option value="Ongoing">Ongoing</option>
+          <option value="Upcoming">Upcoming</option>
+          <option value="Past">Past</option>
+        </select>
+        <select
+          value={unitFilter}
+          onChange={e => setUnitFilter(e.target.value)}
+          className="admin-select"
+          style={{ width: 'auto', minWidth: '150px', height: '38px', fontSize: '0.85rem' }}
+        >
+          <option value="All">All Chapters</option>
+          {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+        </select>
+        <select
+          value={yearFilter}
+          onChange={e => setYearFilter(e.target.value)}
+          className="admin-select"
+          style={{ width: 'auto', minWidth: '140px', height: '38px', fontSize: '0.85rem' }}
+        >
+          <option value="All">All Academic Years</option>
+          {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+        </select>
+      </div>
+
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
-      ) : programs.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
-          No programs recorded yet. Click "+ Add Program" to create one.
+          No programs found. Click "+ Add Program" to create one.
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          {programs.map(p => (
-            <div key={p._id} className="admin-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden', padding: 0 }}>
-              {p.poster && (
-                <div style={{ width: '100%', height: '160px', overflow: 'hidden', backgroundColor: '#0F172A' }}>
+          {filtered.map(p => (
+            <div key={p._id || p.id} className="admin-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden', padding: 0 }}>
+              {p.poster ? (
+                <div style={{ width: '100%', height: '170px', overflow: 'hidden', backgroundColor: '#0F172A', position: 'relative' }}>
                   <img src={p.poster} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              ) : (
+                <div style={{ width: '100%', height: '110px', background: 'linear-gradient(135deg, #0284C7 0%, #0369A1 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BookOpen size={36} color="rgba(255,255,255,0.7)" />
                 </div>
               )}
               <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <span className="admin-badge" style={{ backgroundColor: '#F0F9FF', color: 'var(--primary-blue)' }}>{p.category}</span>
-                  <span className={`admin-badge ${p.status === 'Completed' ? 'badge-approved' : 'badge-active'}`}>
-                    {p.status}
+                  <span className="admin-badge" style={{ backgroundColor: '#F0F9FF', color: 'var(--primary-blue)' }}>{p.category || 'Initiative'}</span>
+                  <span className={`admin-badge ${p.status === 'Ongoing' ? 'badge-active' : p.status === 'Upcoming' ? 'badge-pending' : 'badge-approved'}`}>
+                    {p.status || 'Ongoing'}
                   </span>
                 </div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem', lineHeight: 1.3 }}>{p.title}</h3>
@@ -1449,12 +1525,12 @@ function ProgramsModule({ toast, units, academicYears }) {
                   <FormattedText text={p.description || 'No detailed description.'} />
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>
-                  {p.unitId?.name || 'All Chapters'} &bull; {p.academicYearId?.year || '2025-26'}
+                  {p.unitId?.name || (units.find(u => u._id === (p.unitId?._id || p.unitId))?.name) || 'All Chapters'} &bull; {p.academicYearId?.year || (academicYears.find(y => y._id === (p.academicYearId?._id || p.academicYearId))?.year) || 'All Years'}
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border-color)', padding: '0.75rem 1.25rem', backgroundColor: '#F8FAFC' }}>
                 <button onClick={() => openEdit(p)} className="admin-btn-action"><Edit size={13} /> Edit</button>
-                <button onClick={() => handleDelete(p._id)} className="admin-btn-danger"><Trash2 size={13} /> Delete</button>
+                <button onClick={() => handleDelete(p._id || p.id)} className="admin-btn-danger"><Trash2 size={13} /> Delete</button>
               </div>
             </div>
           ))}
@@ -1473,19 +1549,21 @@ function ProgramsModule({ toast, units, academicYears }) {
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="admin-input-group">
                 <label className="admin-label">Program Title *</label>
-                <input required value={progForm.title} onChange={e => setProgForm({ ...progForm, title: e.target.value })} className="admin-input" placeholder="e.g. Project Shiksha" />
+                <input required value={progForm.title} onChange={e => setProgForm({ ...progForm, title: e.target.value })} className="admin-input" placeholder="e.g. Compassion Connect" />
               </div>
               
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label className="admin-label">Chapter *</label>
+                  <label className="admin-label">Chapter</label>
                   <select value={progForm.unitId} onChange={e => setProgForm({ ...progForm, unitId: e.target.value })} className="admin-select">
+                    <option value="">All Chapters (Organization-Wide)</option>
                     {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="admin-label">Academic Year *</label>
+                  <label className="admin-label">Academic Year</label>
                   <select value={progForm.academicYearId} onChange={e => setProgForm({ ...progForm, academicYearId: e.target.value })} className="admin-select">
+                    <option value="">All Academic Years</option>
                     {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
                   </select>
                 </div>
@@ -1494,21 +1572,21 @@ function ProgramsModule({ toast, units, academicYears }) {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label className="admin-label">Category</label>
-                  <input placeholder="e.g. Education Outreach" value={progForm.category} onChange={e => setProgForm({ ...progForm, category: e.target.value })} className="admin-input" />
+                  <input placeholder="e.g. Community Outreach" value={progForm.category} onChange={e => setProgForm({ ...progForm, category: e.target.value })} className="admin-input" />
                 </div>
                 <div>
                   <label className="admin-label">Status</label>
                   <select value={progForm.status} onChange={e => setProgForm({ ...progForm, status: e.target.value })} className="admin-select">
-                    <option value="Upcoming">Upcoming</option>
                     <option value="Ongoing">Ongoing</option>
-                    <option value="Completed">Completed</option>
+                    <option value="Upcoming">Upcoming</option>
+                    <option value="Past">Past / Completed</option>
                   </select>
                 </div>
               </div>
 
               {/* Program Image Upload */}
               <div className="admin-input-group">
-                <label className="admin-label">Program Image (JPG, PNG, WEBP &bull; Max 25MB)</label>
+                <label className="admin-label">Program Cover Image (JPG, PNG, WEBP &bull; Max 25MB)</label>
                 {imagePreview ? (
                   <div style={{ position: 'relative', width: '100%', height: '180px', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #CBD5E1', marginBottom: '0.5rem' }}>
                     <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1535,7 +1613,7 @@ function ProgramsModule({ toast, units, academicYears }) {
               {/* Rich Text Area with Bold Support */}
               <div className="admin-input-group">
                 <RichTextArea
-                  label="Description & Impact (Use [B] to bold words or characters)"
+                  label="Description & Details (Select text and click [B] or press Ctrl+B to bold)"
                   rows={4}
                   required={true}
                   value={progForm.description}
@@ -1556,32 +1634,136 @@ function ProgramsModule({ toast, units, academicYears }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 5. EVENTS & IMPACT MODULE
+// 5. EVENTS MODULE (Specific Dated Events with Image & Status Controls)
 // ═════════════════════════════════════════════════════════════════════════════
 function EventsModule({ toast, units, academicYears }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [eventForm, setEventForm] = useState({ title: '', category: 'Event', date: '', venue: '', description: '', unitId: units[0]?._id || '', academicYearId: academicYears[0]?._id || '' });
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [unitFilter, setUnitFilter] = useState('All');
+  const [yearFilter, setYearFilter] = useState('All');
+
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    category: 'Workshop',
+    date: '',
+    time: '',
+    venue: '',
+    description: '',
+    unitId: '',
+    academicYearId: '',
+    status: 'Upcoming'
+  });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [removeImage, setRemoveImage] = useState(false);
 
   const loadEvents = useCallback(() => {
     setLoading(true);
-    api('/api/events')
+    api('/api/events?all=1')
       .then(d => { setEvents(d.data || []); setLoading(false); })
       .catch(e => { toast(e.message, 'error'); setLoading(false); });
   }, [toast]);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);
 
+  const openAdd = () => {
+    setEditingEvent(null);
+    setEventForm({
+      title: '',
+      category: 'Workshop',
+      date: new Date().toISOString().slice(0, 10),
+      time: '',
+      venue: '',
+      description: '',
+      unitId: units[0]?._id || '',
+      academicYearId: academicYears[0]?._id || '',
+      status: 'Upcoming'
+    });
+    setImageFile(null);
+    setImagePreview(null);
+    setRemoveImage(false);
+    setShowModal(true);
+  };
+
+  const openEdit = (ev) => {
+    setEditingEvent(ev);
+    setEventForm({
+      title: ev.title || '',
+      category: ev.category || 'Workshop',
+      date: ev.date || '',
+      time: ev.time || '',
+      venue: ev.venue || '',
+      description: ev.description || '',
+      unitId: ev.unitId?._id || ev.unitId?.id || ev.unitId || units[0]?._id || '',
+      academicYearId: ev.academicYearId?._id || ev.academicYearId?.id || ev.academicYearId || academicYears[0]?._id || '',
+      status: ev.status || 'Upcoming'
+    });
+    setImageFile(null);
+    setImagePreview(ev.poster || null);
+    setRemoveImage(false);
+    setShowModal(true);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type.toLowerCase()) && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+      toast('Please upload a valid image file (JPG, PNG, WEBP).', 'error');
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      toast('Image file size exceeds the 25MB limit.', 'error');
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setRemoveImage(false);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setRemoveImage(true);
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!eventForm.title || !eventForm.unitId || !eventForm.academicYearId) {
-      toast('Title, Chapter, and Academic Year are required.', 'error');
+    if (!eventForm.title) {
+      toast('Event Title is required.', 'error');
       return;
     }
     try {
-      await api('/api/events', { method: 'POST', body: JSON.stringify(eventForm) });
-      toast('Event saved.');
+      const formData = new FormData();
+      formData.append('title', eventForm.title);
+      formData.append('category', eventForm.category || 'Workshop');
+      formData.append('date', eventForm.date || '');
+      formData.append('time', eventForm.time || '');
+      formData.append('venue', eventForm.venue || '');
+      formData.append('description', eventForm.description || '');
+      if (eventForm.unitId) formData.append('unitId', eventForm.unitId);
+      if (eventForm.academicYearId) formData.append('academicYearId', eventForm.academicYearId);
+      formData.append('status', eventForm.status || 'Upcoming');
+
+      if (imageFile) {
+        formData.append('poster', imageFile);
+      } else if (removeImage) {
+        formData.append('removePoster', 'true');
+      }
+
+      if (editingEvent) {
+        await api(`/api/events/${editingEvent._id || editingEvent.id}`, { method: 'PUT', body: formData });
+        toast('Event updated successfully.');
+      } else {
+        await api('/api/events', { method: 'POST', body: formData });
+        toast('Event created successfully.');
+      }
       setShowModal(false);
       loadEvents();
     } catch (e) { toast(e.message, 'error'); }
@@ -1596,87 +1778,580 @@ function EventsModule({ toast, units, academicYears }) {
     } catch (e) { toast(e.message, 'error'); }
   };
 
+  const filtered = events.filter(ev => {
+    if (statusFilter !== 'All' && (ev.status || 'Upcoming').toLowerCase() !== statusFilter.toLowerCase()) return false;
+    if (unitFilter !== 'All') {
+      const uId = ev.unitId?._id || ev.unitId?.id || ev.unitId;
+      if (uId !== unitFilter) return false;
+    }
+    if (yearFilter !== 'All') {
+      const yId = ev.academicYearId?._id || ev.academicYearId?.id || ev.academicYearId;
+      if (yId !== yearFilter) return false;
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const match = (ev.title || '').toLowerCase().includes(q) ||
+                    (ev.venue || '').toLowerCase().includes(q) ||
+                    (ev.category || '').toLowerCase().includes(q) ||
+                    (ev.description || '').toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
+  });
+
   return (
     <div>
       <div className="admin-module-header">
         <div>
-          <h1 className="admin-module-title">Events &amp; Exposure Camps</h1>
-          <p className="admin-module-subtitle">Record and schedule youth workshops, rural immersion camps, and leadership summits.</p>
+          <h1 className="admin-module-title">Events &amp; Exposure Activities</h1>
+          <p className="admin-module-subtitle">Record and schedule specific date-based workshops, campus activities, and seminars.</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="admin-btn-primary">
+        <button onClick={openAdd} className="admin-btn-primary">
           <Plus size={16} /> Add Event
         </button>
       </div>
 
-      <div className="admin-table-container">
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
-        ) : events.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>No events recorded.</div>
-        ) : (
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Event Title</th>
-                <th>Chapter</th>
-                <th>Category</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map(ev => (
-                <tr key={ev._id}>
-                  <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{ev.title}</td>
-                  <td>{ev.unitId?.name || '—'}</td>
-                  <td>{ev.category}</td>
-                  <td>{ev.date || '—'}</td>
-                  <td><span className="admin-badge badge-active">{ev.status || 'Upcoming'}</span></td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button onClick={() => handleDelete(ev._id)} className="admin-btn-danger">
-                      <Trash2 size={13} /> Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      {/* Filter Bar */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 200px' }}>
+          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="admin-input"
+            style={{ paddingLeft: '2.25rem', height: '38px', fontSize: '0.85rem' }}
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="admin-select"
+          style={{ width: 'auto', minWidth: '130px', height: '38px', fontSize: '0.85rem' }}
+        >
+          <option value="All">All Statuses</option>
+          <option value="Upcoming">Upcoming</option>
+          <option value="Ongoing">Ongoing</option>
+          <option value="Past">Past</option>
+        </select>
+        <select
+          value={unitFilter}
+          onChange={e => setUnitFilter(e.target.value)}
+          className="admin-select"
+          style={{ width: 'auto', minWidth: '150px', height: '38px', fontSize: '0.85rem' }}
+        >
+          <option value="All">All Chapters</option>
+          {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+        </select>
+        <select
+          value={yearFilter}
+          onChange={e => setYearFilter(e.target.value)}
+          className="admin-select"
+          style={{ width: 'auto', minWidth: '140px', height: '38px', fontSize: '0.85rem' }}
+        >
+          <option value="All">All Academic Years</option>
+          {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+        </select>
       </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+          No events found. Click "+ Add Event" to schedule one.
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+          {filtered.map(ev => (
+            <div key={ev._id || ev.id} className="admin-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden', padding: 0 }}>
+              {ev.poster ? (
+                <div style={{ width: '100%', height: '170px', overflow: 'hidden', backgroundColor: '#0F172A', position: 'relative' }}>
+                  <img src={ev.poster} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              ) : (
+                <div style={{ width: '100%', height: '110px', background: 'linear-gradient(135deg, #4338CA 0%, #3730A3 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Calendar size={36} color="rgba(255,255,255,0.7)" />
+                </div>
+              )}
+              <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span className="admin-badge" style={{ backgroundColor: '#EEF2FF', color: '#4338CA' }}>{ev.category || 'Event'}</span>
+                  <span className={`admin-badge ${ev.status === 'Upcoming' ? 'badge-pending' : ev.status === 'Ongoing' ? 'badge-active' : 'badge-approved'}`}>
+                    {ev.status || 'Upcoming'}
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem', lineHeight: 1.3 }}>{ev.title}</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.75rem', fontSize: '0.8rem', color: '#64748B' }}>
+                  {ev.date && <div>📅 <strong>Date:</strong> {ev.date}</div>}
+                  {ev.time && <div>⏰ <strong>Time:</strong> {ev.time}</div>}
+                  {ev.venue && <div>📍 <strong>Venue:</strong> {ev.venue}</div>}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#64748B', lineHeight: 1.6, flex: 1, marginBottom: '0.75rem' }}>
+                  <FormattedText text={ev.description || 'No detailed description.'} />
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>
+                  {ev.unitId?.name || (units.find(u => u._id === (ev.unitId?._id || ev.unitId))?.name) || 'All Chapters'} &bull; {ev.academicYearId?.year || (academicYears.find(y => y._id === (ev.academicYearId?._id || ev.academicYearId))?.year) || 'All Years'}
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border-color)', padding: '0.75rem 1.25rem', backgroundColor: '#F8FAFC' }}>
+                <button onClick={() => openEdit(ev)} className="admin-btn-action"><Edit size={13} /> Edit</button>
+                <button onClick={() => handleDelete(ev._id || ev.id)} className="admin-btn-danger"><Trash2 size={13} /> Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showModal && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box">
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.25rem' }}>Add Event</h3>
+          <div className="admin-modal-box" style={{ maxWidth: '640px', width: '92%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
+                {editingEvent ? 'Edit Event' : 'Add Event / Activity'}
+              </h3>
+              <button onClick={() => setShowModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="admin-input-group">
                 <label className="admin-label">Event Title *</label>
-                <input required value={eventForm.title} onChange={e => setEventForm({ ...eventForm, title: e.target.value })} className="admin-input" />
+                <input required value={eventForm.title} onChange={e => setEventForm({ ...eventForm, title: e.target.value })} className="admin-input" placeholder="e.g. World Suicide Prevention Day Seminar" />
               </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">Chapter</label>
+                  <select value={eventForm.unitId} onChange={e => setEventForm({ ...eventForm, unitId: e.target.value })} className="admin-select">
+                    <option value="">All Chapters (Organization-Wide)</option>
+                    {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="admin-label">Academic Year</label>
+                  <select value={eventForm.academicYearId} onChange={e => setEventForm({ ...eventForm, academicYearId: e.target.value })} className="admin-select">
+                    <option value="">All Academic Years</option>
+                    {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                  </select>
+                </div>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label className="admin-label">Date</label>
                   <input type="date" value={eventForm.date} onChange={e => setEventForm({ ...eventForm, date: e.target.value })} className="admin-input" />
                 </div>
                 <div>
+                  <label className="admin-label">Time / Schedule</label>
+                  <input placeholder="e.g. 10:00 AM - 1:00 PM" value={eventForm.time} onChange={e => setEventForm({ ...eventForm, time: e.target.value })} className="admin-input" />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="admin-label">Venue / Location</label>
+                  <input placeholder="e.g. Auditorium, ALIET" value={eventForm.venue} onChange={e => setEventForm({ ...eventForm, venue: e.target.value })} className="admin-input" />
+                </div>
+                <div>
+                  <label className="admin-label">Category</label>
+                  <input placeholder="e.g. Workshop, Seminar, Awareness" value={eventForm.category} onChange={e => setEventForm({ ...eventForm, category: e.target.value })} className="admin-input" />
+                </div>
+              </div>
+
+              <div className="admin-input-group">
+                <label className="admin-label">Status</label>
+                <select value={eventForm.status} onChange={e => setEventForm({ ...eventForm, status: e.target.value })} className="admin-select">
+                  <option value="Upcoming">Upcoming</option>
+                  <option value="Ongoing">Ongoing</option>
+                  <option value="Past">Past / Completed</option>
+                </select>
+              </div>
+
+              {/* Event Image Upload */}
+              <div className="admin-input-group">
+                <label className="admin-label">Event Cover Image (JPG, PNG, WEBP &bull; Max 25MB)</label>
+                {imagePreview ? (
+                  <div style={{ position: 'relative', width: '100%', height: '180px', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #CBD5E1', marginBottom: '0.5rem' }}>
+                    <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', bottom: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                      <label style={{ background: '#0284C7', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                        Replace Image
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg" onChange={handleImageChange} style={{ display: 'none' }} />
+                      </label>
+                      <button type="button" onClick={handleRemoveImage} style={{ background: '#BE123C', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', border: '2px dashed #CBD5E1', borderRadius: '0.5rem', backgroundColor: '#F8FAFC', cursor: 'pointer', textAlign: 'center' }}>
+                    <Upload size={24} color="#0284C7" style={{ marginBottom: '0.5rem' }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>Choose event poster / image to upload</span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>Supports JPG, PNG, WEBP up to 25MB</span>
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg" onChange={handleImageChange} style={{ display: 'none' }} />
+                  </label>
+                )}
+              </div>
+
+              {/* Rich Text Area with Bold Support */}
+              <div className="admin-input-group">
+                <RichTextArea
+                  label="Description & Highlights (Select text and click [B] or press Ctrl+B to bold)"
+                  rows={4}
+                  required={false}
+                  value={eventForm.description}
+                  onChange={e => setEventForm({ ...eventForm, description: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => setShowModal(false)} className="admin-btn-secondary">Cancel</button>
+                <button type="submit" className="admin-btn-primary">Save Event</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 5B. IMPACT & OUTCOMES MODULE (Verified Statistics & Impact Stories)
+// ═════════════════════════════════════════════════════════════════════════════
+function ImpactModule({ toast, units, academicYears }) {
+  const [impacts, setImpacts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingImpact, setEditingImpact] = useState(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [unitFilter, setUnitFilter] = useState('All');
+  const [yearFilter, setYearFilter] = useState('All');
+
+  const [impactForm, setImpactForm] = useState({
+    title: '',
+    metricValue: '',
+    description: '',
+    unitId: '',
+    academicYearId: '',
+    status: 'Published'
+  });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [removeImage, setRemoveImage] = useState(false);
+
+  const loadImpacts = useCallback(() => {
+    setLoading(true);
+    api('/api/impact?all=1')
+      .then(d => { setImpacts(d.data || []); setLoading(false); })
+      .catch(e => { toast(e.message, 'error'); setLoading(false); });
+  }, [toast]);
+
+  useEffect(() => { loadImpacts(); }, [loadImpacts]);
+
+  const openAdd = () => {
+    setEditingImpact(null);
+    setImpactForm({
+      title: '',
+      metricValue: '',
+      description: '',
+      unitId: units[0]?._id || '',
+      academicYearId: academicYears[0]?._id || '',
+      status: 'Published'
+    });
+    setImageFile(null);
+    setImagePreview(null);
+    setRemoveImage(false);
+    setShowModal(true);
+  };
+
+  const openEdit = (imp) => {
+    setEditingImpact(imp);
+    setImpactForm({
+      title: imp.title || '',
+      metricValue: imp.metricValue || '',
+      description: imp.description || '',
+      unitId: imp.unitId?._id || imp.unitId?.id || imp.unitId || units[0]?._id || '',
+      academicYearId: imp.academicYearId?._id || imp.academicYearId?.id || imp.academicYearId || academicYears[0]?._id || '',
+      status: imp.status || 'Published'
+    });
+    setImageFile(null);
+    setImagePreview(imp.poster || null);
+    setRemoveImage(false);
+    setShowModal(true);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type.toLowerCase()) && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+      toast('Please upload a valid image file (JPG, PNG, WEBP).', 'error');
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      toast('Image file size exceeds the 25MB limit.', 'error');
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setRemoveImage(false);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setRemoveImage(true);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!impactForm.title || !impactForm.metricValue) {
+      toast('Title / Metric Label and Impact Number are required.', 'error');
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append('title', impactForm.title);
+      formData.append('metricValue', impactForm.metricValue);
+      formData.append('description', impactForm.description || '');
+      if (impactForm.unitId) formData.append('unitId', impactForm.unitId);
+      if (impactForm.academicYearId) formData.append('academicYearId', impactForm.academicYearId);
+      formData.append('status', impactForm.status || 'Published');
+
+      if (imageFile) {
+        formData.append('poster', imageFile);
+      } else if (removeImage) {
+        formData.append('removePoster', 'true');
+      }
+
+      if (editingImpact) {
+        await api(`/api/impact/${editingImpact._id || editingImpact.id}`, { method: 'PUT', body: formData });
+        toast('Impact metric updated successfully.');
+      } else {
+        await api('/api/impact', { method: 'POST', body: formData });
+        toast('Impact metric recorded successfully.');
+      }
+      setShowModal(false);
+      loadImpacts();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this impact outcome?')) return;
+    try {
+      await api(`/api/impact/${id}`, { method: 'DELETE' });
+      toast('Impact metric deleted.');
+      loadImpacts();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const filtered = impacts.filter(imp => {
+    if (statusFilter !== 'All' && (imp.status || 'Published').toLowerCase() !== statusFilter.toLowerCase()) return false;
+    if (unitFilter !== 'All') {
+      const uId = imp.unitId?._id || imp.unitId?.id || imp.unitId;
+      if (uId !== unitFilter) return false;
+    }
+    if (yearFilter !== 'All') {
+      const yId = imp.academicYearId?._id || imp.academicYearId?.id || imp.academicYearId;
+      if (yId !== yearFilter) return false;
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const match = (imp.title || '').toLowerCase().includes(q) ||
+                    (imp.metricValue || '').toLowerCase().includes(q) ||
+                    (imp.description || '').toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  return (
+    <div>
+      <div className="admin-module-header">
+        <div>
+          <h1 className="admin-module-title">Impact Metrics &amp; Verified Outcomes</h1>
+          <p className="admin-module-subtitle">Record quantitative achievements, lives touched, and ground impact metrics.</p>
+        </div>
+        <button onClick={openAdd} className="admin-btn-primary">
+          <Plus size={16} /> Add Impact Metric
+        </button>
+      </div>
+
+      {/* Filter Bar */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', minWidth: '220px', flex: '1 1 200px' }}>
+          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+          <input
+            type="text"
+            placeholder="Search impact..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="admin-input"
+            style={{ paddingLeft: '2.25rem', height: '38px', fontSize: '0.85rem' }}
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="admin-select"
+          style={{ width: 'auto', minWidth: '130px', height: '38px', fontSize: '0.85rem' }}
+        >
+          <option value="All">All Statuses</option>
+          <option value="Published">Published</option>
+          <option value="Draft">Draft</option>
+        </select>
+        <select
+          value={unitFilter}
+          onChange={e => setUnitFilter(e.target.value)}
+          className="admin-select"
+          style={{ width: 'auto', minWidth: '150px', height: '38px', fontSize: '0.85rem' }}
+        >
+          <option value="All">All Chapters</option>
+          {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
+        </select>
+        <select
+          value={yearFilter}
+          onChange={e => setYearFilter(e.target.value)}
+          className="admin-select"
+          style={{ width: 'auto', minWidth: '140px', height: '38px', fontSize: '0.85rem' }}
+        >
+          <option value="All">All Academic Years</option>
+          {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+        </select>
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+          No impact metrics recorded. Click "+ Add Impact Metric" to add verified statistics.
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+          {filtered.map(imp => (
+            <div key={imp._id || imp.id} className="admin-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden', padding: 0 }}>
+              {imp.poster && (
+                <div style={{ width: '100%', height: '150px', overflow: 'hidden', backgroundColor: '#0F172A', position: 'relative' }}>
+                  <img src={imp.poster} alt={imp.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              )}
+              <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '1.875rem', fontWeight: 900, color: 'var(--primary-blue)', lineHeight: 1 }}>
+                    {imp.metricValue}
+                  </span>
+                  <span className={`admin-badge ${imp.status === 'Published' ? 'badge-active' : 'badge-pending'}`}>
+                    {imp.status || 'Published'}
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                  {imp.title}
+                </h3>
+                <div style={{ fontSize: '0.85rem', color: '#64748B', lineHeight: 1.6, flex: 1, marginBottom: '0.75rem' }}>
+                  <FormattedText text={imp.description || 'No detailed description.'} />
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>
+                  {imp.unitId?.name || (units.find(u => u._id === (imp.unitId?._id || imp.unitId))?.name) || 'All Chapters'} &bull; {imp.academicYearId?.year || (academicYears.find(y => y._id === (imp.academicYearId?._id || imp.academicYearId))?.year) || 'All Years'}
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border-color)', padding: '0.75rem 1.25rem', backgroundColor: '#F8FAFC' }}>
+                <button onClick={() => openEdit(imp)} className="admin-btn-action"><Edit size={13} /> Edit</button>
+                <button onClick={() => handleDelete(imp._id || imp.id)} className="admin-btn-danger"><Trash2 size={13} /> Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box" style={{ maxWidth: '640px', width: '92%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
+                {editingImpact ? 'Edit Impact Metric' : 'Add Impact Metric'}
+              </h3>
+              <button onClick={() => setShowModal(false)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
+                <div className="admin-input-group">
+                  <label className="admin-label">Metric Value *</label>
+                  <input required value={impactForm.metricValue} onChange={e => setImpactForm({ ...impactForm, metricValue: e.target.value })} className="admin-input" placeholder="e.g. 21+, 500+, 100%" />
+                </div>
+                <div className="admin-input-group">
+                  <label className="admin-label">Impact Label / Metric Title *</label>
+                  <input required value={impactForm.title} onChange={e => setImpactForm({ ...impactForm, title: e.target.value })} className="admin-input" placeholder="e.g. People Supported" />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
                   <label className="admin-label">Chapter</label>
-                  <select value={eventForm.unitId} onChange={e => setEventForm({ ...eventForm, unitId: e.target.value })} className="admin-select">
+                  <select value={impactForm.unitId} onChange={e => setImpactForm({ ...impactForm, unitId: e.target.value })} className="admin-select">
+                    <option value="">All Chapters (Organization-Wide)</option>
                     {units.map(u => <option key={u._id} value={u._id}>{u.name}</option>)}
                   </select>
                 </div>
+                <div>
+                  <label className="admin-label">Academic Year</label>
+                  <select value={impactForm.academicYearId} onChange={e => setImpactForm({ ...impactForm, academicYearId: e.target.value })} className="admin-select">
+                    <option value="">All Academic Years</option>
+                    {academicYears.map(y => <option key={y._id} value={y._id}>{y.year}</option>)}
+                  </select>
+                </div>
               </div>
+
               <div className="admin-input-group">
-                <label className="admin-label">Venue / Location</label>
-                <input placeholder="e.g. Auditorium, ALIET" value={eventForm.venue} onChange={e => setEventForm({ ...eventForm, venue: e.target.value })} className="admin-input" />
+                <label className="admin-label">Status</label>
+                <select value={impactForm.status} onChange={e => setImpactForm({ ...impactForm, status: e.target.value })} className="admin-select">
+                  <option value="Published">Published</option>
+                  <option value="Draft">Draft</option>
+                </select>
               </div>
+
+              {/* Impact Image Upload */}
               <div className="admin-input-group">
-                <label className="admin-label">Description &amp; Impact</label>
-                <textarea rows={3} value={eventForm.description} onChange={e => setEventForm({ ...eventForm, description: e.target.value })} className="admin-textarea" />
+                <label className="admin-label">Supporting Evidence / Impact Image (JPG, PNG, WEBP &bull; Max 25MB)</label>
+                {imagePreview ? (
+                  <div style={{ position: 'relative', width: '100%', height: '180px', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #CBD5E1', marginBottom: '0.5rem' }}>
+                    <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', bottom: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                      <label style={{ background: '#0284C7', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                        Replace Image
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg" onChange={handleImageChange} style={{ display: 'none' }} />
+                      </label>
+                      <button type="button" onClick={handleRemoveImage} style={{ background: '#BE123C', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', border: '2px dashed #CBD5E1', borderRadius: '0.5rem', backgroundColor: '#F8FAFC', cursor: 'pointer', textAlign: 'center' }}>
+                    <Upload size={24} color="#0284C7" style={{ marginBottom: '0.5rem' }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>Choose impact evidence photo (optional)</span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>Supports JPG, PNG, WEBP up to 25MB</span>
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg" onChange={handleImageChange} style={{ display: 'none' }} />
+                  </label>
+                )}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+
+              {/* Rich Text Area with Bold Support */}
+              <div className="admin-input-group">
+                <RichTextArea
+                  label="Description & Narrative (Select text and click [B] or press Ctrl+B to bold)"
+                  rows={4}
+                  required={true}
+                  value={impactForm.description}
+                  onChange={e => setImpactForm({ ...impactForm, description: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setShowModal(false)} className="admin-btn-secondary">Cancel</button>
-                <button type="submit" className="admin-btn-primary">Save Event</button>
+                <button type="submit" className="admin-btn-primary">Save Metric</button>
               </div>
             </form>
           </div>
