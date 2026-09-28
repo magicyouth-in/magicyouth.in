@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /member/dashboard
+Disallow: /api/
+
+Sitemap: https://magicyouth.org/sitemap.xml
