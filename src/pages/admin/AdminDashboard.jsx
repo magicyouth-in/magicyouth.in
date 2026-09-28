@@ -146,6 +146,14 @@ export default function AdminDashboard() {
       ]
     },
     {
+      group: 'MEMBER PORTAL',
+      items: [
+        { id: 'members',           label: 'Members',            icon: User },
+        { id: 'member-announce',   label: 'Announcements',      icon: Globe },
+        { id: 'member-certs',      label: 'Certificates',       icon: GraduationCap },
+      ]
+    },
+    {
       group: 'APPLICATIONS',
       items: [
         { id: 'join-apps',    label: 'Join MAGIC Apps',    icon: HeartHandshake },
@@ -289,6 +297,9 @@ export default function AdminDashboard() {
           {activeTab === 'academic-years' && <AcademicYearsModule toast={showToast} units={units} refreshYears={fetchGlobalData} />}
           {activeTab === 'users'          && <UsersModule toast={showToast} units={units} admin={admin} />}
           {activeTab === 'settings'       && <SettingsModule toast={showToast} admin={admin} units={units} />}
+          {activeTab === 'members'        && <AdminMembersModule toast={showToast} units={units} admin={admin} />}
+          {activeTab === 'member-announce' && <AdminMemberAnnouncementsModule toast={showToast} units={units} admin={admin} />}
+          {activeTab === 'member-certs'   && <AdminMemberCertificatesModule toast={showToast} units={units} admin={admin} />}
         </div>
       </div>
     </div>
@@ -4134,6 +4145,520 @@ function SettingsModule({ toast, admin }) {
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ADMIN MEMBERS MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function AdminMembersModule({ toast, units, admin }) {
+  const [members, setMembers]   = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [search, setSearch]     = useState('');
+  const [filterUnit, setFUnit]  = useState('');
+  const [filterStatus, setFSt]  = useState('');
+  const [page, setPage]         = useState(1);
+  const [total, setTotal]       = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [tempPwd, setTempPwd]   = useState('');
+  const [showApproval, setShowApproval] = useState(null);
+
+  const limit = 20;
+
+  async function load() {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page, limit });
+      if (search)       params.set('search', search);
+      if (filterUnit)   params.set('unitId', filterUnit);
+      if (filterStatus) params.set('status', filterStatus);
+      const d = await api(`/api/members?${params}`);
+      if (d.success) { setMembers(d.data); setTotal(d.pagination?.total || 0); }
+    } catch (e) { toast(e.message, 'error'); }
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, [page, filterUnit, filterStatus]);
+
+  async function handleSearch(e) {
+    e.preventDefault();
+    setPage(1);
+    load();
+  }
+
+  async function changeStatus(memberId, status) {
+    try {
+      await api(`/api/members/${memberId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      toast(`Member ${status.toLowerCase()} successfully.`);
+      load();
+      setSelected(null);
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function resetPassword(memberId) {
+    try {
+      const d = await api(`/api/members/${memberId}/reset-password`, { method: 'POST' });
+      setTempPwd(d.tempPassword);
+      toast('Password reset. Share the temporary password securely.');
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  // Approve pending join request
+  async function approveApplication(joinRequestId) {
+    try {
+      const d = await api(`/api/members/approve/${joinRequestId}`, { method: 'POST' });
+      toast(`Member created. ID: ${d.data.memberId}`);
+      setShowApproval({ memberId: d.data.memberId, tempPwd: d.data.tempPassword });
+      load();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  const statusColor = { Active: '#166534', Suspended: '#C2410C', Expired: '#475569', Deactivated: '#BE123C' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Approval result modal */}
+      {showApproval && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="admin-card" style={{ maxWidth: 480, width: '100%' }}>
+            <h3 style={{ marginBottom: '1rem', color: '#166534' }}>✓ Member Account Created</h3>
+            <div style={{ background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
+              <div style={{ marginBottom: '0.5rem' }}><strong>Member ID:</strong> <code style={{ background: '#DCFCE7', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontFamily: 'monospace' }}>{showApproval.memberId}</code></div>
+              <div><strong>Temporary Password:</strong> <code style={{ background: '#DCFCE7', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontFamily: 'monospace' }}>{showApproval.tempPwd}</code></div>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: '#DC2626', marginBottom: '1rem' }}>⚠ Share this password securely. It will not be shown again.</p>
+            <button className="admin-btn-primary" onClick={() => setShowApproval(null)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* Password reset modal */}
+      {tempPwd && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="admin-card" style={{ maxWidth: 420, width: '100%' }}>
+            <h3 style={{ marginBottom: '1rem' }}>Temporary Password</h3>
+            <code style={{ display: 'block', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '0.5rem', padding: '1rem', fontSize: '1.125rem', letterSpacing: '0.1em', marginBottom: '1rem', textAlign: 'center' }}>{tempPwd}</code>
+            <p style={{ fontSize: '0.8rem', color: '#DC2626', marginBottom: '1rem' }}>Share this securely. The member should change it after first login.</p>
+            <button className="admin-btn-primary" onClick={() => setTempPwd('')}>Done</button>
+          </div>
+        </div>
+      )}
+
+      {/* Member detail modal */}
+      {selected && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', overflowY: 'auto' }}>
+          <div className="admin-card" style={{ maxWidth: 560, width: '100%', margin: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0 }}>Member Details</h3>
+              <button onClick={() => setSelected(null)} className="admin-btn-action"><X size={18} /></button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
+              {[
+                ['Member ID', selected.memberId],
+                ['Name', selected.name],
+                ['Email', selected.email],
+                ['Phone', selected.phone],
+                ['Unit', selected.unitName],
+                ['College', selected.college],
+                ['Department', selected.department],
+                ['Year', selected.year],
+                ['Status', selected.status],
+                ['Role', selected.roleLabel],
+                ['Joined', selected.joinedAt ? new Date(selected.joinedAt).toLocaleDateString() : '—'],
+              ].map(([k, v]) => (
+                <div key={k} style={{ gridColumn: k === 'Email' || k === 'College' ? 'span 2' : undefined }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748B', marginBottom: '0.2rem' }}>{k.toUpperCase()}</div>
+                  <div style={{ color: '#0F172A' }}>{v || '—'}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              {selected.status !== 'Active'      && <button className="admin-btn-primary" onClick={() => changeStatus(selected.id, 'Active')}>Activate</button>}
+              {selected.status === 'Active'      && <button className="admin-btn-secondary" style={{ color: '#C2410C' }} onClick={() => changeStatus(selected.id, 'Suspended')}>Suspend</button>}
+              {selected.status !== 'Deactivated' && <button className="admin-btn-secondary" style={{ color: '#BE123C' }} onClick={() => changeStatus(selected.id, 'Deactivated')}>Deactivate</button>}
+              <button className="admin-btn-secondary" onClick={() => resetPassword(selected.id)}><RefreshCw size={13} /> Reset Password</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Members</h2>
+          <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#64748B' }}>{total} member{total !== 1 ? 's' : ''} registered</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="admin-card" style={{ padding: '1rem' }}>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ flex: 2, minWidth: '200px' }}>
+            <label className="admin-label">Search</label>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, email, Member ID…" className="admin-input" />
+          </div>
+          <div style={{ minWidth: '160px' }}>
+            <label className="admin-label">Unit</label>
+            <select value={filterUnit} onChange={e => { setFUnit(e.target.value); setPage(1); }} className="admin-input">
+              <option value="">All Units</option>
+              {units.map(u => <option key={u.id || u._id} value={u.id || u._id}>{u.name}</option>)}
+            </select>
+          </div>
+          <div style={{ minWidth: '140px' }}>
+            <label className="admin-label">Status</label>
+            <select value={filterStatus} onChange={e => { setFSt(e.target.value); setPage(1); }} className="admin-input">
+              <option value="">All Status</option>
+              {['Active','Suspended','Expired','Deactivated'].map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <button type="submit" className="admin-btn-primary"><Search size={15} /> Search</button>
+        </form>
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={32} className="animate-spin" color="var(--primary-blue)" /></div>
+      ) : members.length === 0 ? (
+        <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>No members found. Approve a join application to create a member account.</div>
+      ) : (
+        <div className="admin-card" style={{ padding: 0, overflow: 'auto' }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Member ID</th>
+                <th>Name</th>
+                <th>Unit</th>
+                <th>College</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {members.map(m => (
+                <tr key={m.id}>
+                  <td><code style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--primary-blue)' }}>{m.memberId}</code></td>
+                  <td style={{ fontWeight: 600 }}>{m.name}</td>
+                  <td>{m.unitName || '—'}</td>
+                  <td>{m.college}</td>
+                  <td>
+                    <span style={{ background: m.status === 'Active' ? '#DCFCE7' : '#FFF1F2', color: statusColor[m.status] || '#475569', fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px' }}>
+                      {m.status}
+                    </span>
+                  </td>
+                  <td style={{ color: '#64748B', fontSize: '0.8rem' }}>{m.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : '—'}</td>
+                  <td>
+                    <button className="admin-btn-action" onClick={() => setSelected(m)}><Eye size={15} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {/* Pagination */}
+          {total > limit && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', padding: '1rem' }}>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="admin-btn-secondary">← Prev</button>
+              <span style={{ padding: '0.5rem 1rem', fontSize: '0.875rem', color: '#475569' }}>Page {page} of {Math.ceil(total / limit)}</span>
+              <button onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(total / limit)} className="admin-btn-secondary">Next →</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ADMIN MEMBER ANNOUNCEMENTS MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function AdminMemberAnnouncementsModule({ toast, units, admin }) {
+  const [items, setItems]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing]   = useState(null);
+  const [form, setForm] = useState({ title: '', content: '', priority: 'normal', unitId: '', isGlobal: false, isActive: true });
+
+  async function load() {
+    setLoading(true);
+    try {
+      const d = await api('/api/unit-announcements');
+      if (d.success) setItems(d.data || []);
+    } catch (e) { toast(e.message, 'error'); }
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  function openNew() {
+    setForm({ title: '', content: '', priority: 'normal', unitId: units[0]?.id || units[0]?._id || '', isGlobal: false, isActive: true });
+    setEditing(null);
+    setShowForm(true);
+  }
+
+  function openEdit(item) {
+    setForm({ title: item.title, content: item.content || '', priority: item.priority, unitId: item.unit_id || '', isGlobal: item.is_global, isActive: item.is_active });
+    setEditing(item);
+    setShowForm(true);
+  }
+
+  async function handleSave() {
+    try {
+      const body = { ...form };
+      if (editing) {
+        await api(`/api/unit-announcements/${editing.id}`, { method: 'PUT', body: JSON.stringify(body) });
+        toast('Announcement updated.');
+      } else {
+        await api('/api/unit-announcements', { method: 'POST', body: JSON.stringify(body) });
+        toast('Announcement created.');
+      }
+      setShowForm(false);
+      load();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm('Delete this announcement?')) return;
+    try {
+      await api(`/api/unit-announcements/${id}`, { method: 'DELETE' });
+      toast('Announcement deleted.');
+      load();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  const priorityBg = { high: '#FFF7ED', normal: '#EFF6FF', low: '#F0FDF4' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {showForm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="admin-card" style={{ maxWidth: 520, width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0 }}>{editing ? 'Edit' : 'New'} Announcement</h3>
+              <button onClick={() => setShowForm(false)} className="admin-btn-action"><X size={18} /></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="admin-input-group">
+                <label className="admin-label">Title *</label>
+                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="admin-input" placeholder="Announcement title" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Content</label>
+                <textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} className="admin-input" rows={4} placeholder="Announcement body…" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="admin-input-group">
+                  <label className="admin-label">Priority</label>
+                  <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))} className="admin-input">
+                    <option value="high">High</option>
+                    <option value="normal">Normal</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                <div className="admin-input-group">
+                  <label className="admin-label">Unit</label>
+                  <select value={form.unitId} onChange={e => setForm(f => ({ ...f, unitId: e.target.value }))} className="admin-input">
+                    <option value="">— Select Unit —</option>
+                    {units.map(u => <option key={u.id || u._id} value={u.id || u._id}>{u.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              {admin?.role === 'MAIN_ADMIN' && (
+                <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', cursor: 'pointer', fontSize: '0.875rem' }}>
+                  <input type="checkbox" checked={form.isGlobal} onChange={e => setForm(f => ({ ...f, isGlobal: e.target.checked }))} />
+                  Mark as Global (visible to all units)
+                </label>
+              )}
+              <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', cursor: 'pointer', fontSize: '0.875rem' }}>
+                <input type="checkbox" checked={form.isActive} onChange={e => setForm(f => ({ ...f, isActive: e.target.checked }))} />
+                Active (visible to members)
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button className="admin-btn-primary" onClick={handleSave}>{editing ? 'Update' : 'Create'}</button>
+              <button className="admin-btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Member Announcements</h2>
+          <p style={{ margin: '0.25rem 0 0', color: '#64748B', fontSize: '0.875rem' }}>Publish notices to your members by unit.</p>
+        </div>
+        <button className="admin-btn-primary" onClick={openNew}><Plus size={15} /> New Announcement</button>
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={32} className="animate-spin" color="var(--primary-blue)" /></div>
+      ) : items.length === 0 ? (
+        <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>No announcements yet. Create one to notify your members.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+          {items.map(item => (
+            <div key={item.id} className="admin-card" style={{ borderLeft: `4px solid ${item.priority === 'high' ? '#EA580C' : item.priority === 'low' ? '#16A34A' : '#0284C7'}`, padding: '1rem 1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '0.9375rem', fontWeight: 700 }}>{item.title}</h3>
+                    <span style={{ background: priorityBg[item.priority], fontSize: '0.7rem', padding: '0.1rem 0.5rem', borderRadius: '999px', fontWeight: 700 }}>{item.priority}</span>
+                    {item.is_global && <span style={{ background: '#1E3A5F', color: '#fff', fontSize: '0.7rem', padding: '0.1rem 0.5rem', borderRadius: '999px', fontWeight: 700 }}>Global</span>}
+                    {!item.is_active && <span style={{ background: '#F1F5F9', color: '#64748B', fontSize: '0.7rem', padding: '0.1rem 0.5rem', borderRadius: '999px' }}>Inactive</span>}
+                  </div>
+                  {item.content && <p style={{ margin: 0, fontSize: '0.8125rem', color: '#475569' }}>{item.content}</p>}
+                  <div style={{ marginTop: '0.4rem', fontSize: '0.75rem', color: '#94A3B8' }}>
+                    {item.units?.name || 'No unit'} · {new Date(item.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                  <button className="admin-btn-action" onClick={() => openEdit(item)}><Edit size={15} /></button>
+                  <button className="admin-btn-action" style={{ color: '#DC2626' }} onClick={() => handleDelete(item.id)}><Trash2 size={15} /></button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ADMIN MEMBER CERTIFICATES MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function AdminMemberCertificatesModule({ toast, units, admin }) {
+  const [certs, setCerts]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm]         = useState({ memberId: '', title: '', description: '', eventId: '' });
+  const [certFile, setCertFile] = useState(null);
+  const [saving, setSaving]     = useState(false);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const d = await api('/api/member/certificates');
+      if (d.success) setCerts(d.data || []);
+    } catch (e) { toast(e.message, 'error'); }
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleIssue(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const fd = new FormData();
+      fd.append('memberId',    form.memberId);
+      fd.append('title',       form.title);
+      fd.append('description', form.description);
+      if (form.eventId) fd.append('eventId', form.eventId);
+      if (certFile)    fd.append('certificate', certFile);
+
+      const res  = await fetch('/api/member/certificates', { method: 'POST', credentials: 'include', body: fd });
+      const data = await res.json();
+      if (data.success) {
+        toast('Certificate issued successfully.');
+        setShowForm(false);
+        setForm({ memberId: '', title: '', description: '', eventId: '' });
+        setCertFile(null);
+        load();
+      } else {
+        throw new Error(data.message || 'Failed.');
+      }
+    } catch (err) { toast(err.message, 'error'); }
+    setSaving(false);
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm('Delete this certificate?')) return;
+    try {
+      await api(`/api/member/certificates/${id}`, { method: 'DELETE' });
+      toast('Deleted.');
+      load();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {showForm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="admin-card" style={{ maxWidth: 520, width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0 }}>Issue Certificate</h3>
+              <button onClick={() => setShowForm(false)} className="admin-btn-action"><X size={18} /></button>
+            </div>
+            <form onSubmit={handleIssue} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="admin-input-group">
+                <label className="admin-label">Member ID (database UUID) *</label>
+                <input required value={form.memberId} onChange={e => setForm(f => ({ ...f, memberId: e.target.value }))} className="admin-input" placeholder="Member's database UUID" />
+                <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Find the ID in the Members table above.</span>
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Certificate Title *</label>
+                <input required value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="admin-input" placeholder="e.g. Certificate of Participation" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Description</label>
+                <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="admin-input" rows={3} placeholder="Event name, date, or notes…" />
+              </div>
+              <div className="admin-input-group">
+                <label className="admin-label">Certificate File (PDF or image)</label>
+                <input type="file" accept=".pdf,image/*" onChange={e => setCertFile(e.target.files[0])} className="admin-input" />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button type="submit" className="admin-btn-primary" disabled={saving}>{saving ? 'Issuing…' : 'Issue Certificate'}</button>
+                <button type="button" className="admin-btn-secondary" onClick={() => setShowForm(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Member Certificates</h2>
+          <p style={{ margin: '0.25rem 0 0', color: '#64748B', fontSize: '0.875rem' }}>Issue and manage digital certificates for members.</p>
+        </div>
+        <button className="admin-btn-primary" onClick={() => setShowForm(true)}><Plus size={15} /> Issue Certificate</button>
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={32} className="animate-spin" color="var(--primary-blue)" /></div>
+      ) : certs.length === 0 ? (
+        <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>No certificates issued yet.</div>
+      ) : (
+        <div className="admin-card" style={{ padding: 0, overflow: 'auto' }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Member</th>
+                <th>Event</th>
+                <th>Issued</th>
+                <th>File</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {certs.map(c => (
+                <tr key={c.id}>
+                  <td style={{ fontWeight: 600 }}>{c.title}</td>
+                  <td>{c.members?.name} <span style={{ color: '#94A3B8', fontSize: '0.75rem' }}>({c.members?.member_id})</span></td>
+                  <td>{c.events?.title || '—'}</td>
+                  <td style={{ color: '#64748B', fontSize: '0.8rem' }}>{new Date(c.issued_at).toLocaleDateString()}</td>
+                  <td>{c.file_url ? <a href={c.file_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-blue)' }}><ExternalLink size={15} /></a> : '—'}</td>
+                  <td>
+                    <button className="admin-btn-action" style={{ color: '#DC2626' }} onClick={() => handleDelete(c.id)}><Trash2 size={15} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

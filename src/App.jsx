@@ -23,6 +23,11 @@ const Terms         = React.lazy(() => import('./pages/Terms'));
 const AdminLogin     = React.lazy(() => import('./pages/admin/AdminLogin'));
 const AdminDashboard = React.lazy(() => import('./pages/admin/AdminDashboard'));
 
+// Member Portal
+const MemberLogin     = React.lazy(() => import('./pages/member/MemberLogin'));
+const MemberDashboard = React.lazy(() => import('./pages/member/MemberDashboard'));
+const MemberVerify    = React.lazy(() => import('./pages/MemberVerify'));
+
 function PageFallback() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -71,6 +76,14 @@ export default function App() {
         <Route path="/admin/login"     element={<Suspense fallback={<PageFallback />}><AdminLogin /></Suspense>} />
         <Route path="/admin/dashboard" element={<Suspense fallback={<PageFallback />}><AdminDashboard /></Suspense>} />
         <Route path="/admin"           element={<Navigate to="/admin/dashboard" replace />} />
+
+        {/* 🪪 MEMBER PORTAL – independent layout 🪪 */}
+        <Route path="/member/login"     element={<Suspense fallback={<PageFallback />}><MemberLogin /></Suspense>} />
+        <Route path="/member/dashboard" element={<Suspense fallback={<PageFallback />}><MemberDashboard /></Suspense>} />
+        <Route path="/member"           element={<Navigate to="/member/dashboard" replace />} />
+
+        {/* 🔍 PUBLIC VERIFICATION 🔍 */}
+        <Route path="/verify-member/:memberId" element={<Suspense fallback={<PageFallback />}><MemberVerify /></Suspense>} />
 
         {/* 🌐 PUBLIC ROUTES – wrapped in PublicLayout 🌐 */}
         <Route path="/"              element={<PublicLayout><Home          /></PublicLayout>} />

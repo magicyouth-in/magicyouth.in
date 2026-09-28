@@ -82,6 +82,13 @@ app.use('/api/announcements',  require('./routes/announcements'));
 app.use('/api/about',          require('./routes/about'));
 app.use('/api/timeline',       require('./routes/timeline'));
 
+// ─── MEMBER PORTAL ROUTES ──────────────────────────────────────────────────────
+app.use('/api/member/auth',          require('./routes/member-auth'));
+app.use('/api/members',              require('./routes/members'));
+app.use('/api/member/events',        require('./routes/member-events'));
+app.use('/api/unit-announcements',   require('./routes/unit-announcements'));
+app.use('/api/member/certificates',  require('./routes/member-certificates'));
+
 // ─── DASHBOARD STATS API ──────────────────────────────────────────────────────
 const { authenticateAdmin, requireAnyAdmin } = require('./middleware/auth');
 const AdminUser     = require('./database/models/AdminUser');
