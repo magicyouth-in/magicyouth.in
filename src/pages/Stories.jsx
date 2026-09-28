@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, X, Sparkles, Loader2, BookOpen, CalendarDays, MapPin } from 'lucide-react';
+import FormattedText from '../components/common/FormattedText';
 import '../styles/home.css';
 
 export default function Stories() {
@@ -230,13 +231,13 @@ export default function Stories() {
               </div>
 
               <h2 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#0F172A', lineHeight: 1.3, marginBottom: '0.5rem' }}>
-                {selectedStory.title}
+                <FormattedText text={selectedStory.title} />
               </h2>
 
               {selectedStory.subtitle && (
-                <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-blue)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
-                  {selectedStory.subtitle}
-                </p>
+                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-blue)', marginBottom: '1.25rem', lineHeight: 1.5 }}>
+                  <FormattedText text={selectedStory.subtitle} />
+                </div>
               )}
 
               {selectedStory.impact && (
@@ -244,7 +245,7 @@ export default function Stories() {
                   <Sparkles size={16} style={{ flexShrink: 0, marginTop: '2px', color: '#15803D' }} />
                   <div>
                     <div style={{ fontWeight: 800, color: '#15803D', marginBottom: '0.15rem' }}>Impact Highlight</div>
-                    <div>{selectedStory.impact}</div>
+                    <div><FormattedText text={selectedStory.impact} /></div>
                   </div>
                 </div>
               )}
@@ -260,15 +261,7 @@ export default function Stories() {
               </div>
 
               <div style={{ color: '#334155', fontSize: '1rem', lineHeight: 1.8, marginBottom: '2rem' }}>
-                {selectedStory.fullStory ? (
-                  selectedStory.fullStory.split('\n').filter(Boolean).map((paragraph, pIdx) => (
-                    <p key={pIdx} style={{ marginBottom: '1rem' }}>
-                      {paragraph}
-                    </p>
-                  ))
-                ) : (
-                  <p>"{selectedStory.excerpt}"</p>
-                )}
+                <FormattedText text={selectedStory.fullStory || selectedStory.excerpt} paragraphs={true} />
               </div>
 
               <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>

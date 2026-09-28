@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, Loader2, Sparkles, X, ChevronRight } from 'lucide-react';
+import FormattedText from '../components/common/FormattedText';
 import '../styles/home.css';
 import '../styles/teams.css';
 
@@ -13,6 +14,11 @@ export default function Teams() {
   const [selectedUnit, setSelectedUnit] = useState('All');
   const [selectedYear, setSelectedYear] = useState('All');
   const [selectedMember, setSelectedMember] = useState(null);
+
+  const getCleanName = (name) => {
+    if (!name) return '';
+    return name.replace(/^(mr\.|mrs\.|ms\.|sir|mam|dr\.)\s+/i, '').trim();
+  };
 
   useEffect(() => {
     Promise.all([
@@ -241,16 +247,16 @@ export default function Teams() {
                                 >
                                   <div className="member-avatar-box" style={{ width: '100px', height: '100px', marginBottom: '1rem' }}>
                                     {animator.photo ? (
-                                      <img src={animator.photo} alt={animator.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      <img src={animator.photo} alt={getCleanName(animator.name)} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
                                       <div className="member-avatar-initials" style={{ fontSize: '1.5rem' }}>
-                                        {getInitials(animator.name)}
+                                        {getInitials(getCleanName(animator.name))}
                                       </div>
                                     )}
                                   </div>
 
                                   <h4 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 0.25rem' }}>
-                                    {animator.name}
+                                    {getCleanName(animator.name)}
                                   </h4>
 
                                   <div className="member-role-badge" style={{ fontSize: '0.8rem', marginBottom: '0.35rem' }}>
@@ -296,21 +302,21 @@ export default function Teams() {
                                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMemberProfile(member, team); } }}
                                   tabIndex={0}
                                   role="button"
-                                  aria-label={`View full profile for ${member.name}`}
+                                  aria-label={`View full profile for ${getCleanName(member.name)}`}
                                   className="team-member-card-5col"
                                 >
                                   <div className="member-avatar-box">
                                     {member.photo ? (
-                                      <img src={member.photo} alt={member.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      <img src={member.photo} alt={getCleanName(member.name)} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
                                       <div className="member-avatar-initials">
-                                        {getInitials(member.name)}
+                                        {getInitials(getCleanName(member.name))}
                                       </div>
                                     )}
                                   </div>
 
                                   <h4 className="member-name-heading">
-                                    {member.name}
+                                    {getCleanName(member.name)}
                                   </h4>
 
                                   <div className="member-role-badge">
@@ -356,21 +362,21 @@ export default function Teams() {
                                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMemberProfile(member, team); } }}
                                   tabIndex={0}
                                   role="button"
-                                  aria-label={`View full profile for ${member.name}`}
+                                  aria-label={`View full profile for ${getCleanName(member.name)}`}
                                   className="team-member-card-5col"
                                 >
                                   <div className="member-avatar-box">
                                     {member.photo ? (
-                                      <img src={member.photo} alt={member.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      <img src={member.photo} alt={getCleanName(member.name)} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
                                       <div className="member-avatar-initials">
-                                        {getInitials(member.name)}
+                                        {getInitials(getCleanName(member.name))}
                                       </div>
                                     )}
                                   </div>
 
                                   <h4 className="member-name-heading">
-                                    {member.name}
+                                    {getCleanName(member.name)}
                                   </h4>
 
                                   <div className="member-role-badge">
@@ -445,18 +451,18 @@ export default function Teams() {
                   {selectedMember.photo ? (
                     <img 
                       src={selectedMember.photo} 
-                      alt={selectedMember.name} 
+                      alt={getCleanName(selectedMember.name)} 
                       className="profile-modal-avatar-img" 
                     />
                   ) : (
                     <div className="profile-modal-avatar-initials">
-                      {getInitials(selectedMember.name)}
+                      {getInitials(getCleanName(selectedMember.name))}
                     </div>
                   )}
                 </div>
 
                 <h3 id="profile-modal-name" className="profile-modal-name">
-                  {selectedMember.name}
+                  {getCleanName(selectedMember.name)}
                 </h3>
 
                 <div className="profile-modal-role">
@@ -485,9 +491,9 @@ export default function Teams() {
                       <div className="profile-modal-section-title">
                         <Sparkles size={13} style={{ color: 'var(--primary-blue)' }} /> EXPERIENCE &amp; PROFILE DETAILS
                       </div>
-                      <p className="profile-modal-text">
-                        {selectedMember.experience || selectedMember.biography}
-                      </p>
+                      <div className="profile-modal-text">
+                        <FormattedText text={selectedMember.experience || selectedMember.biography} paragraphs={true} />
+                      </div>
                     </div>
                   </>
                 )}

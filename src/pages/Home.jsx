@@ -6,6 +6,7 @@ import {
   ChevronDown, BookOpen, Leaf, Sparkles, Rocket, 
   Globe, Shield, CheckCircle2, Building, MessageSquare, Compass, X
 } from 'lucide-react';
+import FormattedText from '../components/common/FormattedText';
 import '../styles/home.css';
 
 export default function Home() {
@@ -679,7 +680,7 @@ export default function Home() {
             }
 
             return (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
                 {displayedPrograms.map((prog, i) => {
                   const catLower = (prog.category || '').toLowerCase();
                   let IconComp = BookOpen;
@@ -690,30 +691,42 @@ export default function Home() {
                   return (
                     <motion.div 
                       key={prog._id || prog.id || i} 
-                      style={{ backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', padding: '2.5rem 1.75rem', borderRadius: '1rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}
+                      style={{ backgroundColor: '#FFFFFF', border: '1px solid var(--border-color)', borderRadius: '1rem', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
                       initial="hidden" 
                       whileInView="visible" 
                       viewport={{ once: true }} 
                       variants={fadeUp} 
                       transition={{ delay: i * 0.08 }}
                     >
-                      <div>
-                        <div style={{ width: '42px', height: '42px', borderRadius: '0.5rem', backgroundColor: 'white', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
-                          <IconComp size={20} style={{ color: 'var(--primary-blue)' }} />
+                      {prog.poster && (
+                        <div style={{ width: '100%', height: '170px', overflow: 'hidden', backgroundColor: '#0F172A' }}>
+                          <img src={prog.poster} alt={prog.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
+                      )}
+                      <div style={{ padding: '1.75rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                        {!prog.poster && (
+                          <div style={{ width: '42px', height: '42px', borderRadius: '0.5rem', backgroundColor: '#F8FAFC', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
+                            <IconComp size={20} style={{ color: 'var(--primary-blue)' }} />
+                          </div>
+                        )}
                         <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.5rem' }}>
                           <span style={{ color: 'var(--primary-pink)', marginRight: '4px' }}>●</span> {prog.category || 'Initiative'}
                         </div>
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
-                          {prog.title}
+                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.75rem', lineHeight: 1.3 }}>
+                          <FormattedText text={prog.title} />
                         </h3>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-                          {prog.description}
-                        </p>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem', flex: 1 }}>
+                          <FormattedText text={prog.description} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: 'auto' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>
+                            {prog.unitId?.name || 'MAGIC Youth'}
+                          </span>
+                          <Link to="/programs" style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.875rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                            Explore &rarr;
+                          </Link>
+                        </div>
                       </div>
-                      <Link to="/programs" style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.875rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                        Explore &rarr;
-                      </Link>
                     </motion.div>
                   );
                 })}

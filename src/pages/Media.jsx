@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, Loader2, Download, Search, Image as ImageIcon, BookOpen, ExternalLink, X } from 'lucide-react';
+import { Filter, Loader2, Download, Search, Image as ImageIcon, BookOpen, ExternalLink, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import FormattedText from '../components/common/FormattedText';
 import '../styles/home.css';
 
 export default function Media() {
@@ -14,7 +15,10 @@ export default function Media() {
   const [selectedUnit, setSelectedUnit] = useState('All');
   const [selectedYear, setSelectedYear] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [lightboxImage, setLightboxImage] = useState(null);
+  
+  // Lightbox state
+  const [activePhotoIndex, setActivePhotoIndex] = useState(null);
+  const touchStartX = useRef(null);
 
   useEffect(() => {
     // 1. Fetch Photo Gallery
@@ -49,15 +53,6 @@ export default function Media() {
       })
       .catch(console.error)
       .finally(() => setLoadingDocs(false));
-  }, []);
-
-  // Keyboard shortcut to close lightbox
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') setLightboxImage(null);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Filtered publications
@@ -95,6 +90,47 @@ export default function Media() {
     });
   }, [photos, selectedUnit, selectedYear, searchQuery]);
 
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (activePhotoIndex === null) return;
+      if (e.key === 'Escape') setActivePhotoIndex(null);
+      if (e.key === 'ArrowLeft' && activePhotoIndex > 0) {
+        setActivePhotoIndex(prev => prev - 1);
+      }
+      if (e.key === 'ArrowRight' && activePhotoIndex < filteredPhotos.length - 1) {
+        setActivePhotoIndex(prev => prev + 1);
+      }
+    };
+    if (activePhotoIndex !== null) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [activePhotoIndex, filteredPhotos.length]);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null || activePhotoIndex === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (diff > 50 && activePhotoIndex < filteredPhotos.length - 1) {
+      // Swiped left -> next
+      setActivePhotoIndex(prev => prev + 1);
+    } else if (diff < -50 && activePhotoIndex > 0) {
+      // Swiped right -> prev
+      setActivePhotoIndex(prev => prev - 1);
+    }
+    touchStartX.current = null;
+  };
+
   const fadeUp = {
     hidden: { opacity: 0, y: 16 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } }
@@ -108,27 +144,31 @@ export default function Media() {
     return `${Math.round(kb)} KB`;
   };
 
+  const currentPhoto = activePhotoIndex !== null ? filteredPhotos[activePhotoIndex] : null;
+
   return (
     <main className="home-wrapper" style={{ minHeight: '100vh', backgroundColor: '#FFFFFF' }}>
       
       {/* ─── 1. HERO / HEADER SECTION ────────────────────────────────────────── */}
-      <section style={{ backgroundColor: '#F8FAFC', padding: '3rem 1.25rem 2rem', borderBottom: '1px solid #E2E8F0', textAlign: 'center' }}>
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <div style={{ color: '#0284C7', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
-            <span style={{ color: '#E11D48' }}>●</span> Official Media &amp; Publications
-          </div>
-          <h1 style={{ color: '#0F172A', fontSize: 'clamp(2rem, 3.8vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 0.625rem', lineHeight: 1.2 }}>
-            Media &amp; Publications
-          </h1>
-          <p style={{ color: '#475569', fontSize: '0.98rem', lineHeight: 1.6, maxWidth: '640px', margin: '0 auto' }}>
-            Official publications, magazines, and photographic archives documenting student-led youth initiatives across institutional chapters.
-          </p>
-        </motion.div>
+      <section style={{ backgroundColor: '#F8FAFC', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid #E2E8F0', textAlign: 'center' }}>
+        <div style={{ maxWidth: '1280px', width: 'calc(100% - 48px)', margin: '0 auto' }}>
+          <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <div style={{ color: '#0284C7', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+              <span style={{ color: '#E11D48' }}>●</span> Official Media &amp; Publications
+            </div>
+            <h1 style={{ color: '#0F172A', fontSize: 'clamp(2rem, 3.8vw, 2.75rem)', fontWeight: 900, letterSpacing: '-0.025em', margin: '0 0 0.625rem', lineHeight: 1.2 }}>
+              Media &amp; Publications
+            </h1>
+            <p style={{ color: '#475569', fontSize: '0.98rem', lineHeight: 1.6, maxWidth: '640px', margin: '0 auto' }}>
+              Official publications, magazines, and photographic archives documenting student-led youth initiatives across institutional chapters.
+            </p>
+          </motion.div>
+        </div>
       </section>
 
       {/* ─── 2. COMMON FILTER TOOLBAR ───────────────────────────────────────── */}
       <section style={{ borderBottom: '1px solid #E2E8F0', position: 'sticky', top: '64px', zIndex: 90, backdropFilter: 'blur(12px)', backgroundColor: 'rgba(255, 255, 255, 0.96)', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0.875rem 1.25rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ maxWidth: '1280px', width: 'calc(100% - 48px)', margin: '0 auto', padding: '0.875rem 0', display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
           
           {/* Chapter & Academic Year Selectors */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.625rem', alignItems: 'center', flex: '1 1 auto' }}>
@@ -187,7 +227,7 @@ export default function Media() {
       </section>
 
       {/* ─── 3. MAIN CONTINUOUS SCROLL CONTENT ──────────────────────────────── */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2.5rem 1.25rem 4.5rem', display: 'flex', flexDirection: 'column', gap: '3.5rem' }}>
+      <div style={{ maxWidth: '1280px', width: 'calc(100% - 48px)', margin: '0 auto', padding: '2.5rem 0 4.5rem', display: 'flex', flexDirection: 'column', gap: '3.5rem' }}>
         
         {/* ─── SECTION 1: PUBLICATIONS & MAGAZINES (FIRST) ──────────────────── */}
         <section id="publications-section">
@@ -226,7 +266,7 @@ export default function Media() {
               </p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
               {filteredDocuments.map((doc, idx) => (
                 <motion.article
                   key={doc._id || doc.id || idx}
@@ -260,13 +300,13 @@ export default function Media() {
 
                     {/* Title */}
                     <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.5rem', lineHeight: 1.35 }}>
-                      {doc.title}
+                      <FormattedText text={doc.title} />
                     </h3>
 
                     {/* Description */}
-                    <p style={{ color: '#475569', fontSize: '0.875rem', lineHeight: 1.5, marginBottom: '1.25rem' }}>
-                      {doc.description || 'Official publication authorized by MAGIC Youth leadership.'}
-                    </p>
+                    <div style={{ color: '#475569', fontSize: '0.875rem', lineHeight: 1.5, marginBottom: '1.25rem' }}>
+                      <FormattedText text={doc.description || 'Official publication authorized by MAGIC Youth leadership.'} />
+                    </div>
                   </div>
 
                   {/* Footer metadata & Action */}
@@ -338,7 +378,7 @@ export default function Media() {
               </p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(275px, 1fr))', gap: '1.25rem' }}>
               {filteredPhotos.map((photo, i) => (
                 <motion.div
                   key={photo._id || photo.id || i}
@@ -346,7 +386,11 @@ export default function Media() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: (i % 8) * 0.03 }}
-                  onClick={() => setLightboxImage(photo)}
+                  onClick={() => setActivePhotoIndex(i)}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`View photo ${photo.title || 'activity'}`}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActivePhotoIndex(i); } }}
                   style={{
                     overflow: 'hidden',
                     borderRadius: '0.625rem',
@@ -356,18 +400,20 @@ export default function Media() {
                     boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
                     display: 'flex',
                     flexDirection: 'column',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)';
+                    e.currentTarget.style.transform = 'translateY(-3px)';
+                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.08)';
+                    e.currentTarget.style.borderColor = 'rgba(2, 132, 199, 0.4)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
                     e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.03)';
+                    e.currentTarget.style.borderColor = '#E2E8F0';
                   }}
                 >
-                  <div style={{ width: '100%', height: '185px', overflow: 'hidden', backgroundColor: '#0F172A', position: 'relative' }}>
+                  <div style={{ width: '100%', height: '190px', overflow: 'hidden', backgroundColor: '#0F172A', position: 'relative' }}>
                     <img
                       src={photo.file_path || photo.filePath || photo.url}
                       alt={photo.title || photo.caption || 'MAGIC Youth Activity'}
@@ -376,7 +422,7 @@ export default function Media() {
                     />
                   </div>
                   <div style={{ padding: '0.75rem 0.875rem', background: '#FFFFFF', borderTop: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, flex: 1 }}>
                       <span style={{ color: '#0F172A', fontWeight: 700, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {photo.title || photo.caption || 'Chapter Activity'}
                       </span>
@@ -394,9 +440,9 @@ export default function Media() {
 
       </div>
 
-      {/* ─── 4. LIGHTBOX MODAL ──────────────────────────────────────────────── */}
+      {/* ─── 4. ENHANCED FULL-SCREEN LIGHTBOX MODAL ───────────────────────── */}
       <AnimatePresence>
-        {lightboxImage && (
+        {currentPhoto && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -413,53 +459,158 @@ export default function Media() {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '1.5rem',
+              padding: '1rem',
               boxSizing: 'border-box'
             }}
-            onClick={() => setLightboxImage(null)}
+            onClick={() => setActivePhotoIndex(null)}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
-            <div style={{ position: 'relative', maxWidth: '92vw', maxHeight: '85vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
-              <img
-                src={lightboxImage.file_path || lightboxImage.filePath || lightboxImage.url}
-                alt={lightboxImage.title || 'MAGIC Youth Lightbox'}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '75vh',
-                  objectFit: 'contain',
-                  borderRadius: '0.5rem',
-                  boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)'
-                }}
-              />
-              {lightboxImage.title && (
-                <div style={{ color: 'white', marginTop: '1rem', fontSize: '1.05rem', fontWeight: 700, textAlign: 'center' }}>
-                  {lightboxImage.title}
-                  <div style={{ fontSize: '0.8rem', color: '#94A3B8', fontWeight: 500, marginTop: '0.2rem' }}>
-                    {lightboxImage.academicYearId?.year || '2025-26'} &bull; {lightboxImage.unitId?.name || 'MAGIC Youth'}
-                  </div>
-                </div>
-              )}
+            {/* Header bar: Counter & Close */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '1.25rem',
+                left: '1.5rem',
+                right: '1.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                zIndex: 10000
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ color: '#FFFFFF', fontSize: '0.875rem', fontWeight: 800, backgroundColor: 'rgba(255, 255, 255, 0.15)', padding: '0.35rem 0.85rem', borderRadius: '999px', backdropFilter: 'blur(8px)' }}>
+                {activePhotoIndex + 1} / {filteredPhotos.length}
+              </div>
+
               <button
                 aria-label="Close Lightbox"
                 style={{
-                  position: 'absolute',
-                  top: '-2.5rem',
-                  right: 0,
-                  background: 'rgba(255,255,255,0.15)',
+                  background: 'rgba(255,255,255,0.18)',
                   border: '1px solid rgba(255,255,255,0.3)',
                   color: 'white',
                   fontSize: '0.85rem',
                   cursor: 'pointer',
-                  padding: '0.4rem 0.9rem',
+                  padding: '0.45rem 1rem',
                   borderRadius: '999px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.35rem'
+                  gap: '0.4rem',
+                  backdropFilter: 'blur(8px)',
+                  transition: 'background 0.2s ease'
                 }}
-                onClick={() => setLightboxImage(null)}
+                onClick={() => setActivePhotoIndex(null)}
               >
-                <X size={14} /> Close
+                <X size={15} /> Close (ESC)
               </button>
+            </div>
+
+            {/* Main Stage: Prev Button + Image + Next Button */}
+            <div
+              style={{
+                position: 'relative',
+                maxWidth: '92vw',
+                maxHeight: '82vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '1rem'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Prev Navigation */}
+              <button
+                aria-label="Previous Image"
+                disabled={activePhotoIndex === 0}
+                onClick={() => activePhotoIndex > 0 && setActivePhotoIndex(prev => prev - 1)}
+                style={{
+                  background: activePhotoIndex === 0 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: activePhotoIndex === 0 ? 'rgba(255,255,255,0.2)' : '#FFFFFF',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: activePhotoIndex === 0 ? 'not-allowed' : 'pointer',
+                  flexShrink: 0,
+                  backdropFilter: 'blur(8px)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <ChevronLeft size={22} />
+              </button>
+
+              {/* Main Image Container */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '82vw', maxHeight: '78vh' }}>
+                <img
+                  key={currentPhoto.file_path || currentPhoto.filePath || currentPhoto.url}
+                  src={currentPhoto.file_path || currentPhoto.filePath || currentPhoto.url}
+                  alt={currentPhoto.title || currentPhoto.caption || 'MAGIC Youth Lightbox'}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '68vh',
+                    objectFit: 'contain',
+                    borderRadius: '0.5rem',
+                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.8)'
+                  }}
+                />
+
+                {/* Metadata details */}
+                <div style={{ color: 'white', marginTop: '0.85rem', textAlign: 'center', maxWidth: '640px' }}>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 800 }}>
+                    <FormattedText text={currentPhoto.title || currentPhoto.caption || 'Chapter Activity'} />
+                  </div>
+                  <div style={{ fontSize: '0.825rem', color: '#94A3B8', fontWeight: 600, marginTop: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <span>{currentPhoto.unitId?.name || 'MAGIC Youth'}</span>
+                    <span>&bull;</span>
+                    <span>{currentPhoto.academicYearId?.year || '2025-26'}</span>
+                    {currentPhoto.category && (
+                      <>
+                        <span>&bull;</span>
+                        <span style={{ color: '#38BDF8' }}>{currentPhoto.category}</span>
+                      </>
+                    )}
+                  </div>
+                  {currentPhoto.caption && currentPhoto.caption !== currentPhoto.title && (
+                    <div style={{ fontSize: '0.825rem', color: '#CBD5E1', marginTop: '0.35rem', fontStyle: 'italic' }}>
+                      <FormattedText text={currentPhoto.caption} />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Next Navigation */}
+              <button
+                aria-label="Next Image"
+                disabled={activePhotoIndex === filteredPhotos.length - 1}
+                onClick={() => activePhotoIndex < filteredPhotos.length - 1 && setActivePhotoIndex(prev => prev + 1)}
+                style={{
+                  background: activePhotoIndex === filteredPhotos.length - 1 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.2)',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  color: activePhotoIndex === filteredPhotos.length - 1 ? 'rgba(255,255,255,0.2)' : '#FFFFFF',
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: activePhotoIndex === filteredPhotos.length - 1 ? 'not-allowed' : 'pointer',
+                  flexShrink: 0,
+                  backdropFilter: 'blur(8px)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <ChevronRight size={22} />
+              </button>
+            </div>
+
+            {/* Mobile Touch Helper / Prev Next Controls */}
+            <div style={{ marginTop: '0.75rem', display: 'flex', gap: '1rem', color: '#94A3B8', fontSize: '0.75rem' }}>
+              <span>← Swipe left/right or use arrow keys to navigate</span>
             </div>
           </motion.div>
         )}

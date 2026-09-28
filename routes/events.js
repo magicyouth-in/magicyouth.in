@@ -157,6 +157,10 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), 
     if (!canAccessUnit(req.admin, event.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
 
     let posterUrl = event.poster;
+    if (req.body.removePoster === 'true' || req.body.removePoster === true) {
+      if (event.poster) await deleteFile(BUCKETS.EVENTS, event.poster);
+      posterUrl = null;
+    }
     if (tmpFile) {
       if (event.poster) await deleteFile(BUCKETS.EVENTS, event.poster);
       const destination = `events/${Date.now()}-${path.basename(tmpFile)}`;
@@ -167,7 +171,8 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), 
     const updates = { updated_at: new Date().toISOString() };
     const fieldsMap = {
       title: 'title', description: 'description', category: 'category', status: 'status',
-      date: 'date', startTime: 'start_time', endTime: 'end_time', location: 'location', organizers: 'organizers'
+      date: 'date', startTime: 'start_time', endTime: 'end_time', location: 'location', organizers: 'organizers',
+      unitId: 'unit_id', academicYearId: 'academic_year_id'
     };
 
     Object.keys(fieldsMap).forEach(key => {
@@ -175,7 +180,7 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), 
     });
 
     if (req.body.registrationEnabled !== undefined) updates.registration_enabled = req.body.registrationEnabled === 'true';
-    if (posterUrl) updates.poster = posterUrl;
+    updates.poster = posterUrl;
 
     const { data: updated, error } = await supabase
       .from('events')

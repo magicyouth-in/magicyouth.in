@@ -10,12 +10,18 @@ import {
   ArrowUp, ArrowDown, ChevronUp, ChevronDown, Upload, ExternalLink, Layers, CreditCard
 } from 'lucide-react';
 import magicLogo from '../../assets/magic-logo.png';
+import FormattedText from '../../components/common/FormattedText';
+import RichTextArea from '../../components/common/RichTextArea';
 import '../../styles/admin.css';
 
 // ─── API Helper ───────────────────────────────────────────────────────────────
 async function api(url, opts = {}) {
+  const headers = { ...opts.headers };
+  if (!(opts.body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
   const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...opts.headers },
+    headers,
     credentials: 'include',
     ...opts,
   });
@@ -1284,7 +1290,17 @@ function ProgramsModule({ toast, units, academicYears }) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProg, setEditingProg] = useState(null);
-  const [progForm, setProgForm] = useState({ title: '', category: 'Flagship Initiative', description: '', unitId: '', academicYearId: '', status: 'Upcoming' });
+  const [progForm, setProgForm] = useState({
+    title: '',
+    category: 'Flagship Initiative',
+    description: '',
+    unitId: '',
+    academicYearId: '',
+    status: 'Upcoming'
+  });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [removeImage, setRemoveImage] = useState(false);
 
   const loadPrograms = useCallback(() => {
     setLoading(true);
@@ -1305,20 +1321,51 @@ function ProgramsModule({ toast, units, academicYears }) {
       academicYearId: academicYears[0]?._id || '',
       status: 'Upcoming'
     });
+    setImageFile(null);
+    setImagePreview(null);
+    setRemoveImage(false);
     setShowModal(true);
   };
 
   const openEdit = (p) => {
     setEditingProg(p);
     setProgForm({
-      title: p.title,
+      title: p.title || '',
       category: p.category || 'Flagship Initiative',
       description: p.description || '',
       unitId: p.unitId?._id || p.unitId?.id || units[0]?._id || '',
       academicYearId: p.academicYearId?._id || p.academicYearId?.id || academicYears[0]?._id || '',
       status: p.status || 'Upcoming'
     });
+    setImageFile(null);
+    setImagePreview(p.poster || null);
+    setRemoveImage(false);
     setShowModal(true);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type.toLowerCase())) {
+      toast('Please upload a valid image file (JPG, PNG, WEBP).', 'error');
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      toast('Image file size exceeds the 25MB limit.', 'error');
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setRemoveImage(false);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setRemoveImage(true);
   };
 
   const handleSave = async (e) => {
@@ -1328,12 +1375,26 @@ function ProgramsModule({ toast, units, academicYears }) {
       return;
     }
     try {
+      const formData = new FormData();
+      formData.append('title', progForm.title);
+      formData.append('category', progForm.category || 'Flagship Initiative');
+      formData.append('description', progForm.description || '');
+      formData.append('unitId', progForm.unitId);
+      formData.append('academicYearId', progForm.academicYearId);
+      formData.append('status', progForm.status || 'Upcoming');
+
+      if (imageFile) {
+        formData.append('poster', imageFile);
+      } else if (removeImage) {
+        formData.append('removePoster', 'true');
+      }
+
       if (editingProg) {
-        await api(`/api/events/${editingProg._id}`, { method: 'PUT', body: JSON.stringify(progForm) });
-        toast('Program updated.');
+        await api(`/api/events/${editingProg._id}`, { method: 'PUT', body: formData });
+        toast('Program updated successfully.');
       } else {
-        await api('/api/events', { method: 'POST', body: JSON.stringify(progForm) });
-        toast('Program created.');
+        await api('/api/events', { method: 'POST', body: formData });
+        toast('Program created successfully.');
       }
       setShowModal(false);
       loadPrograms();
@@ -1368,20 +1429,30 @@ function ProgramsModule({ toast, units, academicYears }) {
           No programs recorded yet. Click "+ Add Program" to create one.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
           {programs.map(p => (
-            <div key={p._id} className="admin-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div key={p._id} className="admin-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden', padding: 0 }}>
+              {p.poster && (
+                <div style={{ width: '100%', height: '160px', overflow: 'hidden', backgroundColor: '#0F172A' }}>
+                  <img src={p.poster} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+              )}
+              <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span className="admin-badge" style={{ backgroundColor: '#F0F9FF', color: 'var(--primary-blue)' }}>{p.category}</span>
                   <span className={`admin-badge ${p.status === 'Completed' ? 'badge-approved' : 'badge-active'}`}>
                     {p.status}
                   </span>
                 </div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>{p.title}</h3>
-                <p style={{ fontSize: '0.875rem', color: '#64748B', lineHeight: 1.6 }}>{p.description || 'No detailed description.'}</p>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem', lineHeight: 1.3 }}>{p.title}</h3>
+                <div style={{ fontSize: '0.85rem', color: '#64748B', lineHeight: 1.6, flex: 1, marginBottom: '0.75rem' }}>
+                  <FormattedText text={p.description || 'No detailed description.'} />
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>
+                  {p.unitId?.name || 'All Chapters'} &bull; {p.academicYearId?.year || '2025-26'}
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem', marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--border-color)', padding: '0.75rem 1.25rem', backgroundColor: '#F8FAFC' }}>
                 <button onClick={() => openEdit(p)} className="admin-btn-action"><Edit size={13} /> Edit</button>
                 <button onClick={() => handleDelete(p._id)} className="admin-btn-danger"><Trash2 size={13} /> Delete</button>
               </div>
@@ -1392,7 +1463,7 @@ function ProgramsModule({ toast, units, academicYears }) {
 
       {showModal && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box">
+          <div className="admin-modal-box" style={{ maxWidth: '640px', width: '92%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>
                 {editingProg ? 'Edit Program' : 'Add Flagship Program'}
@@ -1404,6 +1475,7 @@ function ProgramsModule({ toast, units, academicYears }) {
                 <label className="admin-label">Program Title *</label>
                 <input required value={progForm.title} onChange={e => setProgForm({ ...progForm, title: e.target.value })} className="admin-input" placeholder="e.g. Project Shiksha" />
               </div>
+              
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label className="admin-label">Chapter *</label>
@@ -1418,6 +1490,7 @@ function ProgramsModule({ toast, units, academicYears }) {
                   </select>
                 </div>
               </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label className="admin-label">Category</label>
@@ -1432,10 +1505,44 @@ function ProgramsModule({ toast, units, academicYears }) {
                   </select>
                 </div>
               </div>
+
+              {/* Program Image Upload */}
               <div className="admin-input-group">
-                <label className="admin-label">Description &amp; Impact</label>
-                <textarea rows={3} required value={progForm.description} onChange={e => setProgForm({ ...progForm, description: e.target.value })} className="admin-textarea" />
+                <label className="admin-label">Program Image (JPG, PNG, WEBP &bull; Max 25MB)</label>
+                {imagePreview ? (
+                  <div style={{ position: 'relative', width: '100%', height: '180px', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #CBD5E1', marginBottom: '0.5rem' }}>
+                    <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', bottom: '0.5rem', right: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                      <label style={{ background: '#0284C7', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                        Replace Image
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg" onChange={handleImageChange} style={{ display: 'none' }} />
+                      </label>
+                      <button type="button" onClick={handleRemoveImage} style={{ background: '#BE123C', color: 'white', border: 'none', padding: '0.35rem 0.75rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', border: '2px dashed #CBD5E1', borderRadius: '0.5rem', backgroundColor: '#F8FAFC', cursor: 'pointer', textAlign: 'center' }}>
+                    <Upload size={24} color="#0284C7" style={{ marginBottom: '0.5rem' }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>Choose program image to upload</span>
+                    <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>Supports JPG, PNG, WEBP up to 25MB</span>
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/jpg" onChange={handleImageChange} style={{ display: 'none' }} />
+                  </label>
+                )}
               </div>
+
+              {/* Rich Text Area with Bold Support */}
+              <div className="admin-input-group">
+                <RichTextArea
+                  label="Description & Impact (Use [B] to bold words or characters)"
+                  rows={4}
+                  required={true}
+                  value={progForm.description}
+                  onChange={e => setProgForm({ ...progForm, description: e.target.value })}
+                />
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setShowModal(false)} className="admin-btn-secondary">Cancel</button>
                 <button type="submit" className="admin-btn-primary">Save Program</button>

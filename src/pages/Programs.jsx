@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { BookOpen, Calendar, MapPin, ArrowRight, Loader2, Sparkles, Building, Filter } from 'lucide-react';
+import { BookOpen, Calendar, MapPin, ArrowRight, Loader2, Building } from 'lucide-react';
+import FormattedText from '../components/common/FormattedText';
 import '../styles/home.css';
 
 export default function Programs() {
@@ -123,57 +124,70 @@ export default function Programs() {
               </Link>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
               {filteredPrograms.map((prog, idx) => (
                 <motion.article 
                   key={prog._id || prog.id || idx}
-                  style={{ backgroundColor: 'white', borderRadius: '1rem', border: '1px solid var(--border-color)', padding: '2.5rem', boxShadow: '0 10px 30px rgba(0,0,0,0.03)' }}
+                  style={{ backgroundColor: 'white', borderRadius: '1rem', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column' }}
                   initial="hidden"
                   whileInView="visible"
                   viewport={{ once: true }}
                   variants={fadeUp}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
-                    <div>
-                      <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem' }}>
-                        {prog.category || 'Youth Initiative'}
-                      </div>
-                      <h2 style={{ fontSize: 'clamp(1.5rem, 2.5vw, 2rem)', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
-                        {prog.title}
-                      </h2>
+                  {prog.poster && (
+                    <div style={{ width: '100%', maxHeight: '380px', overflow: 'hidden', backgroundColor: '#0F172A', position: 'relative' }}>
+                      <img
+                        src={prog.poster}
+                        alt={prog.title}
+                        loading="lazy"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', maxHeight: '380px' }}
+                      />
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                      {prog.academicYearId?.year && (
-                        <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#64748B', backgroundColor: '#F1F5F9', padding: '0.35rem 0.75rem', borderRadius: '999px' }}>
-                          {prog.academicYearId.year}
-                        </span>
-                      )}
-                      {prog.status && (
-                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: '0.25rem 0.65rem', borderRadius: '999px', textTransform: 'uppercase' }}>
-                          {prog.status}
-                        </span>
-                      )}
+                  )}
+
+                  <div style={{ padding: '2rem 2.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+                      <div>
+                        <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--primary-blue)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.25rem' }}>
+                          {prog.category || 'Youth Initiative'}
+                        </div>
+                        <h2 style={{ fontSize: 'clamp(1.5rem, 2.5vw, 2rem)', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+                          <FormattedText text={prog.title} />
+                        </h2>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {prog.academicYearId?.year && (
+                          <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#64748B', backgroundColor: '#F1F5F9', padding: '0.35rem 0.75rem', borderRadius: '999px' }}>
+                            {prog.academicYearId.year}
+                          </span>
+                        )}
+                        {prog.status && (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', padding: '0.25rem 0.65rem', borderRadius: '999px', textTransform: 'uppercase' }}>
+                            {prog.status}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.75, marginBottom: '2rem' }}>
-                    {prog.description}
-                  </p>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.75, marginBottom: '2rem' }}>
+                      <FormattedText text={prog.description} paragraphs={true} />
+                    </div>
 
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
-                    {prog.unitId?.name && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748B', fontSize: '0.875rem', fontWeight: 600 }}>
-                        <MapPin size={15} color="var(--primary-blue)" /> {prog.unitId.name}
-                      </div>
-                    )}
-                    {prog.date && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748B', fontSize: '0.875rem', fontWeight: 600 }}>
-                        <Calendar size={15} color="var(--primary-blue)" /> {new Date(prog.date).toLocaleDateString()}
-                      </div>
-                    )}
-                    <Link to="/join" className="btn-primary" style={{ marginLeft: 'auto', backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.5rem 1.25rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem' }}>
-                      Participate &rarr;
-                    </Link>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center', borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
+                      {prog.unitId?.name && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748B', fontSize: '0.875rem', fontWeight: 600 }}>
+                          <MapPin size={15} color="var(--primary-blue)" /> {prog.unitId.name}
+                        </div>
+                      )}
+                      {prog.date && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#64748B', fontSize: '0.875rem', fontWeight: 600 }}>
+                          <Calendar size={15} color="var(--primary-blue)" /> {new Date(prog.date).toLocaleDateString()}
+                        </div>
+                      )}
+                      <Link to="/join" className="btn-primary" style={{ marginLeft: 'auto', backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.5rem 1.25rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem' }}>
+                        Participate &rarr;
+                      </Link>
+                    </div>
                   </div>
                 </motion.article>
               ))}
