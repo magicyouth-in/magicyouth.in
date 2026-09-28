@@ -13,7 +13,7 @@ const os = require('os');
 const Story = require('../database/models/Story');
 const supabase = require('../utils/supabaseClient');
 const { BUCKETS, uploadFile } = require('../utils/supabaseStorage');
-const { authenticateAdmin, requireAnyAdmin } = require('../middleware/auth');
+const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
 
 // Setup multer for story cover images
@@ -267,6 +267,10 @@ router.post('/', authenticateAdmin, requireAnyAdmin, uploadCover.single('coverIm
       return res.status(400).json({ success: false, message: 'Story Content is required.' });
     }
 
+    if (unitId && !canAccessUnit(req.admin, unitId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden.' });
+    }
+
     const newStoryData = {
       title: title.trim(),
       subtitle: subtitle ? subtitle.trim() : '',
@@ -371,6 +375,23 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, uploadCover.single('cover
     if (author !== undefined) updates.author = author.trim();
     if (isFeatured !== undefined) updates.isFeatured = isFeatured === true || isFeatured === 'true';
 
+    let existingStory = null;
+    try {
+      existingStory = await Story.findById(req.params.id);
+    } catch {}
+    if (!existingStory) {
+      existingStory = memoryStories.find(m => m._id === req.params.id || m.id === req.params.id);
+    }
+    if (!existingStory) {
+      return res.status(404).json({ success: false, message: 'Story not found.' });
+    }
+    if (existingStory.unitId && !canAccessUnit(req.admin, existingStory.unitId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden.' });
+    }
+    if (unitId && !canAccessUnit(req.admin, unitId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden.' });
+    }
+
     let updatedStory = null;
 
     // 1. Try Mongo
@@ -403,7 +424,7 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, uploadCover.single('cover
     }
 
     try {
-      await logAction(req, 'Update Story', 'Story', req.params.id, unitId || null);
+      await logAction(req, 'Update Story', 'Story', req.params.id, unitId || existingStory.unitId || null);
     } catch {}
 
     const io = req.app.get('io');
@@ -431,6 +452,20 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, uploadCover.single('cover
  */
 router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
+    let existingStory = null;
+    try {
+      existingStory = await Story.findById(req.params.id);
+    } catch {}
+    if (!existingStory) {
+      existingStory = memoryStories.find(m => m._id === req.params.id || m.id === req.params.id);
+    }
+    if (!existingStory) {
+      return res.status(404).json({ success: false, message: 'Story not found.' });
+    }
+    if (existingStory.unitId && !canAccessUnit(req.admin, existingStory.unitId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden.' });
+    }
+
     let deleted = false;
     try {
       const resDoc = await Story.findByIdAndDelete(req.params.id);

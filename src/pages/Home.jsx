@@ -67,44 +67,74 @@ export default function Home() {
     const fetchData = async () => {
       try {
         let eCount = null; let uCount = null; let mCount = null;
-        const eventsRes = await fetch('/api/events');
-        const eventsData = await eventsRes.json();
-        if (eventsData.success) {
-          const progs = eventsData.data || [];
-          eCount = progs.length;
-          setPublishedPrograms(progs);
-          setRecentEvents([...progs].sort((a,b) => new Date(b.date || b.startDate || b.start_date || b.created_at) - new Date(a.date || a.startDate || a.start_date || a.created_at)).slice(0, 3));
-        }
 
-        const galleryRes = await fetch('/api/gallery');
-        const galleryData = await galleryRes.json();
-        if (galleryData.success) {
-          setRecentPhotos(galleryData.data.slice(0, 4));
-        }
-
-        const unitsRes = await fetch('/api/units?includeInactive=false');
-        const unitsData = await unitsRes.json();
-        if (unitsData.success) {
-          const uList = unitsData.data || [];
-          uCount = uList.length;
-          setUnits(uList);
-          const defaultUnit = uList.find(u => u.isDefault || u.is_default) || uList[0];
-          if (defaultUnit) {
-            setSelectedUnit(defaultUnit._id || defaultUnit.id);
+        // 1. Fetch Flagship Programs from /api/programs
+        try {
+          const progsRes = await fetch('/api/programs');
+          const progsData = await progsRes.json();
+          if (progsData.success && Array.isArray(progsData.data)) {
+            setPublishedPrograms(progsData.data);
           }
-        }
+        } catch {}
 
-        const teamsRes = await fetch('/api/teams');
-        const teamsData = await teamsRes.json();
-        if (teamsData.success && teamsData.data.length > 0) {
-          mCount = teamsData.data.reduce((acc, t) => acc + (t.memberCount || 0), 0);
-        }
+        // 2. Fetch Dated Events from /api/events
+        try {
+          const eventsRes = await fetch('/api/events');
+          const eventsData = await eventsRes.json();
+          if (eventsData.success && Array.isArray(eventsData.data)) {
+            const evList = eventsData.data;
+            eCount = evList.length;
+            setRecentEvents([...evList].sort((a,b) => new Date(b.date || b.created_at) - new Date(a.date || a.created_at)).slice(0, 3));
+          }
+        } catch {}
 
-        const storiesRes = await fetch('/api/testimonials');
-        const storiesData = await storiesRes.json();
-        if (storiesData.success) {
-          setStories(storiesData.data || []);
-        }
+        // 3. Fetch Gallery Photos from /api/gallery
+        try {
+          const galleryRes = await fetch('/api/gallery');
+          const galleryData = await galleryRes.json();
+          if (galleryData.success && Array.isArray(galleryData.data)) {
+            setRecentPhotos(galleryData.data.slice(0, 4));
+          }
+        } catch {}
+
+        // 4. Fetch Campus Units from /api/units
+        try {
+          const unitsRes = await fetch('/api/units?includeInactive=false');
+          const unitsData = await unitsRes.json();
+          if (unitsData.success && Array.isArray(unitsData.data)) {
+            const uList = unitsData.data;
+            uCount = uList.length;
+            setUnits(uList);
+            const defaultUnit = uList.find(u => u.isDefault || u.is_default) || uList[0];
+            if (defaultUnit) {
+              setSelectedUnit(defaultUnit._id || defaultUnit.id);
+            }
+          }
+        } catch {}
+
+        // 5. Fetch Teams from /api/teams
+        try {
+          const teamsRes = await fetch('/api/teams');
+          const teamsData = await teamsRes.json();
+          if (teamsData.success && Array.isArray(teamsData.data) && teamsData.data.length > 0) {
+            mCount = teamsData.data.reduce((acc, t) => acc + (t.memberCount || 0), 0);
+          }
+        } catch {}
+
+        // 6. Fetch Stories from /api/stories with fallback to /api/testimonials
+        try {
+          let storiesRes = await fetch('/api/stories');
+          let storiesData = await storiesRes.json();
+          if (storiesData.success && Array.isArray(storiesData.data) && storiesData.data.length > 0) {
+            setStories(storiesData.data);
+          } else {
+            const fallbackRes = await fetch('/api/testimonials');
+            const fallbackData = await fallbackRes.json();
+            if (fallbackData.success && Array.isArray(fallbackData.data)) {
+              setStories(fallbackData.data);
+            }
+          }
+        } catch {}
         
         setStats({ events: eCount, units: uCount, members: mCount, initialized: true });
       } catch (err) {

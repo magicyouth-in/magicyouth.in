@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, MapPin, ArrowRight, Loader2, Building, Filter, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, ArrowRight, Loader2, Building, Filter, Sparkles, CheckCircle2, Ticket } from 'lucide-react';
 import FormattedText from '../components/common/FormattedText';
 import '../styles/home.css';
 
@@ -78,6 +78,78 @@ export default function Events() {
 
   return (
     <div className="events-page-wrapper" style={{ minHeight: '100vh', backgroundColor: '#FFFFFF' }}>
+      <style>{`
+        .event-editorial-card {
+          display: flex;
+          flex-direction: row;
+          align-items: stretch;
+          background-color: #FFFFFF;
+          border-radius: 1.25rem;
+          border: 1px solid var(--border-color);
+          overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+          margin-bottom: 2.75rem;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .event-editorial-card:hover {
+          box-shadow: 0 16px 36px rgba(0, 0, 0, 0.06);
+          transform: translateY(-2px);
+        }
+        .event-editorial-card.reverse {
+          flex-direction: row-reverse;
+        }
+        .event-editorial-image {
+          flex: 0 0 48%;
+          position: relative;
+          min-height: 320px;
+          background-color: #0F172A;
+          overflow: hidden;
+        }
+        .event-editorial-image img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .event-editorial-image-placeholder {
+          width: 100%;
+          height: 100%;
+          min-height: 280px;
+          background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          color: white;
+          text-align: center;
+        }
+        .event-editorial-content {
+          flex: 0 0 52%;
+          padding: 2.5rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        @media (max-width: 880px) {
+          .event-editorial-card,
+          .event-editorial-card.reverse {
+            flex-direction: column !important;
+          }
+          .event-editorial-image {
+            flex: none;
+            width: 100%;
+            height: 240px;
+            min-height: 240px;
+          }
+          .event-editorial-content {
+            flex: none;
+            width: 100%;
+            padding: 1.75rem;
+          }
+        }
+      `}</style>
+
       {/* Header */}
       <section className="page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
         <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
@@ -157,9 +229,9 @@ export default function Events() {
         </div>
       </section>
 
-      {/* Events List */}
+      {/* Alternating Editorial Events List */}
       <section style={{ backgroundColor: '#F8FAFC', padding: '3.5rem 1.5rem 5rem' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '1120px', margin: '0 auto' }}>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
               <Loader2 size={36} color="var(--primary-blue)" className="animate-spin" />
@@ -187,75 +259,142 @@ export default function Events() {
               </Link>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '2rem' }}>
-              {filteredEvents.map((ev, idx) => (
-                <motion.article 
-                  key={ev._id || ev.id || idx}
-                  style={{ backgroundColor: 'white', borderRadius: '1rem', border: '1px solid var(--border-color)', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column' }}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  variants={fadeUp}
-                  transition={{ delay: idx * 0.05 }}
-                >
-                  {ev.poster && (
-                    <div style={{ width: '100%', height: '200px', overflow: 'hidden', backgroundColor: '#0F172A' }}>
-                      <img
-                        src={ev.poster}
-                        alt={ev.title}
-                        loading="lazy"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      />
-                    </div>
-                  )}
+            <div>
+              {filteredEvents.map((ev, idx) => {
+                const isCompleted = ev.status === 'Completed' || ev.status === 'Past' || (ev.date && new Date(ev.date) < new Date() && ev.status !== 'Ongoing');
+                const isOngoing = ev.status === 'Ongoing';
+                const statusBadgeText = isCompleted ? 'COMPLETED' : isOngoing ? 'ONGOING' : (ev.status || 'UPCOMING');
 
-                  <div style={{ padding: '1.75rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', backgroundColor: '#F0F9FF', padding: '0.2rem 0.6rem', borderRadius: '4px', textTransform: 'uppercase' }}>
-                        {ev.category || 'Event'}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 800, color: ev.status === 'Completed' || ev.status === 'Past' ? '#64748B' : '#15803D', backgroundColor: ev.status === 'Completed' || ev.status === 'Past' ? '#F1F5F9' : '#DCFCE7', padding: '0.2rem 0.6rem', borderRadius: '4px', textTransform: 'uppercase' }}>
-                        {ev.status || 'Upcoming'}
-                      </span>
-                    </div>
-
-                    <h2 style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.75rem', lineHeight: 1.3 }}>
-                      <FormattedText text={ev.title} />
-                    </h2>
-
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.6, marginBottom: '1.5rem', flex: 1 }}>
-                      <FormattedText text={ev.description} />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid #F1F5F9', paddingTop: '1rem', marginTop: 'auto', fontSize: '0.825rem', color: '#64748B' }}>
-                      {ev.date && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
-                          <Calendar size={14} color="var(--primary-blue)" /> {new Date(ev.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                return (
+                  <motion.article 
+                    key={ev._id || ev.id || idx}
+                    className={`event-editorial-card ${idx % 2 === 1 ? 'reverse' : ''}`}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, margin: "-40px" }}
+                    variants={fadeUp}
+                    transition={{ delay: 0.05 }}
+                  >
+                    {/* Image Column (45–50%) */}
+                    <div className="event-editorial-image">
+                      {ev.poster ? (
+                        <img
+                          src={ev.poster}
+                          alt={ev.title}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="event-editorial-image-placeholder">
+                          <Calendar size={48} color="rgba(255,255,255,0.4)" style={{ marginBottom: '1rem' }} />
+                          <div style={{ fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.8 }}>
+                            {ev.category || 'MAGIC Youth Event'}
+                          </div>
                         </div>
                       )}
-                      {(ev.startTime || ev.start_time) && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Clock size={14} color="var(--primary-blue)" /> {ev.startTime || ev.start_time} {ev.endTime || ev.end_time ? `– ${ev.endTime || ev.end_time}` : ''}
+                    </div>
+
+                    {/* Text Column (50–55%) */}
+                    <div className="event-editorial-content">
+                      {/* Eyebrow & Category & Status */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.875rem', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--primary-blue)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                            EVENT
+                          </span>
+                          {ev.category && (
+                            <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#475569', backgroundColor: '#F1F5F9', padding: '0.2rem 0.6rem', borderRadius: '4px' }}>
+                              {ev.category}
+                            </span>
+                          )}
                         </div>
+                        <span style={{
+                          fontSize: '0.725rem',
+                          fontWeight: 800,
+                          letterSpacing: '0.06em',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '999px',
+                          textTransform: 'uppercase',
+                          backgroundColor: isCompleted ? '#F1F5F9' : isOngoing ? '#DCFCE7' : '#EFF6FF',
+                          color: isCompleted ? '#64748B' : isOngoing ? '#15803D' : 'var(--primary-blue)',
+                          border: `1px solid ${isCompleted ? '#E2E8F0' : isOngoing ? '#BBF7D0' : '#BFDBFE'}`
+                        }}>
+                          {statusBadgeText}
+                        </span>
+                      </div>
+
+                      {/* Event Title */}
+                      <h2 style={{ fontSize: 'clamp(1.25rem, 2.2vw, 1.65rem)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.5rem', lineHeight: 1.3 }}>
+                        <FormattedText text={ev.title} />
+                      </h2>
+
+                      {/* Subtitle / Summary */}
+                      {(ev.subtitle || ev.organizers) && (
+                        <p style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--primary-blue)', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                          {ev.subtitle || ev.organizers}
+                        </p>
                       )}
-                      {ev.location && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <MapPin size={14} color="var(--primary-blue)" /> {ev.location}
+
+                      {/* Metadata Strip: Date, Time, Venue, Unit, Academic Year */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem', rowGap: '0.4rem', fontSize: '0.85rem', color: '#475569', marginBottom: '1.25rem', alignItems: 'center' }}>
+                        {ev.date && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700, color: '#0F172A' }}>
+                            <Calendar size={15} style={{ color: 'var(--primary-blue)' }} />
+                            {new Date(ev.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                          </div>
+                        )}
+                        {(ev.startTime || ev.start_time || ev.time) && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
+                            <Clock size={14} style={{ color: 'var(--primary-blue)' }} />
+                            {ev.startTime || ev.start_time || ev.time} {ev.endTime || ev.end_time ? `– ${ev.endTime || ev.end_time}` : ''}
+                          </div>
+                        )}
+                        {(ev.venue || ev.location) && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
+                            <MapPin size={15} style={{ color: 'var(--primary-pink)' }} />
+                            {ev.venue || ev.location}
+                          </div>
+                        )}
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', color: '#64748B', fontWeight: 600 }}>
+                          {ev.unitId?.name || (units.find(u => u._id === (ev.unitId?._id || ev.unit_id))?.name) || 'All Chapters'} &bull; {ev.academicYearId?.year || (academicYears.find(y => y._id === (ev.academicYearId?._id || ev.academic_year_id))?.year) || '2025-26'}
                         </div>
-                      )}
-                      <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.25rem' }}>
-                        {ev.unitId?.name || 'MAGIC Youth'} &bull; {ev.academicYearId?.year || '2025-26'}
+                      </div>
+
+                      {/* Description */}
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', lineHeight: 1.65, marginBottom: '1.5rem' }}>
+                        <FormattedText text={ev.description || 'No detailed description provided.'} />
+                      </div>
+
+                      {/* Action Button: Registration if applicable */}
+                      <div style={{ marginTop: 'auto', paddingTop: '0.75rem' }}>
+                        {!isCompleted ? (
+                          <Link 
+                            to="/join" 
+                            className="btn-primary" 
+                            style={{ 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '0.5rem', 
+                              backgroundColor: 'var(--primary-blue)', 
+                              color: 'white', 
+                              padding: '0.65rem 1.35rem', 
+                              borderRadius: '0.625rem', 
+                              textDecoration: 'none', 
+                              fontWeight: 800, 
+                              fontSize: '0.875rem' 
+                            }}
+                          >
+                            <Ticket size={15} /> REGISTER FOR EVENT &rarr;
+                          </Link>
+                        ) : (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 700, color: '#64748B' }}>
+                            <CheckCircle2 size={15} color="#10B981" /> Activity Concluded &bull; Archive Record
+                          </div>
+                        )}
                       </div>
                     </div>
-
-                    <div style={{ marginTop: '1.25rem' }}>
-                      <Link to="/join" className="btn-primary" style={{ display: 'block', textAlign: 'center', backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.6rem 1rem', borderRadius: '0.5rem', textDecoration: 'none', fontWeight: 700, fontSize: '0.85rem' }}>
-                        Participate in Activity &rarr;
-                      </Link>
-                    </div>
-                  </div>
-                </motion.article>
-              ))}
+                  </motion.article>
+                );
+              })}
             </div>
           )}
         </div>
