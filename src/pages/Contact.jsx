@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, MapPin, Phone, ArrowRight } from 'lucide-react';
+import { Mail, MapPin, Phone, ArrowRight, UserCheck } from 'lucide-react';
 import '../styles/home.css';
 
 export default function Contact() {
@@ -178,6 +179,83 @@ export default function Contact() {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── MEMBERSHIP OPTION CALLOUT ── */}
+      <section style={{ backgroundColor: '#FFFFFF', padding: '4.5rem 1.5rem', borderTop: '1px solid var(--border-color)' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            style={{
+              backgroundColor: '#F8FAFC',
+              border: '1.5px solid #E2E8F0',
+              borderRadius: '1.25rem',
+              padding: 'clamp(2rem, 4vw, 3rem) clamp(1.25rem, 3vw, 2.5rem)',
+              textAlign: 'center',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
+            }}
+          >
+            <div style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.625rem' }}>
+              <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Membership &amp; Formation
+            </div>
+            
+            <h2 style={{ fontSize: 'clamp(1.5rem, 3.5vw, 2.125rem)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.75rem', letterSpacing: '-0.02em', lineHeight: 1.25 }}>
+              Interested in Joining MAGIC Youth?
+            </h2>
+            
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '580px', margin: '0 auto 2rem' }}>
+              Apply for MAGIC Youth membership or nominate yourself for a leadership opportunity.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+              <Link
+                to="/join"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: 'var(--primary-blue)',
+                  color: '#FFFFFF',
+                  fontWeight: 800,
+                  fontSize: '1rem',
+                  padding: '0.875rem 2.25rem',
+                  borderRadius: '9999px',
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)',
+                  transition: 'all 0.2s ease',
+                  width: '100%',
+                  maxWidth: '320px',
+                  boxSizing: 'border-box'
+                }}
+              >
+                JOIN MAGIC <ArrowRight size={18} />
+              </Link>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.875rem', color: '#64748B', marginTop: '0.25rem' }}>
+                <span>Already a member?</span>
+                <Link
+                  to="/member/login"
+                  style={{
+                    color: 'var(--primary-blue)',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    padding: '0.35rem 0.85rem',
+                    borderRadius: '9999px',
+                    border: '1px solid #CBD5E1',
+                    backgroundColor: '#FFFFFF',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  MEMBER LOGIN
+                </Link>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
     </main>
