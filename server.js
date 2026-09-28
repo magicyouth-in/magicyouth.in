@@ -89,6 +89,7 @@ app.use('/api/member/events',        require('./routes/member-events'));
 app.use('/api/unit-announcements',   require('./routes/unit-announcements'));
 app.use('/api/member/certificates',  require('./routes/member-certificates'));
 app.use('/api/leadership-roles',     require('./routes/leadership-roles'));
+app.use('/api/membership-drives',    require('./routes/membership-drives'));
 
 // ─── DASHBOARD STATS API ──────────────────────────────────────────────────────
 const { authenticateAdmin, requireAnyAdmin } = require('./middleware/auth');

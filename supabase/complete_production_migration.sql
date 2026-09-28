@@ -261,7 +261,65 @@ CREATE POLICY "Allow public read of open volunteer opportunities" ON volunteer_o
 ALTER TABLE volunteer_applications ENABLE ROW LEVEL SECURITY;
 
 
--- ─── 11. MEMBER OVERVIEW VIEW ─────────────────────────────────────────────────
+-- ─── 11. MEMBERSHIP DRIVES ───────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS membership_drives (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name                TEXT NOT NULL,
+  unit_id             UUID NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+  academic_year_id    UUID REFERENCES academic_years(id) ON DELETE SET NULL,
+  start_date          DATE,
+  end_date            DATE,
+  status              TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'UPCOMING', 'OPEN', 'CLOSED')),
+  id_format           TEXT NOT NULL DEFAULT 'MAGIC-{UNIT}-{NUMBER}',
+  start_number        INTEGER NOT NULL DEFAULT 1,
+  next_number         INTEGER NOT NULL DEFAULT 1,
+  number_padding      INTEGER NOT NULL DEFAULT 3,
+  description         TEXT DEFAULT '',
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_membership_drives_unit ON membership_drives(unit_id);
+CREATE INDEX IF NOT EXISTS idx_membership_drives_status ON membership_drives(status);
+CREATE INDEX IF NOT EXISTS idx_membership_drives_ay ON membership_drives(academic_year_id);
+
+-- Enable RLS on membership_drives
+ALTER TABLE membership_drives ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read of active/open membership drives" ON membership_drives;
+CREATE POLICY "Allow public read of active/open membership drives" ON membership_drives
+  FOR SELECT USING (status IN ('OPEN', 'UPCOMING'));
+
+-- Add membership_drive_id to join_requests and members
+ALTER TABLE IF EXISTS join_requests
+  ADD COLUMN IF NOT EXISTS membership_drive_id UUID REFERENCES membership_drives(id) ON DELETE SET NULL;
+
+ALTER TABLE IF EXISTS members
+  ADD COLUMN IF NOT EXISTS membership_drive_id UUID REFERENCES membership_drives(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_join_requests_drive ON join_requests(membership_drive_id);
+CREATE INDEX IF NOT EXISTS idx_members_drive ON members(membership_drive_id);
+
+-- Atomic sequence increment for membership drive
+CREATE OR REPLACE FUNCTION increment_drive_member_seq(p_drive_id UUID)
+RETURNS INTEGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_num INTEGER;
+BEGIN
+  UPDATE membership_drives
+    SET next_number = next_number + 1,
+        updated_at = NOW()
+    WHERE id = p_drive_id
+    RETURNING next_number - 1 INTO v_num;
+
+  RETURN v_num;
+END;
+$$;
+
+
+-- ─── 12. MEMBER OVERVIEW VIEW ─────────────────────────────────────────────────
 CREATE OR REPLACE VIEW member_overview AS
   SELECT
     m.id,
@@ -280,9 +338,12 @@ CREATE OR REPLACE VIEW member_overview AS
     m.profile_photo,
     m.joined_at,
     m.valid_until,
+    m.membership_drive_id,
+    md.name  AS drive_name,
     u.name   AS unit_name,
     u.code   AS unit_code,
     ay.year  AS academic_year
   FROM members m
-  LEFT JOIN units u         ON m.unit_id = u.id
-  LEFT JOIN academic_years ay ON m.academic_year_id = ay.id;
+  LEFT JOIN units u               ON m.unit_id = u.id
+  LEFT JOIN academic_years ay       ON m.academic_year_id = ay.id
+  LEFT JOIN membership_drives md   ON m.membership_drive_id = md.id;

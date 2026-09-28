@@ -57,6 +57,26 @@ router.post('/', upload.fields([{ name: 'resume', maxCount: 1 }, { name: 'profil
       if (defUnit) finalUnitId = defUnit.id;
     }
 
+    // Look up active OPEN Membership Drive for this unit
+    let finalDriveId = null;
+    let finalAcademicYearId = academicYearId || null;
+
+    if (finalUnitId) {
+      const { data: openDrive } = await supabase
+        .from('membership_drives')
+        .select('id, academic_year_id')
+        .eq('unit_id', finalUnitId)
+        .eq('status', 'OPEN')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (openDrive) {
+        finalDriveId = openDrive.id;
+        if (openDrive.academic_year_id) finalAcademicYearId = openDrive.academic_year_id;
+      }
+    }
+
     const type = membershipType === 'LEADERSHIP' ? 'LEADERSHIP' : 'MEMBER';
     const preferredRole = type === 'LEADERSHIP' ? (preferredLeadershipRole || null) : null;
 
@@ -73,7 +93,8 @@ router.post('/', upload.fields([{ name: 'resume', maxCount: 1 }, { name: 'profil
         year: year.trim(),
         city: city.trim(),
         unit_id: finalUnitId,
-        academic_year_id: academicYearId || null,
+        academic_year_id: finalAcademicYearId,
+        membership_drive_id: finalDriveId,
         skills: parseArray(skills),
         interests: parseArray(interests),
         previous_experience: previousExperience || '',
@@ -110,13 +131,14 @@ router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     let query = supabase
       .from('join_requests')
-      .select('*, units(name, code, institution)', { count: 'exact' })
+      .select('*, units(name, code, institution), academic_years(year), membership_drives(name, id_format, status)', { count: 'exact' })
       .order('created_at', { ascending: false });
 
     if (req.query.status) query = query.eq('status', req.query.status);
     if (req.query.unitId) query = query.eq('unit_id', req.query.unitId);
     if (req.query.membershipType) query = query.eq('membership_type', req.query.membershipType);
     if (req.query.electionStatus) query = query.eq('election_status', req.query.electionStatus);
+    if (req.query.membershipDriveId) query = query.eq('membership_drive_id', req.query.membershipDriveId);
 
     // Unit access restriction for sub-admins
     if (req.admin.role === 'SUB_ADMIN' && req.admin.assigned_unit_ids?.length > 0) {
@@ -146,6 +168,10 @@ router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
       previousExperience: j.previous_experience,
       adminNotes: j.admin_notes,
       unitId: j.unit_id ? { _id: j.unit_id, id: j.unit_id, name: j.units?.name || '', code: j.units?.code || '' } : null,
+      academicYearId: j.academic_year_id ? { _id: j.academic_year_id, id: j.academic_year_id, year: j.academic_years?.year || '' } : null,
+      academicYear: j.academic_years?.year || '',
+      membershipDriveId: j.membership_drive_id || null,
+      driveName: j.membership_drives?.name || '',
     }));
 
     res.json({ success: true, data: formatted, pagination: { page, limit, total: count || 0, pages: Math.ceil((count || 0) / limit) } });
@@ -159,7 +185,7 @@ router.get('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     const { data: req_, error } = await supabase
       .from('join_requests')
-      .select('*, units(name, code, institution), academic_years(year)')
+      .select('*, units(name, code, institution), academic_years(year), membership_drives(name, id_format, status)')
       .eq('id', req.params.id)
       .single();
 
@@ -177,6 +203,9 @@ router.get('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
       adminNotes: req_.admin_notes,
       unitId: req_.unit_id ? { _id: req_.unit_id, id: req_.unit_id, name: req_.units?.name || '', code: req_.units?.code || '' } : null,
       academicYearId: req_.academic_year_id ? { _id: req_.academic_year_id, id: req_.academic_year_id, year: req_.academic_years?.year || '' } : null,
+      academicYear: req_.academic_years?.year || '',
+      membershipDriveId: req_.membership_drive_id || null,
+      driveName: req_.membership_drives?.name || '',
     };
 
     res.json({ success: true, data: formatted });

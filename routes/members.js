@@ -29,16 +29,47 @@ const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 // ─── HELPERS ───────────────────────────────────────────────────────────────────
 
 /**
- * Generate a unique Member ID: MAGIC-{UNIT_CODE}-{0001}
- * Uses member_id_sequences table for atomicity, falls back to count if needed.
+ * Generate a unique Member ID based on Membership Drive format (e.g. MAGIC-ALIET-001)
+ * or atomic unit sequence fallback.
  */
-async function generateMemberId(unitCode) {
+async function generateMemberId(unitCode, driveId = null) {
   const code = (unitCode || 'GEN').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+  if (driveId) {
+    try {
+      const { data: drive } = await supabase
+        .from('membership_drives')
+        .select('*, academic_years(year)')
+        .eq('id', driveId)
+        .single();
+
+      if (drive) {
+        let seq = 1;
+        const { data: rpcSeq, error: rpcErr } = await supabase.rpc('increment_drive_member_seq', { p_drive_id: drive.id });
+        if (!rpcErr && rpcSeq) {
+          seq = rpcSeq;
+        } else {
+          seq = drive.next_number || drive.start_number || 1;
+          await supabase.from('membership_drives').update({ next_number: seq + 1, updated_at: new Date().toISOString() }).eq('id', drive.id);
+        }
+
+        const padding = drive.number_padding || 3;
+        const paddedNum = String(seq).padStart(padding, '0');
+        let format = drive.id_format || 'MAGIC-{UNIT}-{NUMBER}';
+        return format
+          .replace(/\{UNIT\}/gi, code)
+          .replace(/\{NUMBER\}/gi, paddedNum)
+          .replace(/\{YEAR\}/gi, drive.academic_years?.year || '');
+      }
+    } catch (e) {
+      console.warn('[GENERATE MEMBER ID DRIVE ERROR]', e.message);
+    }
+  }
 
   try {
     const { data, error } = await supabase.rpc('increment_member_seq', { p_unit_code: code });
     if (!error && data) {
-      return `MAGIC-${code}-${String(data).padStart(4, '0')}`;
+      return `MAGIC-${code}-${String(data).padStart(3, '0')}`;
     }
   } catch (e) {
     // Fallback to table count
@@ -49,7 +80,7 @@ async function generateMemberId(unitCode) {
     .select('*', { count: 'exact', head: true })
     .like('member_id', `MAGIC-${code}-%`);
 
-  return `MAGIC-${code}-${String((count || 0) + 1).padStart(4, '0')}`;
+  return `MAGIC-${code}-${String((count || 0) + 1).padStart(3, '0')}`;
 }
 
 async function uploadProfilePhoto(file) {
@@ -72,6 +103,8 @@ function mapMember(m) {
     memberId:                m.member_id,
     unitId:                  m.unit_id,
     academicYearId:          m.academic_year_id,
+    membershipDriveId:       m.membership_drive_id || null,
+    driveName:               m.membership_drives?.name || '',
     profilePhoto:            m.profile_photo,
     membershipType:          m.membership_type || 'MEMBER',
     preferredLeadershipRole: m.preferred_leadership_role || null,
@@ -197,7 +230,7 @@ router.post('/approve/:joinRequestId', authenticateAdmin, requireAnyAdmin, async
 
     const { data: application, error: appError } = await supabase
       .from('join_requests')
-      .select('*, units(name, code), academic_years(year)')
+      .select('*, units(name, code), academic_years(year), membership_drives(*)')
       .eq('id', req.params.joinRequestId)
       .single();
 
@@ -213,9 +246,9 @@ router.post('/approve/:joinRequestId', authenticateAdmin, requireAnyAdmin, async
       return res.status(400).json({ success: false, message: 'Application already approved.' });
     }
 
-    // Generate Member ID based on unit code
+    // Generate Member ID based on unit code and linked Membership Drive
     const unitCode = application.units?.code || 'GEN';
-    const memberId = await generateMemberId(unitCode);
+    const memberId = await generateMemberId(unitCode, application.membership_drive_id);
 
     // Generate temporary password
     const tempPassword = `MAGIC@${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
@@ -234,6 +267,7 @@ router.post('/approve/:joinRequestId', authenticateAdmin, requireAnyAdmin, async
         join_request_id:           application.id,
         unit_id:                   application.unit_id,
         academic_year_id:          application.academic_year_id,
+        membership_drive_id:       application.membership_drive_id || null,
         name:                      application.name,
         email:                     application.email,
         phone:                     application.phone,
@@ -301,7 +335,7 @@ router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     let query = supabase
       .from('members')
-      .select('id, member_id, name, email, phone, college, department, year, status, membership_type, preferred_leadership_role, election_status, assigned_role, role_label, profile_photo, joined_at, unit_id, units(name, code), academic_years(year)', { count: 'exact' })
+      .select('*, units(name, code), academic_years(year), membership_drives(name, id_format, status)', { count: 'exact' })
       .order('joined_at', { ascending: false });
 
     // Unit isolation
@@ -309,10 +343,12 @@ router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
       query = query.in('unit_id', req.admin.assigned_unit_ids);
     }
 
-    if (req.query.unitId)         query = query.eq('unit_id', req.query.unitId);
-    if (req.query.status)         query = query.eq('status', req.query.status);
-    if (req.query.membershipType) query = query.eq('membership_type', req.query.membershipType);
-    if (req.query.year)           query = query.eq('year', req.query.year);
+    if (req.query.unitId)            query = query.eq('unit_id', req.query.unitId);
+    if (req.query.status)            query = query.eq('status', req.query.status);
+    if (req.query.membershipType)    query = query.eq('membership_type', req.query.membershipType);
+    if (req.query.academicYearId)    query = query.eq('academic_year_id', req.query.academicYearId);
+    if (req.query.membershipDriveId) query = query.eq('membership_drive_id', req.query.membershipDriveId);
+    if (req.query.year)              query = query.eq('year', req.query.year);
     if (req.query.search) {
       query = query.or(`name.ilike.%${req.query.search}%,email.ilike.%${req.query.search}%,member_id.ilike.%${req.query.search}%,college.ilike.%${req.query.search}%`);
     }

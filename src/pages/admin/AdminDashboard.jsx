@@ -7,7 +7,7 @@ import {
   Plus, Check, AlertCircle, Edit, Trash2, ShieldCheck,
   Filter, Search, X, Loader2, ArrowRight, Eye, EyeOff, Download,
   CheckCircle2, Clock, Globe, User, GraduationCap, Phone, Mail, MapPin, RefreshCw,
-  ArrowUp, ArrowDown, ChevronUp, ChevronDown, Upload, ExternalLink
+  ArrowUp, ArrowDown, ChevronUp, ChevronDown, Upload, ExternalLink, Layers, CreditCard
 } from 'lucide-react';
 import magicLogo from '../../assets/magic-logo.png';
 import '../../styles/admin.css';
@@ -148,6 +148,7 @@ export default function AdminDashboard() {
     {
       group: 'MEMBER PORTAL',
       items: [
+        { id: 'membership-drives', label: 'Membership Drives',  icon: Layers },
         { id: 'members',           label: 'Members',            icon: User },
         { id: 'member-announce',   label: 'Announcements',      icon: Globe },
         { id: 'member-certs',      label: 'Certificates',       icon: GraduationCap },
@@ -297,6 +298,7 @@ export default function AdminDashboard() {
           {activeTab === 'academic-years' && <AcademicYearsModule toast={showToast} units={units} refreshYears={fetchGlobalData} />}
           {activeTab === 'users'          && <UsersModule toast={showToast} units={units} admin={admin} />}
           {activeTab === 'settings'       && <SettingsModule toast={showToast} admin={admin} units={units} />}
+          {activeTab === 'membership-drives' && <MembershipDrivesModule toast={showToast} units={units} academicYears={academicYears} admin={admin} />}
           {activeTab === 'members'        && <AdminMembersModule toast={showToast} units={units} admin={admin} />}
           {activeTab === 'member-announce' && <AdminMemberAnnouncementsModule toast={showToast} units={units} admin={admin} />}
           {activeTab === 'member-certs'   && <AdminMemberCertificatesModule toast={showToast} units={units} admin={admin} />}
@@ -3495,6 +3497,7 @@ function JoinApplicationsModule({ toast, units, admin }) {
               <tr>
                 <th>Applicant</th>
                 <th>Unit / Chapter</th>
+                <th>Drive / Period</th>
                 <th>Type / Nomination</th>
                 <th>Election Status</th>
                 <th>Submitted</th>
@@ -3514,6 +3517,12 @@ function JoinApplicationsModule({ toast, units, admin }) {
                     <td>
                       <div style={{ fontWeight: 600 }}>{r.unitId?.name || '—'}</div>
                       <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{r.college}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: '#0F172A' }}>{r.driveName || 'Direct / Default'}</div>
+                      {r.academicYear && (
+                        <div style={{ fontSize: '0.7rem', color: '#0284C7', fontWeight: 700 }}>Period: {r.academicYear}</div>
+                      )}
                     </td>
                     <td>
                       {isLeadership ? (
@@ -3598,6 +3607,8 @@ function JoinApplicationsModule({ toast, units, admin }) {
                 <div><strong>City:</strong> {selectedReq.city}</div>
                 <div><strong>Email:</strong> {selectedReq.email}</div>
                 <div><strong>Phone:</strong> {selectedReq.phone}</div>
+                <div><strong>Drive:</strong> {selectedReq.driveName || 'Direct / General'}</div>
+                <div><strong>Membership Period:</strong> {selectedReq.academicYear || '—'}</div>
               </div>
 
               {selectedReq.skills && selectedReq.skills.length > 0 && (
@@ -4657,6 +4668,8 @@ function AdminMembersModule({ toast, units, admin }) {
                 ['College', selected.college],
                 ['Department & Year', `${selected.department || ''} (${selected.year || ''})`],
                 ['Membership Type', selected.membershipType || 'MEMBER'],
+                ['Membership Drive', selected.driveName || 'Direct / General'],
+                ['Membership Period', selected.academicYear || '—'],
                 ['Preferred Role (Nomination)', selected.preferredLeadershipRole || 'None'],
                 ['Official Assigned Role', selected.assignedRole || selected.roleLabel || 'Member'],
                 ['Status', selected.status],
@@ -4766,6 +4779,8 @@ function AdminMembersModule({ toast, units, admin }) {
                 <th>Unit</th>
                 <th>Type</th>
                 <th>Designation / Role</th>
+                <th>Drive</th>
+                <th>Period</th>
                 <th>Status</th>
                 <th>Joined</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
@@ -4792,6 +4807,12 @@ function AdminMembersModule({ toast, units, admin }) {
                     <span style={{ fontWeight: 700, color: m.assignedRole ? '#C2410C' : '#334155' }}>
                       {m.assignedRole || m.roleLabel || 'Member'}
                     </span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#0F172A' }}>{m.driveName || 'Direct / General'}</span>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0284C7' }}>{m.academicYear || '—'}</span>
                   </td>
                   <td>
                     <span style={{ background: m.status === 'Active' ? '#DCFCE7' : '#FFF1F2', color: statusColor[m.status] || '#475569', fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px' }}>
@@ -5106,6 +5127,501 @@ function AdminMemberCertificatesModule({ toast, units, admin }) {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MEMBERSHIP DRIVES MODULE
+// ═════════════════════════════════════════════════════════════════════════════
+function MembershipDrivesModule({ toast, units, academicYears, admin }) {
+  const [drives, setDrives] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterUnit, setFilterUnit] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [editingDrive, setEditingDrive] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Form State
+  const [form, setForm] = useState({
+    name: '',
+    unitId: '',
+    academicYearId: '',
+    startDate: '',
+    endDate: '',
+    idFormat: 'MAGIC-{UNIT}-{NUMBER}',
+    startNumber: 1,
+    paddingDigits: 3,
+    status: 'DRAFT',
+    description: ''
+  });
+
+  const loadDrives = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filterUnit) params.set('unitId', filterUnit);
+      if (filterStatus) params.set('status', filterStatus);
+      if (filterYear) params.set('academicYearId', filterYear);
+      const d = await api(`/api/membership-drives?${params.toString()}`);
+      if (d.success) setDrives(d.data || []);
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+    setLoading(false);
+  }, [filterUnit, filterStatus, filterYear, toast]);
+
+  useEffect(() => { loadDrives(); }, [loadDrives]);
+
+  const openCreateModal = () => {
+    setEditingDrive(null);
+    const defUnit = units?.[0]?._id || units?.[0]?.id || '';
+    const defYear = academicYears?.[0]?._id || academicYears?.[0]?.id || '';
+    setForm({
+      name: '',
+      unitId: defUnit,
+      academicYearId: defYear,
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: '',
+      idFormat: 'MAGIC-{UNIT}-{NUMBER}',
+      startNumber: 1,
+      paddingDigits: 3,
+      status: 'DRAFT',
+      description: ''
+    });
+    setShowModal(true);
+  };
+
+  const openEditModal = (d) => {
+    setEditingDrive(d);
+    setForm({
+      name: d.name || '',
+      unitId: d.unit_id || d.unitId?._id || d.unitId?.id || '',
+      academicYearId: d.academic_year_id || d.academicYearId?._id || d.academicYearId?.id || '',
+      startDate: d.start_date || '',
+      endDate: d.end_date || '',
+      idFormat: d.id_format || 'MAGIC-{UNIT}-{NUMBER}',
+      startNumber: d.start_number || 1,
+      paddingDigits: d.padding_digits || 3,
+      status: d.status || 'DRAFT',
+      description: d.description || ''
+    });
+    setShowModal(true);
+  };
+
+  const handleStatusChange = async (driveId, newStatus) => {
+    try {
+      await api(`/api/membership-drives/${driveId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: newStatus })
+      });
+      toast(`Drive status updated to ${newStatus}.`);
+      loadDrives();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
+  const handleDelete = async (driveId, name) => {
+    if (!window.confirm(`Are you sure you want to delete membership drive "${name}"?`)) return;
+    try {
+      await api(`/api/membership-drives/${driveId}`, { method: 'DELETE' });
+      toast('Membership drive deleted.');
+      loadDrives();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) { toast('Drive name is required.', 'error'); return; }
+    if (!form.unitId) { toast('Please select a unit/chapter.', 'error'); return; }
+    if (!form.academicYearId) { toast('Please select an academic year.', 'error'); return; }
+
+    setSubmitting(true);
+    try {
+      if (editingDrive) {
+        await api(`/api/membership-drives/${editingDrive.id || editingDrive._id}`, {
+          method: 'PUT',
+          body: JSON.stringify(form)
+        });
+        toast('Membership drive updated successfully.');
+      } else {
+        await api('/api/membership-drives', {
+          method: 'POST',
+          body: JSON.stringify(form)
+        });
+        toast('Membership drive created successfully.');
+      }
+      setShowModal(false);
+      loadDrives();
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Compute live ID preview
+  const getSelectedUnitCode = () => {
+    const u = (units || []).find(item => (item._id || item.id) === form.unitId);
+    return u?.code || 'UNIT';
+  };
+
+  const getSelectedYear = () => {
+    const y = (academicYears || []).find(item => (item._id || item.id) === form.academicYearId);
+    return y?.year || '2026';
+  };
+
+  const computeIdPreview = () => {
+    const unitCode = getSelectedUnitCode();
+    const yearStr = getSelectedYear();
+    const pad = Math.max(1, parseInt(form.paddingDigits) || 3);
+    const num = String(form.startNumber || 1).padStart(pad, '0');
+    let fmt = form.idFormat || 'MAGIC-{UNIT}-{NUMBER}';
+    return fmt
+      .replace(/\{UNIT\}/gi, unitCode)
+      .replace(/\{NUMBER\}/gi, num)
+      .replace(/\{YEAR\}/gi, yearStr);
+  };
+
+  const statusBadgeStyle = {
+    OPEN:     { bg: '#DCFCE7', text: '#166534', border: '#86EFAC', label: 'OPEN' },
+    UPCOMING: { bg: '#E0F2FE', text: '#0369A1', border: '#7DD3FC', label: 'UPCOMING' },
+    DRAFT:    { bg: '#F1F5F9', text: '#475569', border: '#CBD5E1', label: 'DRAFT' },
+    CLOSED:   { bg: '#FFE4E6', text: '#BE123C', border: '#FDA4AF', label: 'CLOSED' }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Create / Edit Modal */}
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', overflowY: 'auto' }}>
+          <div className="admin-card" style={{ maxWidth: 640, width: '100%', margin: 'auto', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>
+                  {editingDrive ? 'Edit Membership Drive' : 'Create Membership Drive'}
+                </h3>
+                <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                  Configure drive parameters, ID format series, and intake session.
+                </span>
+              </div>
+              <button onClick={() => setShowModal(false)} className="admin-btn-action"><X size={18} /></button>
+            </div>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+              <div>
+                <label className="admin-label">Drive Name *</label>
+                <input
+                  required
+                  placeholder="e.g. MAGIC Youth Membership Drive 2026-27"
+                  value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  className="admin-input"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label className="admin-label">Target Unit / Chapter *</label>
+                  <select
+                    required
+                    value={form.unitId}
+                    onChange={e => setForm(f => ({ ...f, unitId: e.target.value }))}
+                    className="admin-select"
+                  >
+                    <option value="">Select Chapter...</option>
+                    {(units || []).map(u => (
+                      <option key={u._id || u.id} value={u._id || u.id}>
+                        {u.name} ({u.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="admin-label">Academic Year / Period *</label>
+                  <select
+                    required
+                    value={form.academicYearId}
+                    onChange={e => setForm(f => ({ ...f, academicYearId: e.target.value }))}
+                    className="admin-select"
+                  >
+                    <option value="">Select Academic Year...</option>
+                    {(academicYears || []).map(y => (
+                      <option key={y._id || y.id} value={y._id || y.id}>
+                        {y.year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label className="admin-label">Start Date</label>
+                  <input
+                    type="date"
+                    value={form.startDate}
+                    onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
+                    className="admin-input"
+                  />
+                </div>
+                <div>
+                  <label className="admin-label">End Date</label>
+                  <input
+                    type="date"
+                    value={form.endDate}
+                    onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
+                    className="admin-input"
+                  />
+                </div>
+              </div>
+
+              {/* ID Series Configuration */}
+              <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #CBD5E1' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <label className="admin-label" style={{ margin: 0, fontWeight: 800 }}>Member ID Series Format</label>
+                  <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Tokens: {'{UNIT}'}, {'{NUMBER}'}, {'{YEAR}'}</span>
+                </div>
+
+                <input
+                  required
+                  value={form.idFormat}
+                  onChange={e => setForm(f => ({ ...f, idFormat: e.target.value }))}
+                  placeholder="e.g. MAGIC-{UNIT}-{NUMBER} or MY-ALIET-2027-{NUMBER}"
+                  className="admin-input"
+                  style={{ fontFamily: 'monospace', fontWeight: 700 }}
+                />
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
+                  <div>
+                    <label className="admin-label">Starting Number</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={form.startNumber}
+                      onChange={e => setForm(f => ({ ...f, startNumber: parseInt(e.target.value) || 1 }))}
+                      className="admin-input"
+                    />
+                  </div>
+                  <div>
+                    <label className="admin-label">Number Padding Digits</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="6"
+                      value={form.paddingDigits}
+                      onChange={e => setForm(f => ({ ...f, paddingDigits: parseInt(e.target.value) || 3 }))}
+                      className="admin-input"
+                    />
+                  </div>
+                </div>
+
+                {/* Live ID Preview */}
+                <div style={{ marginTop: '0.85rem', background: '#FFFFFF', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px dashed #0284C7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B' }}>Live Generated ID Sample:</span>
+                  <code style={{ fontSize: '0.9375rem', fontWeight: 900, color: 'var(--primary-blue)', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+                    {computeIdPreview()}
+                  </code>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label className="admin-label">Initial Status</label>
+                  <select
+                    value={form.status}
+                    onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+                    className="admin-select"
+                  >
+                    <option value="DRAFT">DRAFT (Not accepting)</option>
+                    <option value="UPCOMING">UPCOMING (Announced)</option>
+                    <option value="OPEN">OPEN (Accepting Applications)</option>
+                    <option value="CLOSED">CLOSED (Intake Finished)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="admin-label">Description / Remarks</label>
+                  <input
+                    placeholder="e.g. Spring 2026 Batch Intake"
+                    value={form.description}
+                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                    className="admin-input"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <button type="button" className="admin-btn-secondary" onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="admin-btn-primary" disabled={submitting}>
+                  {submitting ? 'Saving...' : editingDrive ? 'Update Drive' : 'Create Drive'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Membership Drives</h2>
+          <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#64748B' }}>
+            Manage active and upcoming membership drives, automated ID format series, and academic session linkages.
+          </p>
+        </div>
+        <button className="admin-btn-primary" onClick={openCreateModal}>
+          <Plus size={15} /> Create Membership Drive
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="admin-card" style={{ padding: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+          <div>
+            <label className="admin-label">Filter Unit</label>
+            <select value={filterUnit} onChange={e => setFilterUnit(e.target.value)} className="admin-select">
+              <option value="">All Units</option>
+              {(units || []).map(u => (
+                <option key={u._id || u.id} value={u._id || u.id}>{u.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="admin-label">Filter Status</label>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="admin-select">
+              <option value="">All Statuses</option>
+              <option value="OPEN">OPEN (Active)</option>
+              <option value="UPCOMING">UPCOMING</option>
+              <option value="DRAFT">DRAFT</option>
+              <option value="CLOSED">CLOSED</option>
+            </select>
+          </div>
+          <div>
+            <label className="admin-label">Filter Academic Year</label>
+            <select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="admin-select">
+              <option value="">All Academic Years</option>
+              {(academicYears || []).map(y => (
+                <option key={y._id || y.id} value={y._id || y.id}>{y.year}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Drives Table */}
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+          <Loader2 size={32} className="animate-spin" color="var(--primary-blue)" />
+        </div>
+      ) : drives.length === 0 ? (
+        <div className="admin-card" style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>
+          No membership drives found. Click <strong>Create Membership Drive</strong> above to configure your first drive.
+        </div>
+      ) : (
+        <div className="admin-card" style={{ padding: 0, overflow: 'auto' }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Drive Name</th>
+                <th>Unit / Chapter</th>
+                <th>Period / Academic Year</th>
+                <th>ID Format Series</th>
+                <th>Next Available Number</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {drives.map(d => {
+                const st = statusBadgeStyle[d.status] || statusBadgeStyle.DRAFT;
+                const pad = Math.max(1, parseInt(d.padding_digits) || 3);
+                const nextFormatted = String(d.next_number || d.start_number || 1).padStart(pad, '0');
+                const samplePreview = (d.id_format || 'MAGIC-{UNIT}-{NUMBER}')
+                  .replace(/\{UNIT\}/gi, d.unit?.code || 'UNIT')
+                  .replace(/\{NUMBER\}/gi, nextFormatted)
+                  .replace(/\{YEAR\}/gi, d.academic_year?.year || '2026');
+
+                return (
+                  <tr key={d.id}>
+                    <td>
+                      <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{d.name}</div>
+                      {d.description && (
+                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{d.description}</div>
+                      )}
+                      {(d.start_date || d.end_date) && (
+                        <div style={{ fontSize: '0.7rem', color: '#94A3B8', marginTop: '0.2rem' }}>
+                          {d.start_date ? new Date(d.start_date).toLocaleDateString() : '—'} &rarr; {d.end_date ? new Date(d.end_date).toLocaleDateString() : 'Ongoing'}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{d.unit?.name || '—'}</div>
+                      <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 700 }}>Code: {d.unit?.code}</span>
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: 800, color: '#0369A1', background: '#F0F9FF', padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem' }}>
+                        {d.academic_year?.year || '—'}
+                      </span>
+                    </td>
+                    <td>
+                      <code style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--primary-blue)', fontWeight: 700, display: 'block' }}>
+                        {d.id_format}
+                      </code>
+                      <span style={{ fontSize: '0.7rem', color: '#166534', fontWeight: 600 }}>
+                        Next: {samplePreview}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: '0.875rem', color: '#0F172A' }}>
+                        #{nextFormatted}
+                      </span>
+                    </td>
+                    <td>
+                      <select
+                        value={d.status}
+                        onChange={e => handleStatusChange(d.id, e.target.value)}
+                        style={{
+                          background: st.bg,
+                          color: st.text,
+                          border: `1px solid ${st.border}`,
+                          fontWeight: 800,
+                          fontSize: '0.75rem',
+                          borderRadius: '999px',
+                          padding: '0.25rem 0.6rem',
+                          cursor: 'pointer',
+                          outline: 'none'
+                        }}
+                      >
+                        <option value="DRAFT">DRAFT</option>
+                        <option value="UPCOMING">UPCOMING</option>
+                        <option value="OPEN">OPEN (Active)</option>
+                        <option value="CLOSED">CLOSED</option>
+                      </select>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
+                        <button className="admin-btn-action" title="Edit Drive" onClick={() => openEditModal(d)}>
+                          <Edit size={14} />
+                        </button>
+                        <button className="admin-btn-action" title="Delete Drive" style={{ color: '#BE123C' }} onClick={() => handleDelete(d.id, d.name)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
