@@ -127,14 +127,15 @@ export default function Chapters() {
                   </div>
                 ) : (
                   <div style={{ backgroundColor: 'white', padding: '3rem', borderRadius: '1rem', border: '1px solid var(--border-color)', textAlign: 'center', marginBottom: '3rem' }}>
+                    <Building2 size={36} color="var(--primary-blue)" style={{ margin: '0 auto 1rem' }} />
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                      ALIET MAGIC YOUTH
+                      No Active Chapters Found
                     </h3>
                     <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-                      Andhra Loyola Institute of Engineering and Technology — Primary founding campus chapter in Vijayawada.
+                      New campus chapters are chartered by our central administrative body. Check upcoming units below.
                     </p>
                     <Link to="/join" className="btn-primary" style={{ backgroundColor: 'var(--primary-blue)', color: 'white', padding: '0.75rem 1.75rem', borderRadius: '999px', textDecoration: 'none', fontWeight: 700 }}>
-                      Join ALIET Chapter &rarr;
+                      Join MAGIC Youth &rarr;
                     </Link>
                   </div>
                 )}

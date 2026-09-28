@@ -1,6 +1,7 @@
 /**
  * routes/join.js
- * API router for volunteer join requests using Supabase PostgreSQL.
+ * API router for volunteer join requests & leadership nominations using Supabase PostgreSQL.
+ * Supports MEMBERSHIP TYPE (MEMBER vs LEADERSHIP), preferred leadership role, election status, and assigned roles.
  */
 
 const express = require('express');
@@ -26,36 +27,61 @@ const parseArray = (val) => {
   return typeof val === 'string' ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
 };
 
-/** POST /api/join */
+/** POST /api/join — Public membership application / leadership nomination */
 router.post('/', upload.fields([{ name: 'resume', maxCount: 1 }, { name: 'profileImage', maxCount: 1 }]), async (req, res) => {
   const tmpFiles = [];
   if (req.files?.resume?.[0])       tmpFiles.push(req.files.resume[0].path);
   if (req.files?.profileImage?.[0]) tmpFiles.push(req.files.profileImage[0].path);
 
   try {
-    const { name, email, phone, gender, dob, college, department, year, city, unitId, academicYearId, skills, interests, previousExperience, reason } = req.body;
+    const {
+      name, email, phone, gender, dob, college, department, year, city,
+      unitId, academicYearId, skills, interests, previousExperience, reason,
+      membershipType, preferredLeadershipRole
+    } = req.body;
+
     if (!name || !email || !phone || !college || !department || !year || !city || !reason) {
       return res.status(400).json({ success: false, message: 'Please fill in all required fields.' });
     }
 
+    // Validate Unit
+    let finalUnitId = unitId || null;
+    if (finalUnitId) {
+      const { data: unitData } = await supabase.from('units').select('id, status').eq('id', finalUnitId).maybeSingle();
+      if (unitData && unitData.status !== 'Active') {
+        return res.status(400).json({ success: false, message: 'The selected unit is not currently accepting applications.' });
+      }
+    } else {
+      // If no unit selected, fallback to default active unit
+      const { data: defUnit } = await supabase.from('units').select('id').eq('is_default', true).eq('status', 'Active').maybeSingle();
+      if (defUnit) finalUnitId = defUnit.id;
+    }
+
+    const type = membershipType === 'LEADERSHIP' ? 'LEADERSHIP' : 'MEMBER';
+    const preferredRole = type === 'LEADERSHIP' ? (preferredLeadershipRole || null) : null;
+
     const { data: application, error } = await supabase
       .from('join_requests')
       .insert([{
-        name,
-        email,
-        phone,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
         gender: gender || 'Male',
         dob: dob || null,
-        college,
-        department,
-        year,
-        city,
-        unit_id: unitId || null,
+        college: college.trim(),
+        department: department.trim(),
+        year: year.trim(),
+        city: city.trim(),
+        unit_id: finalUnitId,
         academic_year_id: academicYearId || null,
         skills: parseArray(skills),
         interests: parseArray(interests),
         previous_experience: previousExperience || '',
-        reason,
+        reason: reason.trim(),
+        membership_type: type,
+        preferred_leadership_role: preferredRole,
+        election_status: type === 'LEADERSHIP' ? 'PENDING' : 'PENDING',
+        assigned_role: null,
         status: 'Pending',
       }])
       .select()
@@ -63,9 +89,12 @@ router.post('/', upload.fields([{ name: 'resume', maxCount: 1 }, { name: 'profil
 
     if (error) throw error;
 
+    const isLeadership = type === 'LEADERSHIP';
     res.status(201).json({
       success: true,
-      message: 'Application submitted! Our team will review it soon.',
+      message: isLeadership
+        ? 'Leadership nomination submitted! Your application will be reviewed for the chapter selection process.'
+        : 'Membership application submitted! Our team will review it soon.',
       data: { ...application, _id: application.id }
     });
   } catch (err) {
@@ -76,17 +105,20 @@ router.post('/', upload.fields([{ name: 'resume', maxCount: 1 }, { name: 'profil
   }
 });
 
-/** GET /api/join — Admin: list applications */
+/** GET /api/join — Admin: list applications with unit & membership type filters */
 router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     let query = supabase
       .from('join_requests')
-      .select('*, units(name, code)', { count: 'exact' })
+      .select('*, units(name, code, institution)', { count: 'exact' })
       .order('created_at', { ascending: false });
 
     if (req.query.status) query = query.eq('status', req.query.status);
     if (req.query.unitId) query = query.eq('unit_id', req.query.unitId);
+    if (req.query.membershipType) query = query.eq('membership_type', req.query.membershipType);
+    if (req.query.electionStatus) query = query.eq('election_status', req.query.electionStatus);
 
+    // Unit access restriction for sub-admins
     if (req.admin.role === 'SUB_ADMIN' && req.admin.assigned_unit_ids?.length > 0) {
       query = query.in('unit_id', req.admin.assigned_unit_ids);
     }
@@ -107,6 +139,10 @@ router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
     const formatted = (data || []).map(j => ({
       ...j,
       _id: j.id,
+      membershipType: j.membership_type || 'MEMBER',
+      preferredLeadershipRole: j.preferred_leadership_role || null,
+      electionStatus: j.election_status || 'PENDING',
+      assignedRole: j.assigned_role || null,
       previousExperience: j.previous_experience,
       adminNotes: j.admin_notes,
       unitId: j.unit_id ? { _id: j.unit_id, id: j.unit_id, name: j.units?.name || '', code: j.units?.code || '' } : null,
@@ -118,12 +154,12 @@ router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   }
 });
 
-/** GET /api/join/:id */
+/** GET /api/join/:id — Admin: detail view */
 router.get('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     const { data: req_, error } = await supabase
       .from('join_requests')
-      .select('*, units(name, code), academic_years(year)')
+      .select('*, units(name, code, institution), academic_years(year)')
       .eq('id', req.params.id)
       .single();
 
@@ -133,6 +169,10 @@ router.get('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
     const formatted = {
       ...req_,
       _id: req_.id,
+      membershipType: req_.membership_type || 'MEMBER',
+      preferredLeadershipRole: req_.preferred_leadership_role || null,
+      electionStatus: req_.election_status || 'PENDING',
+      assignedRole: req_.assigned_role || null,
       previousExperience: req_.previous_experience,
       adminNotes: req_.admin_notes,
       unitId: req_.unit_id ? { _id: req_.unit_id, id: req_.unit_id, name: req_.units?.name || '', code: req_.units?.code || '' } : null,
@@ -145,7 +185,65 @@ router.get('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   }
 });
 
-/** PATCH /api/join/:id/status */
+/** PATCH /api/join/:id/election-status — Admin: update leadership nomination election status */
+router.patch('/:id/election-status', authenticateAdmin, requireAnyAdmin, async (req, res) => {
+  try {
+    const { electionStatus, adminNotes } = req.body;
+    const valid = ['PENDING', 'SHORTLISTED', 'ELECTION', 'SELECTED', 'NOT_SELECTED', 'REJECTED'];
+    if (!valid.includes(electionStatus)) {
+      return res.status(400).json({ success: false, message: `Election status must be one of: ${valid.join(', ')}` });
+    }
+
+    const { data: application } = await supabase.from('join_requests').select('*').eq('id', req.params.id).single();
+    if (!application) return res.status(404).json({ success: false, message: 'Application not found.' });
+    if (application.unit_id && !canAccessUnit(req.admin, application.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+
+    const updates = { election_status: electionStatus, updated_at: new Date().toISOString() };
+    if (adminNotes !== undefined) updates.admin_notes = adminNotes;
+
+    const { data: updated, error } = await supabase
+      .from('join_requests')
+      .update(updates)
+      .eq('id', application.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ success: true, message: `Election status updated to ${electionStatus}.`, data: { ...updated, _id: updated.id } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/** PATCH /api/join/:id/assign-role — Admin: assign official leadership role */
+router.patch('/:id/assign-role', authenticateAdmin, requireAnyAdmin, async (req, res) => {
+  try {
+    const { assignedRole } = req.body;
+
+    const { data: application } = await supabase.from('join_requests').select('*').eq('id', req.params.id).single();
+    if (!application) return res.status(404).json({ success: false, message: 'Application not found.' });
+    if (application.unit_id && !canAccessUnit(req.admin, application.unit_id)) return res.status(403).json({ success: false, message: 'Forbidden.' });
+
+    const updates = { assigned_role: assignedRole || null, updated_at: new Date().toISOString() };
+    if (assignedRole) updates.election_status = 'SELECTED';
+
+    const { data: updated, error } = await supabase
+      .from('join_requests')
+      .update(updates)
+      .eq('id', application.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ success: true, message: `Official leadership role set to ${assignedRole || 'None'}.`, data: { ...updated, _id: updated.id } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/** PATCH /api/join/:id/status — Admin: approve or reject application */
 router.patch('/:id/status', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
     const { status, adminNotes } = req.body;

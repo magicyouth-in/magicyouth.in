@@ -120,17 +120,22 @@ export default function MemberVerify() {
                 </div>
               </div>
 
-              {data.roleLabel && (
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '0.5rem', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <ShieldCheck size={18} color="#0284C7" />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>ROLE</div>
-                    <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#0F172A' }}>{data.roleLabel}</div>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '0.5rem', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <ShieldCheck size={18} color="#0284C7" />
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>OFFICIAL DESIGNATION</div>
+                  <div style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span>{data.roleLabel || 'Member'}</span>
+                    {data.membershipType === 'LEADERSHIP' && (
+                      <span style={{ fontSize: '0.65rem', background: '#E11D48', color: '#FFFFFF', padding: '0.15rem 0.5rem', borderRadius: '4px', fontWeight: 800 }}>
+                        LEADERSHIP
+                      </span>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
 
               {data.joinedAt && (
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>

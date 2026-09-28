@@ -151,11 +151,18 @@ export default function MemberECard({ member }) {
             )}
             {/* Details */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '1.0625rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.01em', lineHeight: 1.2, marginBottom: '0.35rem' }}>
+              <div style={{ fontSize: '1.0625rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.01em', lineHeight: 1.2, marginBottom: '0.25rem' }}>
                 {data?.name}
               </div>
-              <div style={{ fontSize: '0.75rem', color: '#38BDF8', fontWeight: 700, letterSpacing: '0.08em', marginBottom: '0.5rem' }}>
-                {(data?.roleLabel || 'MEMBER').toUpperCase()}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#38BDF8', fontWeight: 700, letterSpacing: '0.05em' }}>
+                  {(data?.assignedRole || data?.roleLabel || 'MEMBER').toUpperCase()}
+                </span>
+                {data?.membershipType === 'LEADERSHIP' && (
+                  <span style={{ fontSize: '0.65rem', background: '#E11D48', color: '#FFFFFF', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 800, letterSpacing: '0.05em' }}>
+                    LEADERSHIP
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#CBD5E1', lineHeight: 1.5 }}>
                 <div>{data?.college || data?.unitName}</div>

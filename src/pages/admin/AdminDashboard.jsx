@@ -284,14 +284,14 @@ export default function AdminDashboard() {
         {/* Content Body */}
         <div className="admin-content-body">
           {activeTab === 'dashboard'      && <DashboardModule admin={admin} units={units} setActiveTab={setActiveTab} />}
-          {activeTab === 'chapters'       && <ChaptersModule toast={showToast} refreshUnits={fetchGlobalData} />}
+          {activeTab === 'chapters'       && <ChaptersModule toast={showToast} refreshUnits={fetchGlobalData} admin={admin} />}
           {activeTab === 'teams'          && <TeamsModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'programs'       && <ProgramsModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'events'         && <EventsModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'stories'        && <StoriesModule toast={showToast} units={units} academicYears={academicYears} />}
           {(activeTab === 'media' || activeTab === 'gallery' || activeTab === 'resources') && <MediaModule toast={showToast} units={units} academicYears={academicYears} />}
           {activeTab === 'faqs'           && <FaqModule toast={showToast} />}
-          {activeTab === 'join-apps'      && <JoinApplicationsModule toast={showToast} />}
+          {activeTab === 'join-apps'      && <JoinApplicationsModule toast={showToast} units={units} admin={admin} />}
           {activeTab === 'chapter-apps'   && <ChapterApplicationsModule toast={showToast} />}
           {activeTab === 'enquiries'      && <EnquiriesModule toast={showToast} />}
           {activeTab === 'academic-years' && <AcademicYearsModule toast={showToast} units={units} refreshYears={fetchGlobalData} />}
@@ -392,13 +392,13 @@ function DashboardModule({ admin, units, setActiveTab }) {
 // ═════════════════════════════════════════════════════════════════════════════
 // 2. CHAPTERS MODULE
 // ═════════════════════════════════════════════════════════════════════════════
-function ChaptersModule({ toast, refreshUnits }) {
+function ChaptersModule({ toast, refreshUnits, admin }) {
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingUnit, setEditingUnit] = useState(null);
-  const [form, setForm] = useState({ name: '', code: '', institution: '', location: '', description: '', status: 'Active' });
+  const [form, setForm] = useState({ name: '', code: '', institution: '', location: '', description: '', status: 'Active', isDefault: false });
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -411,14 +411,32 @@ function ChaptersModule({ toast, refreshUnits }) {
 
   const openAdd = () => {
     setEditingUnit(null);
-    setForm({ name: '', code: '', institution: '', location: '', description: '', status: 'Active' });
+    setForm({ name: '', code: '', institution: '', location: '', description: '', status: 'Active', isDefault: false });
     setShowModal(true);
   };
 
   const openEdit = (u) => {
     setEditingUnit(u);
-    setForm({ name: u.name, code: u.code, institution: u.institution || '', location: u.location || '', description: u.description || '', status: u.status || 'Active' });
+    setForm({
+      name: u.name,
+      code: u.code,
+      institution: u.institution || '',
+      location: u.location || '',
+      description: u.description || '',
+      status: u.status || 'Active',
+      isDefault: !!(u.isDefault || u.is_default)
+    });
     setShowModal(true);
+  };
+
+  const handleSetDefault = async (unitId, unitName) => {
+    try {
+      await api(`/api/units/${unitId}/set-default`, { method: 'PATCH' });
+      toast(`Default unit set to ${unitName}. Public website now dynamically uses this unit.`);
+      loadData();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
   };
 
   const handleSave = async (e) => {
@@ -445,15 +463,16 @@ function ChaptersModule({ toast, refreshUnits }) {
   const filtered = units.filter(u => 
     u.name?.toLowerCase().includes(search.toLowerCase()) || 
     u.code?.toLowerCase().includes(search.toLowerCase()) ||
-    u.location?.toLowerCase().includes(search.toLowerCase())
+    u.location?.toLowerCase().includes(search.toLowerCase()) ||
+    u.institution?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div>
       <div className="admin-module-header">
         <div>
-          <h1 className="admin-module-title">Collegiate Chapters</h1>
-          <p className="admin-module-subtitle">Manage higher education institutions and chartered MAGIC Youth campus wings.</p>
+          <h1 className="admin-module-title">Collegiate Chapters &amp; Units</h1>
+          <p className="admin-module-subtitle">Manage campus chapters, configure status, and set the default public unit dynamically.</p>
         </div>
         <button onClick={openAdd} className="admin-btn-primary">
           <Plus size={16} /> Add New Chapter
@@ -489,28 +508,59 @@ function ChaptersModule({ toast, refreshUnits }) {
                 <th>Institution</th>
                 <th>Location</th>
                 <th>Status</th>
+                <th>Default Unit</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(u => (
-                <tr key={u._id}>
-                  <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{u.name}</td>
-                  <td><span style={{ fontWeight: 800, color: 'var(--primary-blue)' }}>{u.code}</span></td>
-                  <td>{u.institution || '—'}</td>
-                  <td>{u.location || '—'}</td>
-                  <td>
-                    <span className={`admin-badge ${u.status === 'Active' ? 'badge-active' : 'badge-archived'}`}>
-                      {u.status}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button onClick={() => openEdit(u)} className="admin-btn-action">
-                      <Edit size={13} /> Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map(u => {
+                const isDef = !!(u.isDefault || u.is_default);
+                return (
+                  <tr key={u._id}>
+                    <td>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span>{u.name}</span>
+                        {isDef && (
+                          <span style={{ fontSize: '0.6875rem', background: '#DCFCE7', color: '#166534', border: '1px solid #86EFAC', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 800 }}>
+                            ★ Default
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td><span style={{ fontWeight: 800, color: 'var(--primary-blue)' }}>{u.code}</span></td>
+                    <td>{u.institution || '—'}</td>
+                    <td>{u.location || '—'}</td>
+                    <td>
+                      <span className={`admin-badge ${u.status === 'Active' ? 'badge-active' : u.status === 'Upcoming' ? 'badge-pending' : 'badge-archived'}`} style={{ backgroundColor: u.status === 'Upcoming' ? '#FEF3C7' : undefined, color: u.status === 'Upcoming' ? '#B45309' : undefined }}>
+                        {u.status}
+                      </span>
+                    </td>
+                    <td>
+                      {isDef ? (
+                        <span style={{ fontSize: '0.8125rem', color: '#16A34A', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                          <Check size={14} /> Active Default
+                        </span>
+                      ) : admin?.role === 'MAIN_ADMIN' ? (
+                        <button
+                          onClick={() => handleSetDefault(u._id, u.name)}
+                          className="admin-btn-secondary"
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                          title="Set this unit as the global default for the website"
+                        >
+                          Make Default
+                        </button>
+                      ) : (
+                        <span style={{ color: '#94A3B8', fontSize: '0.75rem' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button onClick={() => openEdit(u)} className="admin-btn-action">
+                        <Edit size={13} /> Edit
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -538,7 +588,8 @@ function ChaptersModule({ toast, refreshUnits }) {
                 <div>
                   <label className="admin-label">Status</label>
                   <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="admin-select">
-                    <option value="Active">Active</option>
+                    <option value="Active">Active (Accepts Applications)</option>
+                    <option value="Upcoming">Upcoming (Under Formation)</option>
                     <option value="Inactive">Inactive</option>
                     <option value="Archived">Archived</option>
                   </select>
@@ -556,6 +607,20 @@ function ChaptersModule({ toast, refreshUnits }) {
                 <label className="admin-label">Description / Remarks</label>
                 <textarea rows={3} placeholder="Chapter description..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="admin-textarea" />
               </div>
+              {admin?.role === 'MAIN_ADMIN' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <input
+                    type="checkbox"
+                    id="isDefaultUnit"
+                    checked={form.isDefault}
+                    onChange={e => setForm({ ...form, isDefault: e.target.checked })}
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="isDefaultUnit" style={{ fontSize: '0.875rem', fontWeight: 600, color: '#0F172A', cursor: 'pointer' }}>
+                    Set as Default/Current Chapter for the Public Website
+                  </label>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setShowModal(false)} className="admin-btn-secondary">Cancel</button>
                 <button type="submit" className="admin-btn-primary">Save Chapter</button>
@@ -3217,19 +3282,102 @@ function FaqModule({ toast }) {
 // ═════════════════════════════════════════════════════════════════════════════
 // 10. JOIN MAGIC APPLICATIONS MODULE
 // ═════════════════════════════════════════════════════════════════════════════
-function JoinApplicationsModule({ toast }) {
+function JoinApplicationsModule({ toast, units, admin }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedReq, setSelectedReq] = useState(null);
+  const [filterUnit, setFilterUnit] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [search, setSearch] = useState('');
+  const [assignedRoleInput, setAssignedRoleInput] = useState('');
+  const [electionStatusInput, setElectionStatusInput] = useState('PENDING');
+  const [showApprovalModal, setShowApprovalModal] = useState(null);
+  const [approving, setApproving] = useState(false);
+
+  const leadershipRoleOptions = [
+    'First Lead',
+    'Second Lead',
+    'Secretary',
+    'Deputy Secretary',
+    'Procurator',
+    'Social Media Coordinator',
+    'Event Coordinator',
+    'Volunteer Coordinator',
+    'Cultural Coordinator'
+  ];
 
   const loadRequests = useCallback(() => {
     setLoading(true);
-    api('/api/join')
+    const params = new URLSearchParams();
+    if (filterUnit) params.set('unitId', filterUnit);
+    if (filterStatus) params.set('status', filterStatus);
+    if (filterType) params.set('membershipType', filterType);
+    if (search) params.set('search', search);
+
+    api(`/api/join?${params.toString()}`)
       .then(d => { setRequests(d.data || []); setLoading(false); })
       .catch(e => { toast(e.message, 'error'); setLoading(false); });
-  }, [toast]);
+  }, [filterUnit, filterStatus, filterType, search, toast]);
 
   useEffect(() => { loadRequests(); }, [loadRequests]);
+
+  const openDetail = (r) => {
+    setSelectedReq(r);
+    setAssignedRoleInput(r.assignedRole || '');
+    setElectionStatusInput(r.electionStatus || 'PENDING');
+  };
+
+  const updateElectionStatusAndRole = async () => {
+    if (!selectedReq) return;
+    try {
+      await api(`/api/join/${selectedReq._id}/election-status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ electionStatus: electionStatusInput })
+      });
+      await api(`/api/join/${selectedReq._id}/assign-role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ assignedRole: assignedRoleInput })
+      });
+      toast('Election status and assigned role saved.');
+      loadRequests();
+      setSelectedReq(prev => ({
+        ...prev,
+        electionStatus: electionStatusInput,
+        assignedRole: assignedRoleInput
+      }));
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  };
+
+  const handleApproveMembership = async () => {
+    if (!selectedReq) return;
+    setApproving(true);
+    try {
+      const res = await api(`/api/members/approve/${selectedReq._id}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          assignedRole: assignedRoleInput || selectedReq.assignedRole || null,
+          electionStatus: electionStatusInput || selectedReq.electionStatus || 'SELECTED'
+        })
+      });
+
+      toast(`Member account created! ID: ${res.data.memberId}`);
+      setShowApprovalModal({
+        memberId: res.data.memberId,
+        tempPassword: res.data.tempPassword,
+        roleLabel: res.data.roleLabel,
+        applicantName: selectedReq.name,
+      });
+      setSelectedReq(null);
+      loadRequests();
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      setApproving(false);
+    }
+  };
 
   const updateStatus = async (id, status) => {
     try {
@@ -3242,10 +3390,97 @@ function JoinApplicationsModule({ toast }) {
 
   return (
     <div>
+      {/* Approval Success Modal */}
+      {showApprovalModal && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal-box" style={{ maxWidth: 480 }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#DCFCE7', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 0.75rem' }}>
+                <Check size={28} />
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: '#166534' }}>
+                Membership Approved!
+              </h3>
+              <p style={{ color: '#475569', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                Member account for <strong>{showApprovalModal.applicantName}</strong> has been generated.
+              </p>
+            </div>
+
+            <div style={{ background: '#F0FDF4', border: '1.5px solid #86EFAC', borderRadius: '0.75rem', padding: '1rem 1.25rem', marginBottom: '1.25rem' }}>
+              <div style={{ marginBottom: '0.6rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#166534', display: 'block' }}>GENERATED MEMBER ID:</span>
+                <code style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', fontFamily: 'monospace' }}>
+                  {showApprovalModal.memberId}
+                </code>
+              </div>
+              <div style={{ marginBottom: '0.6rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#166534', display: 'block' }}>TEMPORARY PASSWORD:</span>
+                <code style={{ fontSize: '1.1rem', fontWeight: 800, color: '#DC2626', fontFamily: 'monospace', background: '#FEE2E2', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>
+                  {showApprovalModal.tempPassword}
+                </code>
+              </div>
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#166534', display: 'block' }}>OFFICIAL ROLE:</span>
+                <span style={{ fontWeight: 700, color: '#0F172A' }}>{showApprovalModal.roleLabel || 'Member'}</span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '0.78125rem', color: '#64748B', lineHeight: 1.5, marginBottom: '1.25rem' }}>
+              ⚠ Please securely share these credentials with the member. They can log in at <code>/member/login</code> and view their digital E-Card.
+            </p>
+
+            <button onClick={() => setShowApprovalModal(null)} className="admin-btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+              Done / Close
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="admin-module-header">
         <div>
-          <h1 className="admin-module-title">Join MAGIC Applications</h1>
-          <p className="admin-module-subtitle">Review incoming collegiate membership applications submitted through the public website.</p>
+          <h1 className="admin-module-title">Join MAGIC &amp; Leadership Nominations</h1>
+          <p className="admin-module-subtitle">Review incoming collegiate applications, evaluate leadership nominations, and approve member accounts.</p>
+        </div>
+      </div>
+
+      {/* Filter Toolbar */}
+      <div className="admin-card" style={{ padding: '1rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', alignItems: 'flex-end' }}>
+          <div>
+            <label className="admin-label">Search Applicant</label>
+            <input
+              placeholder="Name, email, college..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="admin-input"
+            />
+          </div>
+          <div>
+            <label className="admin-label">Filter Unit</label>
+            <select value={filterUnit} onChange={e => setFilterUnit(e.target.value)} className="admin-select">
+              <option value="">All Units</option>
+              {(units || []).map(u => (
+                <option key={u._id || u.id} value={u._id || u.id}>{u.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="admin-label">Membership Type</label>
+            <select value={filterType} onChange={e => setFilterType(e.target.value)} className="admin-select">
+              <option value="">All Types</option>
+              <option value="MEMBER">Regular Member</option>
+              <option value="LEADERSHIP">Leadership Nomination</option>
+            </select>
+          </div>
+          <div>
+            <label className="admin-label">Status</label>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="admin-select">
+              <option value="">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Approved">Approved</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -3253,77 +3488,221 @@ function JoinApplicationsModule({ toast }) {
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}><Loader2 size={30} className="animate-spin" color="var(--primary-blue)" /></div>
         ) : requests.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>No membership applications submitted yet.</div>
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748B' }}>No applications found matching the selected filters.</div>
         ) : (
           <table className="admin-table">
             <thead>
               <tr>
                 <th>Applicant</th>
-                <th>College / Dept</th>
-                <th>Contact</th>
+                <th>Unit / Chapter</th>
+                <th>Type / Nomination</th>
+                <th>Election Status</th>
                 <th>Submitted</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {requests.map(r => (
-                <tr key={r._id}>
-                  <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{r.name}</td>
-                  <td>
-                    <div>{r.college}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{r.department} &bull; {r.year}</div>
-                  </td>
-                  <td>
-                    <div>{r.email}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{r.phone}</div>
-                  </td>
-                  <td>{new Date(r.createdAt || Date.now()).toLocaleDateString()}</td>
-                  <td>
-                    <span className={`admin-badge ${r.status === 'Accepted' || r.status === 'Approved' ? 'badge-approved' : r.status === 'Rejected' ? 'badge-rejected' : 'badge-pending'}`}>
-                      {r.status === 'Approved' || r.status === 'Accepted' ? 'Approved' : r.status || 'Pending'}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button onClick={() => setSelectedReq(r)} className="admin-btn-action">
-                      <Eye size={13} /> View
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {requests.map(r => {
+                const isLeadership = r.membershipType === 'LEADERSHIP';
+                return (
+                  <tr key={r._id}>
+                    <td>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{r.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{r.email} &bull; {r.phone}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{r.unitId?.name || '—'}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{r.college}</div>
+                    </td>
+                    <td>
+                      {isLeadership ? (
+                        <div>
+                          <span style={{ fontSize: '0.7rem', background: '#FFE4E6', color: '#BE123C', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 800 }}>
+                            ★ LEADERSHIP
+                          </span>
+                          <div style={{ fontSize: '0.75rem', color: '#9A3412', fontWeight: 600, marginTop: '0.2rem' }}>
+                            Pref: {r.preferredLeadershipRole || 'Not specified'}
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '0.7rem', background: '#E0F2FE', color: '#0369A1', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 700 }}>
+                          ● MEMBER
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {isLeadership ? (
+                        <span style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: r.electionStatus === 'SELECTED' ? '#166534' : r.electionStatus === 'SHORTLISTED' ? '#0369A1' : r.electionStatus === 'REJECTED' ? '#BE123C' : '#D97706'
+                        }}>
+                          {r.electionStatus || 'PENDING'}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#94A3B8', fontSize: '0.75rem' }}>N/A</span>
+                      )}
+                    </td>
+                    <td>{new Date(r.createdAt || r.created_at || Date.now()).toLocaleDateString()}</td>
+                    <td>
+                      <span className={`admin-badge ${r.status === 'Accepted' || r.status === 'Approved' ? 'badge-approved' : r.status === 'Rejected' ? 'badge-rejected' : 'badge-pending'}`}>
+                        {r.status || 'Pending'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button onClick={() => openDetail(r)} className="admin-btn-action">
+                        <Eye size={13} /> Review
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
       </div>
 
-      {/* Application Detail Modal */}
+      {/* Application Detail & Evaluation Modal */}
       {selectedReq && (
         <div className="admin-modal-overlay">
-          <div className="admin-modal-box">
+          <div className="admin-modal-box" style={{ maxWidth: 620, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Application Details</h3>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Application Review</h3>
+                <span style={{ fontSize: '0.75rem', color: '#64748B' }}>Target Unit: <strong>{selectedReq.unitId?.name || 'MAGIC Youth'}</strong></span>
+              </div>
               <button onClick={() => setSelectedReq(null)} className="admin-btn-action" style={{ padding: '0.35rem' }}><X size={16} /></button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div><strong>Name:</strong> {selectedReq.name} ({selectedReq.gender})</div>
-              <div><strong>College:</strong> {selectedReq.college}</div>
-              <div><strong>Department &amp; Year:</strong> {selectedReq.department} — {selectedReq.year}</div>
-              <div><strong>Email:</strong> {selectedReq.email} | <strong>Phone:</strong> {selectedReq.phone}</div>
-              <div><strong>City:</strong> {selectedReq.city}</div>
-              <div>
-                <strong>Current Status:</strong>{' '}
-                <span className={`admin-badge ${selectedReq.status === 'Accepted' || selectedReq.status === 'Approved' ? 'badge-approved' : selectedReq.status === 'Rejected' ? 'badge-rejected' : 'badge-pending'}`}>
-                  {selectedReq.status || 'Pending'}
-                </span>
+
+            {/* Leadership Nomination Advisory Banner */}
+            {selectedReq.membershipType === 'LEADERSHIP' && (
+              <div style={{ backgroundColor: '#FFF7ED', border: '1.5px solid #FED7AA', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#C2410C', fontWeight: 800, fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                  ★ LEADERSHIP NOMINATION FOR CONSIDERATION
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: '#7C2D12', lineHeight: 1.5 }}>
+                  Applicant nominated for: <strong>{selectedReq.preferredLeadershipRole}</strong>.
+                  <span style={{ display: 'block', fontSize: '0.75rem', color: '#9A3412', marginTop: '0.2rem' }}>
+                    Note: Preference does not grant official appointment. You may shortlist, conduct selection, and designate an official assigned role below.
+                  </span>
+                </div>
               </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.875rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div><strong>Full Name:</strong> {selectedReq.name} ({selectedReq.gender})</div>
+                <div><strong>College:</strong> {selectedReq.college}</div>
+                <div><strong>Department &amp; Year:</strong> {selectedReq.department} ({selectedReq.year})</div>
+                <div><strong>City:</strong> {selectedReq.city}</div>
+                <div><strong>Email:</strong> {selectedReq.email}</div>
+                <div><strong>Phone:</strong> {selectedReq.phone}</div>
+              </div>
+
+              {selectedReq.skills && selectedReq.skills.length > 0 && (
+                <div>
+                  <strong>Skills:</strong>{' '}
+                  <span style={{ color: '#475569' }}>{Array.isArray(selectedReq.skills) ? selectedReq.skills.join(', ') : selectedReq.skills}</span>
+                </div>
+              )}
+
+              {selectedReq.interests && selectedReq.interests.length > 0 && (
+                <div>
+                  <strong>Interests:</strong>{' '}
+                  <span style={{ color: '#475569' }}>{Array.isArray(selectedReq.interests) ? selectedReq.interests.join(', ') : selectedReq.interests}</span>
+                </div>
+              )}
+
               <div style={{ backgroundColor: '#F8FAFC', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--border-color)' }}>
-                <strong>Reason for Joining:</strong>
-                <p style={{ margin: '0.35rem 0 0', color: '#334155' }}>{selectedReq.reason}</p>
+                <strong>Motivation / Reason for Joining:</strong>
+                <p style={{ margin: '0.35rem 0 0', color: '#334155', fontStyle: 'italic' }}>"{selectedReq.reason}"</p>
               </div>
+
+              {/* Leadership Evaluation Controls (If Leadership nomination) */}
+              {selectedReq.membershipType === 'LEADERSHIP' && (
+                <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #CBD5E1', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.8125rem', color: '#0F172A' }}>
+                    ELECTION / SELECTION WORKFLOW
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label className="admin-label">Election Status</label>
+                      <select
+                        value={electionStatusInput}
+                        onChange={e => setElectionStatusInput(e.target.value)}
+                        className="admin-select"
+                      >
+                        <option value="PENDING">PENDING</option>
+                        <option value="SHORTLISTED">SHORTLISTED</option>
+                        <option value="ELECTION">ELECTION / SELECTION</option>
+                        <option value="SELECTED">SELECTED</option>
+                        <option value="NOT_SELECTED">NOT SELECTED</option>
+                        <option value="REJECTED">REJECTED</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="admin-label">Official Assigned Role</label>
+                      <select
+                        value={assignedRoleInput}
+                        onChange={e => setAssignedRoleInput(e.target.value)}
+                        className="admin-select"
+                      >
+                        <option value="">None (Regular Member)</option>
+                        {leadershipRoleOptions.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={updateElectionStatusAndRole}
+                      className="admin-btn-secondary"
+                      style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+                    >
+                      Save Status &amp; Assigned Role
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
-              <button onClick={() => updateStatus(selectedReq._id, 'Approved')} className="admin-btn-primary" style={{ backgroundColor: '#166534' }}>Accept</button>
-              <button onClick={() => updateStatus(selectedReq._id, 'Rejected')} className="admin-btn-danger">Reject</button>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #E2E8F0', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <div>
+                <button
+                  onClick={() => updateStatus(selectedReq._id, 'Rejected')}
+                  className="admin-btn-danger"
+                  style={{ fontSize: '0.8125rem' }}
+                >
+                  Reject Application
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedReq(null)}
+                  className="admin-btn-secondary"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={handleApproveMembership}
+                  disabled={approving || selectedReq.status === 'Approved'}
+                  className="admin-btn-primary"
+                  style={{ backgroundColor: '#166534' }}
+                >
+                  {approving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  {selectedReq.status === 'Approved' ? 'Already Approved' : 'Approve & Create Member ID'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -4158,89 +4537,100 @@ function AdminMembersModule({ toast, units, admin }) {
   const [search, setSearch]     = useState('');
   const [filterUnit, setFUnit]  = useState('');
   const [filterStatus, setFSt]  = useState('');
+  const [filterType, setFType]  = useState('');
   const [page, setPage]         = useState(1);
   const [total, setTotal]       = useState(0);
   const [selected, setSelected] = useState(null);
   const [tempPwd, setTempPwd]   = useState('');
-  const [showApproval, setShowApproval] = useState(null);
+  const [editRoleInput, setEditRoleInput] = useState('');
+
+  const leadershipRoles = [
+    'First Lead',
+    'Second Lead',
+    'Secretary',
+    'Deputy Secretary',
+    'Procurator',
+    'Social Media Coordinator',
+    'Event Coordinator',
+    'Volunteer Coordinator',
+    'Cultural Coordinator'
+  ];
 
   const limit = 20;
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ page, limit });
       if (search)       params.set('search', search);
       if (filterUnit)   params.set('unitId', filterUnit);
       if (filterStatus) params.set('status', filterStatus);
+      if (filterType)   params.set('membershipType', filterType);
       const d = await api(`/api/members?${params}`);
       if (d.success) { setMembers(d.data); setTotal(d.pagination?.total || 0); }
     } catch (e) { toast(e.message, 'error'); }
     setLoading(false);
-  }
+  }, [page, filterUnit, filterStatus, filterType, search, toast]);
 
-  useEffect(() => { load(); }, [page, filterUnit, filterStatus]);
+  useEffect(() => { load(); }, [load]);
 
-  async function handleSearch(e) {
+  const handleSearch = (e) => {
     e.preventDefault();
     setPage(1);
     load();
-  }
+  };
 
-  async function changeStatus(memberId, status) {
+  const openMemberDetail = (m) => {
+    setSelected(m);
+    setEditRoleInput(m.assignedRole || m.roleLabel || 'Member');
+  };
+
+  const handleUpdateRole = async () => {
+    if (!selected) return;
+    try {
+      await api(`/api/members/${selected.id}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ assignedRole: editRoleInput === 'Member' ? null : editRoleInput })
+      });
+      toast(`Official role updated to ${editRoleInput}.`);
+      load();
+      setSelected(prev => ({ ...prev, assignedRole: editRoleInput === 'Member' ? null : editRoleInput, roleLabel: editRoleInput }));
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const changeStatus = async (memberId, status) => {
     try {
       await api(`/api/members/${memberId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
       toast(`Member ${status.toLowerCase()} successfully.`);
       load();
-      setSelected(null);
+      if (selected?.id === memberId) {
+        setSelected(prev => ({ ...prev, status }));
+      }
     } catch (e) { toast(e.message, 'error'); }
-  }
+  };
 
-  async function resetPassword(memberId) {
+  const resetPassword = async (memberId) => {
     try {
       const d = await api(`/api/members/${memberId}/reset-password`, { method: 'POST' });
       setTempPwd(d.tempPassword);
       toast('Password reset. Share the temporary password securely.');
     } catch (e) { toast(e.message, 'error'); }
-  }
-
-  // Approve pending join request
-  async function approveApplication(joinRequestId) {
-    try {
-      const d = await api(`/api/members/approve/${joinRequestId}`, { method: 'POST' });
-      toast(`Member created. ID: ${d.data.memberId}`);
-      setShowApproval({ memberId: d.data.memberId, tempPwd: d.data.tempPassword });
-      load();
-    } catch (e) { toast(e.message, 'error'); }
-  }
+  };
 
   const statusColor = { Active: '#166534', Suspended: '#C2410C', Expired: '#475569', Deactivated: '#BE123C' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      {/* Approval result modal */}
-      {showApproval && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div className="admin-card" style={{ maxWidth: 480, width: '100%' }}>
-            <h3 style={{ marginBottom: '1rem', color: '#166534' }}>✓ Member Account Created</h3>
-            <div style={{ background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1rem' }}>
-              <div style={{ marginBottom: '0.5rem' }}><strong>Member ID:</strong> <code style={{ background: '#DCFCE7', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontFamily: 'monospace' }}>{showApproval.memberId}</code></div>
-              <div><strong>Temporary Password:</strong> <code style={{ background: '#DCFCE7', padding: '0.2rem 0.5rem', borderRadius: '0.25rem', fontFamily: 'monospace' }}>{showApproval.tempPwd}</code></div>
-            </div>
-            <p style={{ fontSize: '0.8rem', color: '#DC2626', marginBottom: '1rem' }}>⚠ Share this password securely. It will not be shown again.</p>
-            <button className="admin-btn-primary" onClick={() => setShowApproval(null)}>Close</button>
-          </div>
-        </div>
-      )}
-
       {/* Password reset modal */}
       {tempPwd && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div className="admin-card" style={{ maxWidth: 420, width: '100%' }}>
             <h3 style={{ marginBottom: '1rem' }}>Temporary Password</h3>
-            <code style={{ display: 'block', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '0.5rem', padding: '1rem', fontSize: '1.125rem', letterSpacing: '0.1em', marginBottom: '1rem', textAlign: 'center' }}>{tempPwd}</code>
-            <p style={{ fontSize: '0.8rem', color: '#DC2626', marginBottom: '1rem' }}>Share this securely. The member should change it after first login.</p>
-            <button className="admin-btn-primary" onClick={() => setTempPwd('')}>Done</button>
+            <code style={{ display: 'block', background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '0.5rem', padding: '1rem', fontSize: '1.125rem', letterSpacing: '0.1em', marginBottom: '1rem', textAlign: 'center', color: '#166534', fontWeight: 800 }}>
+              {tempPwd}
+            </code>
+            <p style={{ fontSize: '0.8rem', color: '#DC2626', marginBottom: '1rem' }}>Share this securely with the member. They should change it after logging in.</p>
+            <button className="admin-btn-primary" onClick={() => setTempPwd('')} style={{ width: '100%', justifyContent: 'center' }}>Done</button>
           </div>
         </div>
       )}
@@ -4248,11 +4638,15 @@ function AdminMembersModule({ toast, units, admin }) {
       {/* Member detail modal */}
       {selected && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', overflowY: 'auto' }}>
-          <div className="admin-card" style={{ maxWidth: 560, width: '100%', margin: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <h3 style={{ margin: 0 }}>Member Details</h3>
+          <div className="admin-card" style={{ maxWidth: 600, width: '100%', margin: 'auto', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Member Profile</h3>
+                <span style={{ fontSize: '0.75rem', color: '#64748B', fontFamily: 'monospace' }}>{selected.memberId}</span>
+              </div>
               <button onClick={() => setSelected(null)} className="admin-btn-action"><X size={18} /></button>
             </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem', fontSize: '0.875rem' }}>
               {[
                 ['Member ID', selected.memberId],
@@ -4261,22 +4655,55 @@ function AdminMembersModule({ toast, units, admin }) {
                 ['Phone', selected.phone],
                 ['Unit', selected.unitName],
                 ['College', selected.college],
-                ['Department', selected.department],
-                ['Year', selected.year],
+                ['Department & Year', `${selected.department || ''} (${selected.year || ''})`],
+                ['Membership Type', selected.membershipType || 'MEMBER'],
+                ['Preferred Role (Nomination)', selected.preferredLeadershipRole || 'None'],
+                ['Official Assigned Role', selected.assignedRole || selected.roleLabel || 'Member'],
                 ['Status', selected.status],
-                ['Role', selected.roleLabel],
                 ['Joined', selected.joinedAt ? new Date(selected.joinedAt).toLocaleDateString() : '—'],
               ].map(([k, v]) => (
-                <div key={k} style={{ gridColumn: k === 'Email' || k === 'College' ? 'span 2' : undefined }}>
+                <div key={k} style={{ gridColumn: k === 'Email' || k === 'College' || k === 'Preferred Role (Nomination)' ? 'span 2' : undefined }}>
                   <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748B', marginBottom: '0.2rem' }}>{k.toUpperCase()}</div>
-                  <div style={{ color: '#0F172A' }}>{v || '—'}</div>
+                  <div style={{ color: '#0F172A', fontWeight: k.includes('Role') || k.includes('ID') ? 700 : 500 }}>{v || '—'}</div>
                 </div>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-              {selected.status !== 'Active'      && <button className="admin-btn-primary" onClick={() => changeStatus(selected.id, 'Active')}>Activate</button>}
-              {selected.status === 'Active'      && <button className="admin-btn-secondary" style={{ color: '#C2410C' }} onClick={() => changeStatus(selected.id, 'Suspended')}>Suspend</button>}
-              {selected.status !== 'Deactivated' && <button className="admin-btn-secondary" style={{ color: '#BE123C' }} onClick={() => changeStatus(selected.id, 'Deactivated')}>Deactivate</button>}
+
+            {/* Role Assignment Control */}
+            <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '0.75rem', border: '1px solid #CBD5E1', marginBottom: '1.25rem' }}>
+              <label className="admin-label">Assign / Update Official Leadership Role</label>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
+                <select
+                  value={editRoleInput}
+                  onChange={e => setEditRoleInput(e.target.value)}
+                  className="admin-select"
+                  style={{ flex: 1 }}
+                >
+                  <option value="Member">Member (General)</option>
+                  {leadershipRoles.map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleUpdateRole}
+                  className="admin-btn-primary"
+                  style={{ fontSize: '0.8125rem' }}
+                >
+                  Save Role
+                </button>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.35rem', display: 'block' }}>
+                This updates the official title printed on their digital E-Card and public verification page.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', borderTop: '1px solid #E2E8F0', paddingTop: '1rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {selected.status !== 'Active'      && <button className="admin-btn-primary" onClick={() => changeStatus(selected.id, 'Active')}>Activate</button>}
+                {selected.status === 'Active'      && <button className="admin-btn-secondary" style={{ color: '#C2410C' }} onClick={() => changeStatus(selected.id, 'Suspended')}>Suspend</button>}
+                {selected.status !== 'Deactivated' && <button className="admin-btn-secondary" style={{ color: '#BE123C' }} onClick={() => changeStatus(selected.id, 'Deactivated')}>Deactivate</button>}
+              </div>
               <button className="admin-btn-secondary" onClick={() => resetPassword(selected.id)}><RefreshCw size={13} /> Reset Password</button>
             </div>
           </div>
@@ -4286,33 +4713,41 @@ function AdminMembersModule({ toast, units, admin }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Members</h2>
-          <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#64748B' }}>{total} member{total !== 1 ? 's' : ''} registered</p>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Registered Members</h2>
+          <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#64748B' }}>{total} member{total !== 1 ? 's' : ''} active across chapters</p>
         </div>
       </div>
 
       {/* Filters */}
       <div className="admin-card" style={{ padding: '1rem' }}>
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ flex: 2, minWidth: '200px' }}>
+        <form onSubmit={handleSearch} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', alignItems: 'flex-end' }}>
+          <div>
             <label className="admin-label">Search</label>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, email, Member ID…" className="admin-input" />
           </div>
-          <div style={{ minWidth: '160px' }}>
+          <div>
             <label className="admin-label">Unit</label>
-            <select value={filterUnit} onChange={e => { setFUnit(e.target.value); setPage(1); }} className="admin-input">
+            <select value={filterUnit} onChange={e => { setFUnit(e.target.value); setPage(1); }} className="admin-select">
               <option value="">All Units</option>
-              {units.map(u => <option key={u.id || u._id} value={u.id || u._id}>{u.name}</option>)}
+              {(units || []).map(u => <option key={u.id || u._id} value={u.id || u._id}>{u.name}</option>)}
             </select>
           </div>
-          <div style={{ minWidth: '140px' }}>
+          <div>
+            <label className="admin-label">Type</label>
+            <select value={filterType} onChange={e => { setFType(e.target.value); setPage(1); }} className="admin-select">
+              <option value="">All Types</option>
+              <option value="MEMBER">Member</option>
+              <option value="LEADERSHIP">Leadership</option>
+            </select>
+          </div>
+          <div>
             <label className="admin-label">Status</label>
-            <select value={filterStatus} onChange={e => { setFSt(e.target.value); setPage(1); }} className="admin-input">
-              <option value="">All Status</option>
+            <select value={filterStatus} onChange={e => { setFSt(e.target.value); setPage(1); }} className="admin-select">
+              <option value="">All Statuses</option>
               {['Active','Suspended','Expired','Deactivated'].map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
-          <button type="submit" className="admin-btn-primary"><Search size={15} /> Search</button>
+          <button type="submit" className="admin-btn-primary" style={{ justifySelf: 'start' }}><Search size={15} /> Filter</button>
         </form>
       </div>
 
@@ -4329,27 +4764,43 @@ function AdminMembersModule({ toast, units, admin }) {
                 <th>Member ID</th>
                 <th>Name</th>
                 <th>Unit</th>
-                <th>College</th>
+                <th>Type</th>
+                <th>Designation / Role</th>
                 <th>Status</th>
                 <th>Joined</th>
-                <th>Actions</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {members.map(m => (
                 <tr key={m.id}>
-                  <td><code style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--primary-blue)' }}>{m.memberId}</code></td>
+                  <td><code style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--primary-blue)', fontWeight: 700 }}>{m.memberId}</code></td>
                   <td style={{ fontWeight: 600 }}>{m.name}</td>
                   <td>{m.unitName || '—'}</td>
-                  <td>{m.college}</td>
+                  <td>
+                    {m.membershipType === 'LEADERSHIP' ? (
+                      <span style={{ fontSize: '0.7rem', background: '#FFE4E6', color: '#BE123C', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 800 }}>
+                        LEADERSHIP
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '0.7rem', background: '#E0F2FE', color: '#0369A1', padding: '0.15rem 0.5rem', borderRadius: '999px', fontWeight: 700 }}>
+                        MEMBER
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    <span style={{ fontWeight: 700, color: m.assignedRole ? '#C2410C' : '#334155' }}>
+                      {m.assignedRole || m.roleLabel || 'Member'}
+                    </span>
+                  </td>
                   <td>
                     <span style={{ background: m.status === 'Active' ? '#DCFCE7' : '#FFF1F2', color: statusColor[m.status] || '#475569', fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px' }}>
                       {m.status}
                     </span>
                   </td>
                   <td style={{ color: '#64748B', fontSize: '0.8rem' }}>{m.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : '—'}</td>
-                  <td>
-                    <button className="admin-btn-action" onClick={() => setSelected(m)}><Eye size={15} /></button>
+                  <td style={{ textAlign: 'right' }}>
+                    <button className="admin-btn-action" onClick={() => openMemberDetail(m)}><Eye size={15} /> View</button>
                   </td>
                 </tr>
               ))}

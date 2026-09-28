@@ -53,11 +53,9 @@ export default function Home() {
           const uList = unitsData.data || [];
           uCount = uList.length;
           setUnits(uList);
-          const alietMatch = uList.find(u => u.name?.toUpperCase().includes('ALIET') || u.code?.toUpperCase().includes('ALIET'));
-          if (alietMatch) {
-            setSelectedUnit(alietMatch._id || alietMatch.id);
-          } else if (uList.length > 0) {
-            setSelectedUnit(uList[0]._id || uList[0].id);
+          const defaultUnit = uList.find(u => u.isDefault || u.is_default) || uList[0];
+          if (defaultUnit) {
+            setSelectedUnit(defaultUnit._id || defaultUnit.id);
           }
         }
 

@@ -28,15 +28,10 @@ export default function Teams() {
         fetchedUnits = unitsData.data || [];
         setUnits(fetchedUnits);
         
-        // Preselect ALIET MAGIC YOUTH by default
-        const alietMatch = fetchedUnits.find(u => 
-          /ALIET/i.test(u.code || u.shortName || u.name || '') || 
-          /Andhra Loyola Institute/i.test(u.institution || u.name || '')
-        );
-        if (alietMatch) {
-          setSelectedUnit(alietMatch._id || alietMatch.id);
-        } else if (fetchedUnits.length > 0) {
-          setSelectedUnit(fetchedUnits[0]._id || fetchedUnits[0].id);
+        // Preselect default unit dynamically
+        const defaultUnit = fetchedUnits.find(u => u.isDefault || u.is_default) || fetchedUnits[0];
+        if (defaultUnit) {
+          setSelectedUnit(defaultUnit._id || defaultUnit.id);
         }
       }
 
