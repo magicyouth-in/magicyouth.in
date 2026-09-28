@@ -299,7 +299,7 @@ export default function AdminDashboard() {
           {activeTab === 'users'          && <UsersModule toast={showToast} units={units} admin={admin} />}
           {activeTab === 'settings'       && <SettingsModule toast={showToast} admin={admin} units={units} />}
           {activeTab === 'membership-drives' && <MembershipDrivesModule toast={showToast} units={units} academicYears={academicYears} admin={admin} />}
-          {activeTab === 'members'        && <AdminMembersModule toast={showToast} units={units} admin={admin} />}
+          {activeTab === 'members'        && <AdminMembersModule toast={showToast} units={units} academicYears={academicYears} admin={admin} />}
           {activeTab === 'member-announce' && <AdminMemberAnnouncementsModule toast={showToast} units={units} admin={admin} />}
           {activeTab === 'member-certs'   && <AdminMemberCertificatesModule toast={showToast} units={units} admin={admin} />}
         </div>
@@ -3868,6 +3868,11 @@ function AcademicYearsModule({ toast, units, refreshYears }) {
   const [years, setYears] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newYearStr, setNewYearStr] = useState('');
+  const [newStatusStr, setNewStatusStr] = useState('Active');
+  const [editingYear, setEditingYear] = useState(null);
+  const [editYearStr, setEditYearStr] = useState('');
+  const [editStatusStr, setEditStatusStr] = useState('Active');
+  const [saving, setSaving] = useState(false);
 
   const loadYears = useCallback(() => {
     setLoading(true);
@@ -3882,11 +3887,58 @@ function AcademicYearsModule({ toast, units, refreshYears }) {
     e.preventDefault();
     if (!newYearStr.trim()) return;
     try {
-      const defaultUnit = units[0]?._id;
+      const defaultUnit = units[0]?._id || units[0]?.id;
       if (!defaultUnit) { toast('Please create a chapter first.', 'error'); return; }
-      await api('/api/academic-years', { method: 'POST', body: JSON.stringify({ unitId: defaultUnit, year: newYearStr }) });
-      toast(`Academic year ${newYearStr} added.`);
+      await api('/api/academic-years', {
+        method: 'POST',
+        body: JSON.stringify({ unitId: defaultUnit, year: newYearStr.trim(), status: newStatusStr })
+      });
+      toast(`Academic year "${newYearStr.trim()}" added.`);
       setNewYearStr('');
+      setNewStatusStr('Active');
+      loadYears();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const handleToggleStatus = async (yearObj) => {
+    const nextStatus = yearObj.status === 'Active' ? 'Inactive' : 'Active';
+    try {
+      await api(`/api/academic-years/${yearObj._id || yearObj.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: nextStatus })
+      });
+      toast(`Academic year "${yearObj.year}" set to ${nextStatus}.`);
+      loadYears();
+    } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const openEdit = (y) => {
+    setEditingYear(y);
+    setEditYearStr(y.year || '');
+    setEditStatusStr(y.status || 'Active');
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editYearStr.trim() || !editingYear) return;
+    setSaving(true);
+    try {
+      await api(`/api/academic-years/${editingYear._id || editingYear.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ year: editYearStr.trim(), status: editStatusStr })
+      });
+      toast(`Academic year updated to "${editYearStr.trim()}".`);
+      setEditingYear(null);
+      loadYears();
+    } catch (e) { toast(e.message, 'error'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (yearObj) => {
+    if (!window.confirm(`Are you sure you want to safely remove academic year "${yearObj.year}"?\n\nExisting teams, members, and events will be retained safely.`)) return;
+    try {
+      await api(`/api/academic-years/${yearObj._id || yearObj.id}`, { method: 'DELETE' });
+      toast(`Academic year "${yearObj.year}" deleted.`);
       loadYears();
     } catch (e) { toast(e.message, 'error'); }
   };
@@ -3896,35 +3948,140 @@ function AcademicYearsModule({ toast, units, refreshYears }) {
       <div className="admin-module-header">
         <div>
           <h1 className="admin-module-title">Academic Years</h1>
-          <p className="admin-module-subtitle">Configure academic sessions for youth formation cycles and team tenure tracking.</p>
+          <p className="admin-module-subtitle">Configure academic sessions for youth formation cycles, leadership tenure tracking, and membership drives.</p>
         </div>
       </div>
 
-      <div className="admin-card" style={{ maxWidth: 600 }}>
+      {/* Edit Modal */}
+      {editingYear && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div className="admin-card" style={{ maxWidth: 460, width: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Edit Academic Year</h3>
+              <button onClick={() => setEditingYear(null)} className="admin-btn-action"><X size={18} /></button>
+            </div>
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label className="admin-label">Academic Year Label</label>
+                <input
+                  required
+                  value={editYearStr}
+                  onChange={e => setEditYearStr(e.target.value)}
+                  placeholder="e.g. 2026-27"
+                  className="admin-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
+              <div>
+                <label className="admin-label">Status</label>
+                <select
+                  value={editStatusStr}
+                  onChange={e => setEditStatusStr(e.target.value)}
+                  className="admin-select"
+                  style={{ width: '100%' }}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button type="button" onClick={() => setEditingYear(null)} className="admin-btn-secondary">Cancel</button>
+                <button type="submit" disabled={saving} className="admin-btn-primary">
+                  {saving ? <Loader2 size={15} className="animate-spin" /> : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Year Form */}
+      <div className="admin-card" style={{ maxWidth: 700, marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem' }}>Add New Academic Year</h3>
-        <form onSubmit={handleAddYear} style={{ display: 'flex', gap: '0.75rem' }}>
-          <input required placeholder="e.g. 2026-27" value={newYearStr} onChange={e => setNewYearStr(e.target.value)} className="admin-input" style={{ flex: 1 }} />
-          <button type="submit" className="admin-btn-primary">Add Year</button>
+        <form onSubmit={handleAddYear} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            required
+            placeholder="e.g. 2026-27"
+            value={newYearStr}
+            onChange={e => setNewYearStr(e.target.value)}
+            className="admin-input"
+            style={{ flex: 1, minWidth: 200 }}
+          />
+          <select
+            value={newStatusStr}
+            onChange={e => setNewStatusStr(e.target.value)}
+            className="admin-select"
+            style={{ width: 140 }}
+          >
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+          <button type="submit" className="admin-btn-primary">
+            <Plus size={16} /> Add Year
+          </button>
         </form>
       </div>
 
-      <div className="admin-table-container" style={{ maxWidth: 600 }}>
+      {/* Academic Years Table */}
+      <div className="admin-card" style={{ padding: 0, overflow: 'auto', maxWidth: 850 }}>
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}><Loader2 size={24} className="animate-spin" color="var(--primary-blue)" /></div>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+            <Loader2 size={24} className="animate-spin" color="var(--primary-blue)" />
+          </div>
+        ) : years.length === 0 ? (
+          <div style={{ padding: '2.5rem', textAlign: 'center', color: '#64748B' }}>
+            No academic years configured yet. Add your first session above.
+          </div>
         ) : (
           <table className="admin-table">
             <thead>
               <tr>
                 <th>Academic Session</th>
                 <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {years.map(y => (
-                <tr key={y._id}>
-                  <td style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{y.year}</td>
+                <tr key={y._id || y.id}>
+                  <td style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '1rem' }}>{y.year}</td>
                   <td>
-                    <span className="admin-badge badge-active">{y.status || 'Active'}</span>
+                    <button
+                      onClick={() => handleToggleStatus(y)}
+                      style={{
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: y.status === 'Active' ? '#DCFCE7' : '#F1F5F9',
+                        color: y.status === 'Active' ? '#166534' : '#64748B',
+                        padding: '0.25rem 0.65rem',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700
+                      }}
+                      title="Click to toggle Active / Inactive"
+                    >
+                      {y.status || 'Active'} ⇋
+                    </button>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => openEdit(y)}
+                        className="admin-btn-action"
+                        style={{ padding: '0.35rem 0.65rem', fontSize: '0.8125rem' }}
+                        title="Edit Academic Year"
+                      >
+                        <Edit size={14} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(y)}
+                        className="admin-btn-danger"
+                        style={{ padding: '0.35rem 0.65rem', fontSize: '0.8125rem' }}
+                        title="Safely Delete Academic Year"
+                      >
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -4542,14 +4699,16 @@ function SettingsModule({ toast, admin }) {
 // ═════════════════════════════════════════════════════════════════════════════
 // ADMIN MEMBERS MODULE
 // ═════════════════════════════════════════════════════════════════════════════
-function AdminMembersModule({ toast, units, admin }) {
+function AdminMembersModule({ toast, units, academicYears = [], admin }) {
   const [members, setMembers]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
   const [filterUnit, setFUnit]  = useState('');
   const [filterStatus, setFSt]  = useState('');
   const [filterType, setFType]  = useState('');
+  const [filterYear, setFYear]  = useState('');
   const [page, setPage]         = useState(1);
+  const [limit, setLimit]       = useState(25);
   const [total, setTotal]       = useState(0);
   const [selected, setSelected] = useState(null);
   const [tempPwd, setTempPwd]   = useState('');
@@ -4567,8 +4726,6 @@ function AdminMembersModule({ toast, units, admin }) {
     'Cultural Coordinator'
   ];
 
-  const limit = 20;
-
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -4577,11 +4734,12 @@ function AdminMembersModule({ toast, units, admin }) {
       if (filterUnit)   params.set('unitId', filterUnit);
       if (filterStatus) params.set('status', filterStatus);
       if (filterType)   params.set('membershipType', filterType);
+      if (filterYear)   params.set('academicYearId', filterYear);
       const d = await api(`/api/members?${params}`);
-      if (d.success) { setMembers(d.data); setTotal(d.pagination?.total || 0); }
+      if (d.success) { setMembers(d.data || []); setTotal(d.pagination?.total || 0); }
     } catch (e) { toast(e.message, 'error'); }
     setLoading(false);
-  }, [page, filterUnit, filterStatus, filterType, search, toast]);
+  }, [page, limit, filterUnit, filterStatus, filterType, filterYear, search, toast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -4626,6 +4784,40 @@ function AdminMembersModule({ toast, units, admin }) {
       setTempPwd(d.tempPassword);
       toast('Password reset. Share the temporary password securely.');
     } catch (e) { toast(e.message, 'error'); }
+  };
+
+  const handleExportCsv = () => {
+    if (!members.length) {
+      toast('No member records to export.', 'error');
+      return;
+    }
+    const headers = ['Member ID', 'Name', 'Email', 'Phone', 'Unit / Chapter', 'College', 'Department', 'Year', 'Membership Type', 'Assigned Role', 'Drive', 'Academic Year', 'Status', 'Joined Date'];
+    const rows = members.map(m => [
+      `"${m.memberId || ''}"`,
+      `"${(m.name || '').replace(/"/g, '""')}"`,
+      `"${m.email || ''}"`,
+      `"${m.phone || ''}"`,
+      `"${(m.unitName || '').replace(/"/g, '""')}"`,
+      `"${(m.college || '').replace(/"/g, '""')}"`,
+      `"${(m.department || '').replace(/"/g, '""')}"`,
+      `"${m.year || ''}"`,
+      `"${m.membershipType || 'MEMBER'}"`,
+      `"${m.assignedRole || m.roleLabel || 'Member'}"`,
+      `"${(m.driveName || 'Direct / General').replace(/"/g, '""')}"`,
+      `"${m.academicYear || ''}"`,
+      `"${m.status || ''}"`,
+      `"${m.joinedAt ? new Date(m.joinedAt).toLocaleDateString() : ''}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `magic_youth_members_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast(`Exported ${members.length} member records to CSV.`);
   };
 
   const statusColor = { Active: '#166534', Suspended: '#C2410C', Expired: '#475569', Deactivated: '#BE123C' };
@@ -4726,23 +4918,38 @@ function AdminMembersModule({ toast, units, admin }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Registered Members</h2>
+          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>Registered Members Register</h2>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.875rem', color: '#64748B' }}>{total} member{total !== 1 ? 's' : ''} active across chapters</p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button onClick={handleExportCsv} className="admin-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8125rem' }}>
+            <Download size={14} /> Export CSV
+          </button>
+          <button onClick={() => window.print()} className="admin-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8125rem' }}>
+            <FileText size={14} /> Print
+          </button>
         </div>
       </div>
 
       {/* Filters */}
       <div className="admin-card" style={{ padding: '1rem' }}>
-        <form onSubmit={handleSearch} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', alignItems: 'flex-end' }}>
+        <form onSubmit={handleSearch} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem', alignItems: 'flex-end' }}>
           <div>
             <label className="admin-label">Search</label>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Name, email, Member ID…" className="admin-input" />
           </div>
           <div>
-            <label className="admin-label">Unit</label>
+            <label className="admin-label">Unit / Chapter</label>
             <select value={filterUnit} onChange={e => { setFUnit(e.target.value); setPage(1); }} className="admin-select">
               <option value="">All Units</option>
               {(units || []).map(u => <option key={u.id || u._id} value={u.id || u._id}>{u.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="admin-label">Academic Year</label>
+            <select value={filterYear} onChange={e => { setFYear(e.target.value); setPage(1); }} className="admin-select">
+              <option value="">All Academic Years</option>
+              {(academicYears || []).map(y => <option key={y.id || y._id} value={y.id || y._id}>{y.year}</option>)}
             </select>
           </div>
           <div>
@@ -4760,7 +4967,15 @@ function AdminMembersModule({ toast, units, admin }) {
               {['Active','Suspended','Expired','Deactivated'].map(s => <option key={s}>{s}</option>)}
             </select>
           </div>
-          <button type="submit" className="admin-btn-primary" style={{ justifySelf: 'start' }}><Search size={15} /> Filter</button>
+          <div>
+            <label className="admin-label">Per Page</label>
+            <select value={limit} onChange={e => { setLimit(Number(e.target.value)); setPage(1); }} className="admin-select">
+              <option value="25">25 per page</option>
+              <option value="50">50 per page</option>
+              <option value="100">100 per page</option>
+            </select>
+          </div>
+          <button type="submit" className="admin-btn-primary" style={{ justifySelf: 'start', height: '40px' }}><Search size={15} /> Filter</button>
         </form>
       </div>
 

@@ -82,22 +82,104 @@ router.post('/', authenticateAdmin, requireMainAdmin, async (req, res) => {
 /** PUT /api/academic-years/:id */
 router.put('/:id', authenticateAdmin, requireMainAdmin, async (req, res) => {
   try {
-    const { year, status } = req.body;
+    const { year, status, unitId } = req.body;
     const updates = { updated_at: new Date().toISOString() };
-    if (year) updates.year = year;
-    if (status) updates.status = status;
+    if (year !== undefined) updates.year = String(year).trim();
+    if (status !== undefined) updates.status = status;
+    if (unitId) updates.unit_id = unitId;
 
     const { data: ay, error } = await supabase
       .from('academic_years')
       .update(updates)
       .eq('id', req.params.id)
-      .select()
+      .select('*, units(name, code)')
       .single();
 
     if (error || !ay) return res.status(404).json({ success: false, message: 'Academic year not found.' });
 
     await logAction(req, 'Edit Academic Year', 'AcademicYear', ay.id, ay.unit_id);
-    res.json({ success: true, data: { ...ay, _id: ay.id, unitId: ay.unit_id }, message: 'Academic year updated.' });
+    res.json({
+      success: true,
+      data: { ...ay, _id: ay.id, unitId: ay.unit_id ? { _id: ay.unit_id, id: ay.unit_id, name: ay.units?.name || '', code: ay.units?.code || '' } : null },
+      message: 'Academic year updated.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/** PATCH /api/academic-years/:id/status — Toggle status */
+router.patch('/:id/status', authenticateAdmin, requireMainAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status) return res.status(400).json({ success: false, message: 'Status is required.' });
+
+    const { data: ay, error } = await supabase
+      .from('academic_years')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+      .select('*, units(name, code)')
+      .single();
+
+    if (error || !ay) return res.status(404).json({ success: false, message: 'Academic year not found.' });
+
+    res.json({
+      success: true,
+      data: { ...ay, _id: ay.id, unitId: ay.unit_id ? { _id: ay.unit_id, id: ay.unit_id, name: ay.units?.name || '', code: ay.units?.code || '' } : null },
+      message: `Academic year set to ${status}.`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/** DELETE /api/academic-years/:id — Safe delete with foreign key nullification */
+router.delete('/:id', authenticateAdmin, requireMainAdmin, async (req, res) => {
+  try {
+    const ayId = req.params.id;
+
+    // Verify academic year exists
+    const { data: existing, error: findErr } = await supabase
+      .from('academic_years')
+      .select('id, year, unit_id')
+      .eq('id', ayId)
+      .single();
+
+    if (findErr || !existing) {
+      return res.status(404).json({ success: false, message: 'Academic year not found.' });
+    }
+
+    // Safely set academic_year_id to NULL on referencing tables so NO CASCADE DELETION occurs
+    await Promise.allSettled([
+      supabase.from('teams').update({ academic_year_id: null }).eq('academic_year_id', ayId),
+      supabase.from('members').update({ academic_year_id: null }).eq('academic_year_id', ayId),
+      supabase.from('join_requests').update({ academic_year_id: null }).eq('academic_year_id', ayId),
+      supabase.from('membership_drives').update({ academic_year_id: null }).eq('academic_year_id', ayId),
+      supabase.from('events').update({ academic_year_id: null }).eq('academic_year_id', ayId),
+      supabase.from('stories').update({ academic_year_id: null }).eq('academic_year_id', ayId),
+      supabase.from('media').update({ academic_year_id: null }).eq('academic_year_id', ayId),
+      supabase.from('documents').update({ academic_year_id: null }).eq('academic_year_id', ayId),
+    ]);
+
+    // Delete the academic year record
+    const { error: delErr } = await supabase
+      .from('academic_years')
+      .delete()
+      .eq('id', ayId);
+
+    if (delErr) {
+      return res.status(400).json({
+        success: false,
+        message: 'Could not delete academic year due to foreign key restrictions. You can set its status to Inactive instead.'
+      });
+    }
+
+    await logAction(req, 'Delete Academic Year', 'AcademicYear', ayId, existing.unit_id);
+
+    res.json({
+      success: true,
+      message: `Academic year "${existing.year}" safely removed. Related content retained.`
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
