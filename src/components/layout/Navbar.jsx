@@ -59,7 +59,7 @@ export default function Navbar() {
 
         {/* DESKTOP ACTIONS */}
         <div className="navbar-actions">
-          <Link to="/member/login" className="navbar-link navbar-desktop-member-btn" style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#475569', border: '1px solid #E2E8F0', borderRadius: '0.375rem', padding: '0.375rem 0.75rem' }}>
+          <Link to="/member/login" className="navbar-desktop-member-btn">
             Member Login
           </Link>
           <Link to="/join" className="navbar-join-btn">
@@ -90,11 +90,11 @@ export default function Navbar() {
           ))}
           
           <div className="navbar-mobile-join">
-            <Link to="/member/login" style={{ display: 'block', padding: '0.75rem 1rem', margin: '0 1rem 0.5rem', background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#475569', textDecoration: 'none', textAlign: 'center', fontWeight: 600, fontSize: '0.875rem' }}>
-              Member Login
-            </Link>
             <Link to="/join" className="navbar-mobile-join-btn">
               JOIN MAGIC
+            </Link>
+            <Link to="/member/login" className="navbar-mobile-member-btn">
+              Member Login
             </Link>
           </div>
         </div>

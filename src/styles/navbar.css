@@ -129,15 +129,32 @@
   }
 }
 
-/* Hide desktop member login on mobile to prevent header overflow */
+/* Member login button in header */
 .navbar-desktop-member-btn {
   display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #334155;
+  background-color: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.navbar-desktop-member-btn:hover {
+  background-color: #F1F5F9;
+  color: var(--primary-blue);
+  border-color: var(--primary-blue);
 }
 
 @media (min-width: 640px) {
   .navbar-desktop-member-btn {
     display: inline-flex;
-    align-items: center;
   }
 }
 
@@ -149,7 +166,7 @@
   color: #FFFFFF !important;
   font-weight: 700;
   font-size: 0.875rem;
-  padding: 0.625rem 1.375rem;
+  padding: 0.5rem 1.25rem;
   border-radius: 9999px;
   text-decoration: none;
   transition: all 0.25s ease;
@@ -158,7 +175,7 @@
   white-space: nowrap;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 640px) {
   .navbar-join-btn {
     display: inline-flex;
   }
@@ -237,6 +254,32 @@
   margin-top: 0.75rem;
   padding-top: 0.75rem;
   border-top: 1px solid #E5E7EB;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.navbar-mobile-member-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background-color: #F8FAFC;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 9999px;
+  color: #334155;
+  text-decoration: none;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 0.6875rem 1rem;
+  box-sizing: border-box;
+  transition: background-color 0.15s ease;
+}
+
+.navbar-mobile-member-btn:hover {
+  background-color: #F1F5F9;
+  color: var(--primary-blue);
 }
 
 .navbar-mobile-join-btn {
@@ -245,10 +288,10 @@
   justify-content: center;
   width: 100%;
   background-color: var(--primary-blue);
-  color: #FFFFFF;
-  font-weight: 600;
+  color: #FFFFFF !important;
+  font-weight: 700;
   font-size: 0.9375rem;
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   border-radius: 9999px;
   text-decoration: none;
   box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);

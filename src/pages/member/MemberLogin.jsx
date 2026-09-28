@@ -74,13 +74,49 @@ export default function MemberLogin() {
       <div style={{ width: '100%', maxWidth: '420px', background: '#FFFFFF', borderRadius: '1.25rem', boxShadow: '0 20px 60px rgba(0,0,0,0.1)', padding: '2.5rem', border: '1px solid #E2E8F0' }}>
 
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
           <img src="/assets/magic-logo.png" alt="MAGIC Youth" style={{ width: '60px', height: '60px', objectFit: 'contain', marginBottom: '0.75rem' }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
             <ShieldCheck size={20} color="#0284C7" />
-            <h1 style={{ fontSize: '1.375rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Member Login</h1>
+            <h1 style={{ fontSize: '1.375rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>Member Portal</h1>
           </div>
-          <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0 }}>MAGIC Youth Member Portal</p>
+          <p style={{ fontSize: '0.875rem', color: '#64748B', margin: 0 }}>Official Member Access &amp; Application</p>
+        </div>
+
+        {/* Not yet a member? Direct Join Option */}
+        <div style={{ background: '#F0F9FF', border: '1.5px solid #BAE6FD', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#0369A1', marginBottom: '0.25rem' }}>
+            Not yet a member?
+          </div>
+          <p style={{ fontSize: '0.8125rem', color: '#475569', margin: '0 0 0.75rem', lineHeight: 1.4 }}>
+            Submit your membership application or leadership nomination directly.
+          </p>
+          <Link
+            to="/join"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+              backgroundColor: 'var(--primary-blue)',
+              color: '#FFFFFF',
+              padding: '0.5rem 1.25rem',
+              borderRadius: '9999px',
+              fontSize: '0.8125rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+              boxShadow: '0 2px 8px rgba(2, 132, 199, 0.25)'
+            }}
+          >
+            JOIN MAGIC &rarr;
+          </Link>
+        </div>
+
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+          <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Already a Member?</span>
+          <div style={{ flex: 1, height: '1px', background: '#E2E8F0' }} />
         </div>
 
         {/* Error */}

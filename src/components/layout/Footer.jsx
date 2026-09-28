@@ -37,12 +37,13 @@ export default function Footer() {
         {/* NETWORK & MEDIA */}
         <div>
           <h4 style={{ color: 'white', fontSize: '0.9375rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '1.25rem' }}>
-            Network
+            Network &amp; Portal
           </h4>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            <li><Link to="/join" className="footer-link">JOIN MAGIC (Apply Now)</Link></li>
+            <li><Link to="/member/login" className="footer-link">Member Portal Login</Link></li>
             <li><Link to="/teams" className="footer-link">Student Leadership</Link></li>
             <li><Link to="/media" className="footer-link">Media &amp; Publications</Link></li>
-            <li><Link to="/join" className="footer-link">Become a Change Agent</Link></li>
             <li><Link to="/contact" className="footer-link">Contact &amp; Inquiries</Link></li>
           </ul>
         </div>
