@@ -403,16 +403,6 @@ router.get('/', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   }
 });
 
-    res.json({
-      success: true,
-      data: (data || []).map(mapMember),
-      pagination: { page, limit, total: count || 0, pages: Math.ceil((count || 0) / limit) },
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
 /**
  * GET /api/members/:id
  * Admin: get member detail.

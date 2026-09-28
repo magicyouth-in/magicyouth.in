@@ -18,7 +18,7 @@ const JWT_REMEMBER_EXPIRES_IN = process.env.JWT_REMEMBER_EXPIRES_IN || '30d';
 
 /**
  * POST /api/auth/login
- * Authenticate a MAIN_ADMIN.
+ * Authenticate an Admin (MAIN_ADMIN or SUB_ADMIN).
  */
 router.post('/login', async (req, res) => {
   try {
@@ -29,26 +29,46 @@ router.post('/login', async (req, res) => {
     }
 
     const searchEmail = email.toLowerCase().trim();
+    console.log(`[AUTH] Login attempt received for: ${searchEmail}`);
 
     // Query Supabase admin_users
-    let { data: admin, error } = await supabase
+    const { data: admin, error } = await supabase
       .from('admin_users')
       .select('*')
       .eq('email', searchEmail)
       .single();
 
     if (error || !admin) {
+      console.log(`[AUTH] User lookup failed for: ${searchEmail}`);
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
+    console.log(`[AUTH] User lookup succeeded: ${admin.email} (Role: ${admin.role}, Status: ${admin.status})`);
+
     if (admin.status === 'Inactive') {
+      console.log(`[AUTH] Login rejected: Account inactive for ${admin.email}`);
       return res.status(403).json({ success: false, message: 'Your account has been disabled. Contact the administrator.' });
     }
 
-    const match = await bcrypt.compare(password, admin.password_hash);
-    if (!match) {
+    if (!admin.password_hash) {
+      console.log(`[AUTH] Login failed: No password hash for ${admin.email}`);
       return res.status(401).json({ success: false, message: 'Invalid credentials.' });
     }
+
+    let match = false;
+    try {
+      match = await bcrypt.compare(password, admin.password_hash);
+    } catch (cmpErr) {
+      console.error(`[AUTH] Password comparison error for ${admin.email}:`, cmpErr.message);
+      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
+    }
+
+    if (!match) {
+      console.log(`[AUTH] Password comparison failed for: ${admin.email}`);
+      return res.status(401).json({ success: false, message: 'Invalid credentials.' });
+    }
+
+    console.log(`[AUTH] Password comparison verified successfully for: ${admin.email}`);
 
     // Update last_login_at
     await supabase
@@ -57,16 +77,23 @@ router.post('/login', async (req, res) => {
       .eq('id', admin.id);
 
     const expiresIn = rememberMe ? JWT_REMEMBER_EXPIRES_IN : JWT_EXPIRES_IN;
-    const token = jwt.sign(
-      {
-        adminId: admin.id,
-        email:   admin.email,
-        role:    admin.role,
-        name:    admin.name,
-      },
-      JWT_SECRET,
-      { expiresIn }
-    );
+    let token;
+    try {
+      token = jwt.sign(
+        {
+          adminId: admin.id,
+          email:   admin.email,
+          role:    admin.role,
+          name:    admin.name,
+        },
+        JWT_SECRET,
+        { expiresIn }
+      );
+      console.log(`[AUTH] JWT generated successfully for: ${admin.email}`);
+    } catch (jwtErr) {
+      console.error(`[AUTH] JWT signing failed:`, jwtErr.message);
+      return res.status(500).json({ success: false, message: 'Authentication token generation failed.' });
+    }
 
     const maxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
 
@@ -77,6 +104,8 @@ router.post('/login', async (req, res) => {
       maxAge,
       path:     '/',
     });
+
+    console.log(`[AUTH] Cookie set successfully for: ${admin.email}`);
 
     return res.json({
       success: true,

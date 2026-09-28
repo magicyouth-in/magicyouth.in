@@ -245,12 +245,6 @@ router.get('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   }
 });
 
-    res.json({ success: true, data: formatted });
-  } catch (err) {
-    res.status(400).json({ success: false, message: 'Invalid ID.' });
-  }
-});
-
 /** PATCH /api/join/:id/election-status — Admin: update leadership nomination election status */
 router.patch('/:id/election-status', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {

@@ -44,7 +44,17 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const match = await bcrypt.compare(password, member.password_hash);
+    if (!member.password_hash) {
+      return res.status(401).json({ success: false, message: 'Invalid Member ID or password.' });
+    }
+
+    let match = false;
+    try {
+      match = await bcrypt.compare(password, member.password_hash);
+    } catch {
+      return res.status(401).json({ success: false, message: 'Invalid Member ID or password.' });
+    }
+
     if (!match) {
       return res.status(401).json({ success: false, message: 'Invalid Member ID or password.' });
     }
