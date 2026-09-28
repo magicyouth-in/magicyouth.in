@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { 
   Users, Heart, Award, ArrowRight, ArrowDown, Volume2, VolumeX, 
   ChevronDown, BookOpen, Leaf, Sparkles, Rocket, 
-  Globe, Shield, CheckCircle2, Building, MessageSquare, Compass
+  Globe, Shield, CheckCircle2, Building, MessageSquare, Compass, X
 } from 'lucide-react';
 import '../styles/home.css';
 
@@ -27,6 +27,40 @@ export default function Home() {
 
   // Active Journey Step State
   const [activeJourney, setActiveJourney] = useState(0);
+
+  // Join Magic Modal Popup State (shown once per browser session after 2.5s delay)
+  const [showJoinPopup, setShowJoinPopup] = useState(false);
+
+  useEffect(() => {
+    try {
+      const seen = sessionStorage.getItem('magic_join_popup_seen');
+      if (!seen) {
+        const timer = setTimeout(() => {
+          setShowJoinPopup(true);
+        }, 2500);
+        return () => clearTimeout(timer);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
+
+  const handleClosePopup = () => {
+    try {
+      sessionStorage.setItem('magic_join_popup_seen', 'true');
+    } catch {}
+    setShowJoinPopup(false);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showJoinPopup) {
+        handleClosePopup();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showJoinPopup]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -1001,6 +1035,178 @@ export default function Home() {
           </div>
         </motion.div>
       </section>
+
+      {/* ── JOIN MAGIC INVITATION POPUP MODAL ── */}
+      <AnimatePresence>
+        {showJoinPopup && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 9999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1rem',
+              backgroundColor: 'rgba(15, 23, 42, 0.65)',
+              backdropFilter: 'blur(4px)',
+              WebkitBackdropFilter: 'blur(4px)'
+            }}
+            onClick={handleClosePopup}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '1.25rem',
+                border: '1px solid #E2E8F0',
+                padding: 'clamp(1.75rem, 4vw, 2.25rem) clamp(1.25rem, 3vw, 2rem)',
+                maxWidth: '460px',
+                width: '100%',
+                boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.25)',
+                position: 'relative',
+                boxSizing: 'border-box',
+                textAlign: 'center'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={handleClosePopup}
+                aria-label="Close popup"
+                style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  border: '1px solid #E2E8F0',
+                  backgroundColor: '#F8FAFC',
+                  color: '#64748B',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <X size={16} />
+              </button>
+
+              {/* Eyebrow badge */}
+              <div
+                style={{
+                  color: 'var(--primary-blue)',
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase',
+                  marginBottom: '0.625rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Membership Invitation
+              </div>
+
+              {/* Title */}
+              <h3
+                style={{
+                  fontSize: 'clamp(1.25rem, 3.5vw, 1.6rem)',
+                  fontWeight: 900,
+                  color: 'var(--text-primary)',
+                  marginBottom: '0.75rem',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.25
+                }}
+              >
+                Become Part of MAGIC Youth
+              </h3>
+
+              {/* Description */}
+              <p
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.95rem',
+                  lineHeight: 1.55,
+                  margin: '0 auto 1.5rem',
+                  maxWidth: '380px'
+                }}
+              >
+                Join MAGIC Youth as a member or nominate yourself for a leadership opportunity.
+              </p>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <Link
+                  to="/join"
+                  onClick={handleClosePopup}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    backgroundColor: 'var(--primary-blue)',
+                    color: '#FFFFFF',
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    padding: '0.85rem 1.5rem',
+                    borderRadius: '9999px',
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 14px rgba(2, 132, 199, 0.3)',
+                    transition: 'all 0.2s ease',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  JOIN MAGIC <ArrowRight size={17} />
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={handleClosePopup}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid #CBD5E1',
+                    color: '#64748B',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    padding: '0.65rem 1.25rem',
+                    borderRadius: '9999px',
+                    cursor: 'pointer',
+                    width: '100%',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  Maybe Later
+                </button>
+              </div>
+
+              {/* Already a member */}
+              <div style={{ marginTop: '1.25rem', fontSize: '0.8125rem', color: '#64748B' }}>
+                Already a member?{' '}
+                <Link
+                  to="/member/login"
+                  onClick={handleClosePopup}
+                  style={{
+                    color: 'var(--primary-blue)',
+                    fontWeight: 700,
+                    textDecoration: 'none'
+                  }}
+                >
+                  Member Login
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
