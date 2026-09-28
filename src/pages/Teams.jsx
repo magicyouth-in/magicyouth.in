@@ -175,49 +175,57 @@ export default function Teams() {
         </div>
 
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
-            <Loader2 size={48} className="animate-spin" color="var(--primary-blue)" />
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+            <Loader2 size={36} className="animate-spin" color="var(--primary-blue)" />
           </div>
         ) : filteredTeams.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', maxWidth: '600px', margin: '0 auto', color: 'var(--text-secondary)' }}>
+          <div style={{ textAlign: 'center', padding: '2.5rem 1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', maxWidth: '600px', margin: '0 auto', color: 'var(--text-secondary)' }}>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>No team records available for this selection.</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5rem', maxWidth: '1280px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3.5rem', maxWidth: '1280px', margin: '0 auto' }}>
             {filteredTeams.map((team) => {
               const allMembers = (team.members || []).slice().sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
               const animators = allMembers.filter(m => m.section === 'Animator' || m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position));
-              const teamMembers = allMembers.filter(m => !(m.section === 'Animator' || m.section === 'Main Animator' || /^(main\s+)?animator|faculty\s+advisor|mentor/i.test(m.position)));
+              const nonAnimators = allMembers.filter(m => !animators.includes(m));
+              const leads = nonAnimators.filter(m => m.section === 'Lead' || m.section === 'Coordinator' || /lead|secretary|coordinator|procurator|president|officer|head/i.test(m.position));
+              const generalMembers = nonAnimators.filter(m => !leads.includes(m));
+
+              // If all non-animators are in generalMembers or all in leads, handle labels cleanly
+              const showSeparateSections = leads.length > 0 && generalMembers.length > 0;
+              const primaryGroupMembers = showSeparateSections ? leads : nonAnimators;
+              const primaryGroupTitle = (leads.length > 0 || !showSeparateSections) ? 'LEADERSHIP & COORDINATION' : 'TEAM MEMBERS';
+              const primaryGroupEyebrow = (leads.length > 0 || !showSeparateSections) ? 'Student Leadership & Coordinators' : 'Active Chapter Members';
 
               return (
-                <article key={team._id || team.id} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                  <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-                    <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: team.academicYearId?.isCurrent ? 'var(--primary-blue)' : '#64748B', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
+                <article key={team._id || team.id} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 800, color: team.academicYearId?.isCurrent ? 'var(--primary-blue)' : '#64748B', marginBottom: '0.4rem', textTransform: 'uppercase', letterSpacing: '0.15em' }}>
                       <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> {team.academicYearId?.isCurrent ? 'CURRENT TEAM' : 'PAST TEAM'}
                     </div>
-                    <h2 style={{ fontSize: 'clamp(1.25rem, 4vw, 2.25rem)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.5rem', letterSpacing: '-0.02em', textTransform: 'uppercase', padding: '0 0.5rem', lineHeight: 1.2 }}>
+                    <h2 style={{ fontSize: 'clamp(1.25rem, 3.5vw, 2rem)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.35rem', letterSpacing: '-0.02em', textTransform: 'uppercase', padding: '0 0.5rem', lineHeight: 1.2 }}>
                       {getTeamDisplayName(team)} TEAM
                     </h2>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', fontWeight: 600 }}>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 600 }}>
                       {team.academicYearId?.year ? `${team.academicYearId.year} • ` : ''}{team.name || 'Executive Body'}
                     </div>
                   </div>
 
                   {allMembers.length > 0 ? (
-                    <div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
                       {/* 1. ANIMATOR SECTION */}
                       {animators.length > 0 && (
-                        <div style={{ marginBottom: '4rem' }}>
-                          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
+                        <div>
+                          <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
                               <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Chapter Guidance &amp; Mentorship
                             </div>
-                            <h3 style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.85rem)', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '-0.02em', margin: 0 }}>
+                            <h3 style={{ fontSize: 'clamp(1.25rem, 2.5vw, 1.5rem)', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '-0.01em', margin: 0 }}>
                               ANIMATOR
                             </h3>
                           </div>
 
-                          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2rem' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1.25rem' }}>
                             {animators.map((animator) => {
                               const memberId = animator._id || animator.id;
 
@@ -231,31 +239,31 @@ export default function Teams() {
                                   aria-label={`View full profile for ${animator.name}`}
                                   className="animator-card-interactive"
                                 >
-                                  <div style={{ width: '130px', height: '130px', borderRadius: '50%', marginBottom: '1.25rem', overflow: 'hidden', border: '4px solid #FFFFFF', boxShadow: '0 6px 18px rgba(2, 132, 199, 0.15)', flexShrink: 0 }}>
+                                  <div className="member-avatar-box" style={{ width: '100px', height: '100px', marginBottom: '1rem' }}>
                                     {animator.photo ? (
                                       <img src={animator.photo} alt={animator.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
-                                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0F9FF', color: 'var(--primary-blue)', fontWeight: 800, fontSize: '1.75rem' }}>
+                                      <div className="member-avatar-initials" style={{ fontSize: '1.5rem' }}>
                                         {getInitials(animator.name)}
                                       </div>
                                     )}
                                   </div>
 
-                                  <h4 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                                  <h4 style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 0.25rem' }}>
                                     {animator.name}
                                   </h4>
 
-                                  <div style={{ color: 'var(--primary-pink)', fontWeight: 800, fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
+                                  <div className="member-role-badge" style={{ fontSize: '0.8rem', marginBottom: '0.35rem' }}>
                                     {getCleanRole(animator.position)}
                                   </div>
 
                                   {(animator.department || animator.organization) && (
-                                    <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>
+                                    <p className="member-dept-text" style={{ fontSize: '0.825rem' }}>
                                       {animator.department || animator.organization}
                                     </p>
                                   )}
 
-                                  <span className="member-view-prompt">
+                                  <span className="member-view-prompt" style={{ marginTop: '0.875rem' }}>
                                     <Sparkles size={11} /> View Full Profile <ChevronRight size={11} />
                                   </span>
                                 </div>
@@ -265,20 +273,80 @@ export default function Teams() {
                         </div>
                       )}
 
-                      {/* 2. TEAM MEMBERS SECTION (5 PER ROW ON DESKTOP) */}
-                      {teamMembers.length > 0 && (
+                      {/* 2. PRIMARY LEADERSHIP / COORDINATORS SECTION */}
+                      {primaryGroupMembers.length > 0 && (
                         <div>
-                          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                              <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Student Leadership &amp; Coordinators
+                          <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                              <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> {primaryGroupEyebrow}
                             </div>
-                            <h3 style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.85rem)', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '-0.02em', margin: 0 }}>
+                            <h3 style={{ fontSize: 'clamp(1.25rem, 2.5vw, 1.5rem)', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '-0.01em', margin: 0 }}>
+                              {primaryGroupTitle}
+                            </h3>
+                          </div>
+
+                          <div className="team-members-5col-grid">
+                            {primaryGroupMembers.map((member) => {
+                              const memberId = member._id || member.id;
+
+                              return (
+                                <div 
+                                  key={memberId}
+                                  onClick={() => openMemberProfile(member, team)}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMemberProfile(member, team); } }}
+                                  tabIndex={0}
+                                  role="button"
+                                  aria-label={`View full profile for ${member.name}`}
+                                  className="team-member-card-5col"
+                                >
+                                  <div className="member-avatar-box">
+                                    {member.photo ? (
+                                      <img src={member.photo} alt={member.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <div className="member-avatar-initials">
+                                        {getInitials(member.name)}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <h4 className="member-name-heading">
+                                    {member.name}
+                                  </h4>
+
+                                  <div className="member-role-badge">
+                                    {getCleanRole(member.position)}
+                                  </div>
+
+                                  {(member.department || member.organization) && (
+                                    <p className="member-dept-text">
+                                      {member.department || member.organization}
+                                    </p>
+                                  )}
+
+                                  <span className="member-view-prompt">
+                                    <Sparkles size={10} /> View Profile <ChevronRight size={10} />
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 3. GENERAL TEAM MEMBERS SECTION (IF SEPARATE) */}
+                      {showSeparateSections && generalMembers.length > 0 && (
+                        <div>
+                          <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                              <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> Active Chapter Members
+                            </div>
+                            <h3 style={{ fontSize: 'clamp(1.25rem, 2.5vw, 1.5rem)', fontWeight: 900, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '-0.01em', margin: 0 }}>
                               TEAM MEMBERS
                             </h3>
                           </div>
 
                           <div className="team-members-5col-grid">
-                            {teamMembers.map((member) => {
+                            {generalMembers.map((member) => {
                               const memberId = member._id || member.id;
 
                               return (
@@ -326,7 +394,7 @@ export default function Teams() {
                       )}
                     </div>
                   ) : (
-                    <div style={{ textAlign: 'center', padding: '3rem 1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', maxWidth: '600px', margin: '0 auto' }}>
+                    <div style={{ textAlign: 'center', padding: '2.5rem 1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '0.75rem', border: '1px dashed var(--border-color)', maxWidth: '600px', margin: '0 auto' }}>
                       <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', margin: 0 }}>No members are currently listed for this team roster.</p>
                     </div>
                   )}

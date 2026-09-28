@@ -225,94 +225,97 @@
 .team-members-5col-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 1.5rem;
+  gap: 1.25rem;
   width: 100%;
 }
 
 @media (max-width: 1200px) {
   .team-members-5col-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1.25rem;
+    gap: 1.15rem;
   }
 }
 
-@media (max-width: 992px) {
+@media (max-width: 920px) {
   .team-members-5col-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1.25rem;
+    gap: 1rem;
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 640px) {
   .team-members-5col-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
+    gap: 0.875rem;
   }
 }
 
-@media (max-width: 440px) {
+@media (max-width: 380px) {
   .team-members-5col-grid {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 0.875rem;
   }
 }
 
 .team-member-card-5col {
-  background-color: var(--bg-secondary);
-  border: 1.5px solid var(--border-color);
+  background-color: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
   border-radius: 0.875rem;
-  padding: 1.75rem 1.25rem;
+  padding: 1.25rem 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   width: 100%;
   box-sizing: border-box;
   cursor: pointer;
   user-select: none;
+  min-height: 220px;
 }
 
 .team-member-card-5col:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
   border-color: rgba(2, 132, 199, 0.5);
-  box-shadow: 0 12px 28px rgba(2, 132, 199, 0.12);
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.12);
 }
 
 .animator-card-interactive {
-  background-color: var(--bg-secondary);
-  border: 2px solid rgba(2, 132, 199, 0.25);
+  background-color: #FFFFFF;
+  border: 2px solid rgba(2, 132, 199, 0.3);
   border-radius: 1rem;
-  padding: 2.5rem 2rem;
-  max-width: 400px;
+  padding: 1.75rem 1.5rem;
+  max-width: 340px;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
   user-select: none;
   box-sizing: border-box;
+  margin: 0 auto;
 }
 
 .animator-card-interactive:hover {
-  transform: translateY(-5px);
+  transform: translateY(-4px);
   border-color: rgba(2, 132, 199, 0.6);
-  box-shadow: 0 16px 36px rgba(2, 132, 199, 0.14);
+  box-shadow: 0 12px 28px rgba(2, 132, 199, 0.14);
 }
 
 .member-avatar-box {
-  width: 105px;
-  height: 105px;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.875rem;
   overflow: hidden;
   border: 3px solid #FFFFFF;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   flex-shrink: 0;
+  background-color: #F8FAFC;
 }
 
 .member-avatar-initials {
@@ -324,45 +327,53 @@
   background-color: #F0F9FF;
   color: var(--primary-blue);
   font-weight: 800;
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   letter-spacing: 0.05em;
 }
 
 .member-name-heading {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: var(--text-primary);
-  margin-bottom: 0.25rem;
+  margin: 0 0 0.25rem;
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .member-role-badge {
-  color: var(--primary-blue);
+  color: var(--primary-pink);
   font-weight: 800;
   font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 0.35rem;
-  line-height: 1.3;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+  line-height: 1.25;
 }
 
 .member-dept-text {
-  font-size: 0.8rem;
+  font-size: 0.775rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #64748B;
   margin: 0;
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .member-view-prompt {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.725rem;
+  gap: 0.3rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--primary-blue);
-  margin-top: 0.85rem;
-  padding: 0.25rem 0.75rem;
+  margin-top: auto;
+  padding: 0.2rem 0.65rem;
   background-color: rgba(2, 132, 199, 0.08);
   border-radius: 999px;
   transition: all 0.2s ease;
