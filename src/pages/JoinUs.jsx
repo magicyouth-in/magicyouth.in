@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   CheckCircle2, ArrowRight, ArrowLeft,
   User, GraduationCap, Wrench, MessageSquare, AlertCircle,
   FileUp, Image as ImageIcon, ClipboardList, Loader2, Sparkles,
-  Building2, Award, Heart, Users, ShieldAlert, Crown, BookOpen, Layers
+  Building2, Award, Heart, Users, ShieldAlert, Crown, RefreshCw
 } from 'lucide-react';
 import '../styles/about.css';
 import '../styles/join.css';
@@ -26,19 +26,31 @@ export default function JoinUs() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [units, setUnits] = useState([]);
+  const [unitsLoading, setUnitsLoading] = useState(true);
+  const [unitsError, setUnitsError] = useState(false);
   const [leadershipRoles, setLeadershipRoles] = useState(DEFAULT_LEADERSHIP_ROLES);
 
-  useEffect(() => {
-    // Fetch Active Units
+  const loadUnits = useCallback(() => {
+    setUnitsLoading(true);
+    setUnitsError(false);
     fetch('/api/units?includeInactive=false')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then(d => {
-        if (d.success && Array.isArray(d.data)) {
-          const activeUnits = d.data.filter(u => u.status === 'Active');
-          setUnits(activeUnits);
+        if (d.success && Array.isArray(d.data) && d.data.length > 0) {
+          // Normalize active units (case-insensitive)
+          const activeList = d.data.filter(u => {
+            const s = String(u.status || '').toLowerCase();
+            return s === 'active' || s === '';
+          });
+
+          const finalUnits = activeList.length > 0 ? activeList : d.data;
+          setUnits(finalUnits);
 
           // Preselect default unit if form doesn't have one
-          const def = activeUnits.find(u => u.isDefault || u.is_default) || activeUnits[0];
+          const def = finalUnits.find(u => u.isDefault || u.is_default) || finalUnits[0];
           if (def) {
             setFormData(prev => ({
               ...prev,
@@ -46,9 +58,21 @@ export default function JoinUs() {
               college: prev.college || def.institution || ''
             }));
           }
+        } else {
+          setUnits([]);
         }
       })
-      .catch(() => {});
+      .catch(err => {
+        console.error('[JOIN UNITS LOAD ERROR]', err);
+        setUnitsError(true);
+      })
+      .finally(() => {
+        setUnitsLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    loadUnits();
 
     // Fetch Leadership Roles
     fetch('/api/leadership-roles')
@@ -59,7 +83,7 @@ export default function JoinUs() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [loadUnits]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -134,7 +158,7 @@ export default function JoinUs() {
         setErrorMsg('Please fill in your contact information (Name, Email, Phone).');
         return false;
       }
-      if (!formData.unitId) {
+      if (!formData.unitId && units.length > 0) {
         setErrorMsg('Please select your target MAGIC Youth chapter.');
         return false;
       }
@@ -167,14 +191,14 @@ export default function JoinUs() {
   const nextStep = () => {
     if (validateStep()) {
       setCurrentStep(prev => Math.min(prev + 1, 7));
-      window.scrollTo({ top: 180, behavior: 'smooth' });
+      window.scrollTo({ top: 160, behavior: 'smooth' });
     }
   };
 
   const prevStep = () => {
     setErrorMsg('');
     setCurrentStep(prev => Math.max(prev - 1, 1));
-    window.scrollTo({ top: 180, behavior: 'smooth' });
+    window.scrollTo({ top: 160, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e) => {
@@ -390,7 +414,23 @@ export default function JoinUs() {
                       {/* Unit Selection */}
                       <div className="join-field-group">
                         <label className="join-label">Select Collegiate Chapter / Unit *</label>
-                        {units.length > 0 ? (
+                        {unitsLoading ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6875rem 0.875rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#64748B', fontSize: '0.84375rem' }}>
+                            <Loader2 size={16} className="animate-spin" color="var(--primary-blue)" />
+                            <span>Loading active chapters from database...</span>
+                          </div>
+                        ) : unitsError || units.length === 0 ? (
+                          <div style={{ padding: '0.75rem 1rem', backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', fontSize: '0.8125rem', color: '#9A3412' }}>
+                            <span>Unable to load chapters. Please verify your connection.</span>
+                            <button
+                              type="button"
+                              onClick={loadUnits}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#FFFFFF', border: '1px solid #FDBA74', padding: '0.3rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 700, color: '#C2410C', cursor: 'pointer' }}
+                            >
+                              <RefreshCw size={12} /> Retry
+                            </button>
+                          </div>
+                        ) : (
                           <select name="unitId" value={formData.unitId} onChange={handleChange} className="join-input" required>
                             {units.map(u => (
                               <option key={u._id || u.id} value={u._id || u.id}>
@@ -398,18 +438,16 @@ export default function JoinUs() {
                               </option>
                             ))}
                           </select>
-                        ) : (
-                          <div style={{ fontSize: '0.8125rem', color: '#64748B' }}>Loading active chapters...</div>
                         )}
                         <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>
                           Applications are accepted for all active chartered MAGIC Youth units.
                         </span>
                       </div>
 
-                      {/* Membership Type Radio */}
+                      {/* Membership Type Radio (Stacked on mobile, 2-col on desktop) */}
                       <div className="join-field-group" style={{ marginTop: '1rem' }}>
                         <label className="join-label">Membership Category *</label>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+                        <div className="join-membership-cards-grid">
                           <button
                             type="button"
                             onClick={() => setFormData(f => ({ ...f, membershipType: 'MEMBER' }))}
@@ -422,7 +460,9 @@ export default function JoinUs() {
                               textAlign: 'left',
                               display: 'flex',
                               flexDirection: 'column',
-                              gap: '0.25rem'
+                              gap: '0.25rem',
+                              width: '100%',
+                              boxSizing: 'border-box'
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -448,7 +488,9 @@ export default function JoinUs() {
                               textAlign: 'left',
                               display: 'flex',
                               flexDirection: 'column',
-                              gap: '0.25rem'
+                              gap: '0.25rem',
+                              width: '100%',
+                              boxSizing: 'border-box'
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -466,7 +508,7 @@ export default function JoinUs() {
 
                       {/* Leadership Nomination Details & Advisory (If Leadership chosen) */}
                       {formData.membershipType === 'LEADERSHIP' && (
-                        <div style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: '0.5rem', padding: '1rem', marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <div style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: '0.5rem', padding: '1rem', marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', boxSizing: 'border-box' }}>
                           <div>
                             <label className="join-label" style={{ color: '#9A3412' }}>Preferred Leadership Role *</label>
                             <select
@@ -498,18 +540,18 @@ export default function JoinUs() {
                           <label className="join-label">Full Name *</label>
                           <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Ananya Rao" className="join-input" required />
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
-                          <div className="join-field-group">
+                        <div className="join-two-col-grid" style={{ marginBottom: '1.125rem' }}>
+                          <div className="join-field-group" style={{ marginBottom: 0 }}>
                             <label className="join-label">Email Address *</label>
                             <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="name@example.com" className="join-input" required />
                           </div>
-                          <div className="join-field-group">
+                          <div className="join-field-group" style={{ marginBottom: 0 }}>
                             <label className="join-label">Phone Number *</label>
                             <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+91 98765 43210" className="join-input" required />
                           </div>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                          <div className="join-field-group">
+                        <div className="join-two-col-grid">
+                          <div className="join-field-group" style={{ marginBottom: 0 }}>
                             <label className="join-label">Gender</label>
                             <select name="gender" value={formData.gender} onChange={handleChange} className="join-input">
                               <option value="Male">Male</option>
@@ -517,7 +559,7 @@ export default function JoinUs() {
                               <option value="Other">Other</option>
                             </select>
                           </div>
-                          <div className="join-field-group">
+                          <div className="join-field-group" style={{ marginBottom: 0 }}>
                             <label className="join-label">Date of Birth</label>
                             <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="join-input" />
                           </div>
@@ -538,8 +580,8 @@ export default function JoinUs() {
                         <label className="join-label">Department / Course of Study *</label>
                         <input type="text" name="department" value={formData.department} onChange={handleChange} placeholder="e.g. Computer Science and Engineering" className="join-input" required />
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                        <div className="join-field-group">
+                      <div className="join-two-col-grid">
+                        <div className="join-field-group" style={{ marginBottom: 0 }}>
                           <label className="join-label">Year of Study</label>
                           <select name="year" value={formData.year} onChange={handleChange} className="join-input">
                             <option value="1st Year">1st Year</option>
@@ -549,7 +591,7 @@ export default function JoinUs() {
                             <option value="Postgraduate">Postgraduate</option>
                           </select>
                         </div>
-                        <div className="join-field-group">
+                        <div className="join-field-group" style={{ marginBottom: 0 }}>
                           <label className="join-label">City / Location *</label>
                           <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="e.g. Vijayawada" className="join-input" required />
                         </div>
@@ -647,7 +689,7 @@ export default function JoinUs() {
                         Upload your profile photo and optional resume for coordinator review.
                       </p>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                      <div className="join-upload-grid">
                         <div className="join-upload-box">
                           <ImageIcon size={28} color="var(--primary-blue)" style={{ margin: '0 auto 0.5rem' }} />
                           <div style={{ fontSize: '0.84375rem', fontWeight: 700, color: '#0F172A' }}>Profile Photo</div>
@@ -686,35 +728,35 @@ export default function JoinUs() {
                       </p>
 
                       <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '1rem 1.25rem', fontSize: '0.8125rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.35rem' }}>
                           <span style={{ color: '#64748B' }}>Target Chapter:</span>
                           <strong style={{ color: '#0F172A' }}>{selectedUnitObj?.name || 'MAGIC Youth'}</strong>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
-                          <span style={{ color: '#64748B' }}>Membership Type:</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.35rem' }}>
+                          <span style={{ color: '#64748B' }}>Membership Category:</span>
                           <strong style={{ color: formData.membershipType === 'LEADERSHIP' ? 'var(--primary-pink)' : 'var(--primary-blue)' }}>
                             {formData.membershipType === 'LEADERSHIP' ? '★ Leadership Nomination' : '● Regular Member'}
                           </strong>
                         </div>
                         {formData.membershipType === 'LEADERSHIP' && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.35rem' }}>
                             <span style={{ color: '#64748B' }}>Preferred Role:</span>
                             <strong style={{ color: '#C2410C' }}>{formData.preferredLeadershipRole} (Nomination)</strong>
                           </div>
                         )}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.35rem' }}>
                           <span style={{ color: '#64748B' }}>Applicant Name:</span>
                           <strong style={{ color: '#0F172A' }}>{formData.name} ({formData.gender})</strong>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.35rem' }}>
                           <span style={{ color: '#64748B' }}>Email &amp; Phone:</span>
                           <span style={{ color: '#0F172A' }}>{formData.email} &bull; {formData.phone}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.35rem' }}>
                           <span style={{ color: '#64748B' }}>Institution:</span>
                           <span style={{ color: '#0F172A' }}>{formData.college}</span>
                         </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.35rem' }}>
                           <span style={{ color: '#64748B' }}>Dept &amp; Year:</span>
                           <span style={{ color: '#0F172A' }}>{formData.department} ({formData.year})</span>
                         </div>

@@ -10,33 +10,40 @@ const supabase = require('../utils/supabaseClient');
 const { authenticateAdmin, requireMainAdmin } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
 
+/** Helper to check if a unit is active (case-insensitive) */
+const isActiveUnit = (u) => {
+  const s = String(u.status || '').toLowerCase();
+  return s === 'active' || s === '';
+};
+
 /** GET /api/units/default — Get the current default unit */
 router.get('/default', async (req, res) => {
   try {
-    // 1. Try to find unit where is_default = true and status = 'Active'
+    // 1. Try to find unit where is_default = true and status is Active
     let { data: defaultUnit, error } = await supabase
       .from('units')
       .select('*')
       .eq('is_default', true)
-      .eq('status', 'Active')
       .maybeSingle();
 
-    // 2. If none marked default, fallback to any Active unit
-    if (!defaultUnit) {
-      const { data: fallback } = await supabase
-        .from('units')
-        .select('*')
-        .eq('status', 'Active')
-        .order('name', { ascending: true })
-        .limit(1);
-      defaultUnit = fallback?.[0] || null;
+    // If defaultUnit found and is active, return it
+    if (defaultUnit && isActiveUnit(defaultUnit)) {
+      return res.json({ success: true, data: { ...defaultUnit, _id: defaultUnit.id, isDefault: true } });
     }
 
-    if (!defaultUnit) {
+    // 2. Fallback to any Active unit ordered by name
+    const { data: allUnits } = await supabase
+      .from('units')
+      .select('*')
+      .order('name', { ascending: true });
+
+    const activeFallback = (allUnits || []).find(isActiveUnit) || allUnits?.[0] || null;
+
+    if (!activeFallback) {
       return res.status(404).json({ success: false, message: 'No active units found.' });
     }
 
-    return res.json({ success: true, data: { ...defaultUnit, _id: defaultUnit.id } });
+    return res.json({ success: true, data: { ...activeFallback, _id: activeFallback.id, isDefault: !!activeFallback.is_default } });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -45,16 +52,48 @@ router.get('/default', async (req, res) => {
 /** GET /api/units — Public list with status filter */
 router.get('/', async (req, res) => {
   try {
-    let query = supabase.from('units').select('*').order('is_default', { ascending: false }).order('name', { ascending: true });
-    if (req.query.includeInactive !== 'true') {
-      query = query.in('status', ['Active', 'Upcoming']);
-    }
-    const { data: units, error } = await query;
-    if (error) throw error;
+    let { data: units, error } = await supabase
+      .from('units')
+      .select('*')
+      .order('name', { ascending: true });
 
-    const formatted = (units || []).map(u => ({ ...u, _id: u.id, isDefault: !!u.is_default }));
+    if (error) {
+      // If error (e.g. table schema transition), attempt simple select
+      const retry = await supabase.from('units').select('*');
+      if (retry.error) throw retry.error;
+      units = retry.data;
+    }
+
+    let list = units || [];
+
+    // Filter inactive units unless requested
+    if (req.query.includeInactive !== 'true') {
+      list = list.filter(u => {
+        const s = String(u.status || '').toLowerCase();
+        return s === 'active' || s === 'upcoming' || s === '';
+      });
+    }
+
+    // Sort default unit to the very top, then by name
+    list.sort((a, b) => {
+      if (a.is_default && !b.is_default) return -1;
+      if (!a.is_default && b.is_default) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    const formatted = list.map(u => ({
+      ...u,
+      _id: u.id,
+      isDefault: !!u.is_default,
+      // Normalize status display casing
+      status: String(u.status || '').toLowerCase() === 'upcoming' ? 'Upcoming' :
+              String(u.status || '').toLowerCase() === 'inactive' ? 'Inactive' :
+              String(u.status || '').toLowerCase() === 'archived' ? 'Archived' : 'Active'
+    }));
+
     res.json({ success: true, data: formatted });
   } catch (err) {
+    console.error('[UNITS GET ERROR]', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -70,7 +109,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-/** PATCH /api/units/:id/set-default — Set this unit as the global default unit (Main Admin only) */
+/** PATCH /api/units/:id/set-default — Set this unit as global default */
 router.patch('/:id/set-default', authenticateAdmin, requireMainAdmin, async (req, res) => {
   try {
     const unitId = req.params.id;
@@ -87,12 +126,16 @@ router.patch('/:id/set-default', authenticateAdmin, requireMainAdmin, async (req
     }
 
     // Unset default from all other units
-    await supabase
-      .from('units')
-      .update({ is_default: false })
-      .neq('id', unitId);
+    try {
+      await supabase
+        .from('units')
+        .update({ is_default: false })
+        .neq('id', unitId);
+    } catch (e) {
+      // non-fatal if is_default column is in migration
+    }
 
-    // Set default on this unit
+    // Set default on target unit
     const { data: updated, error: updateError } = await supabase
       .from('units')
       .update({ is_default: true, updated_at: new Date().toISOString() })
@@ -119,9 +162,10 @@ router.post('/', authenticateAdmin, requireMainAdmin, async (req, res) => {
     const { name, code, institution, location, description, status, isDefault } = req.body;
     if (!name || !code) return res.status(400).json({ success: false, message: 'Name and code are required.' });
 
-    // If marked as default, clear default from others first
     if (isDefault) {
-      await supabase.from('units').update({ is_default: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+      try {
+        await supabase.from('units').update({ is_default: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (e) {}
     }
 
     const { data: unit, error } = await supabase
@@ -162,8 +206,9 @@ router.put('/:id', authenticateAdmin, requireMainAdmin, async (req, res) => {
     if (isDefault !== undefined) {
       updates.is_default = !!isDefault;
       if (isDefault) {
-        // Unset from others
-        await supabase.from('units').update({ is_default: false }).neq('id', req.params.id);
+        try {
+          await supabase.from('units').update({ is_default: false }).neq('id', req.params.id);
+        } catch (e) {}
       }
     }
 
@@ -183,7 +228,7 @@ router.put('/:id', authenticateAdmin, requireMainAdmin, async (req, res) => {
   }
 });
 
-/** PATCH /api/units/:id/status — Toggle status (Active/Upcoming/Inactive/Archived) */
+/** PATCH /api/units/:id/status — Toggle status */
 router.patch('/:id/status', authenticateAdmin, requireMainAdmin, async (req, res) => {
   try {
     const { status } = req.body;
