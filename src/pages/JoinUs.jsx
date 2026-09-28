@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  HeartHandshake, CheckCircle2, ArrowRight, ArrowLeft,
+  CheckCircle2, ArrowRight, ArrowLeft,
   User, GraduationCap, Wrench, MessageSquare, AlertCircle,
   FileUp, Image as ImageIcon, ClipboardList, Loader2, Sparkles,
-  Building2, Award, Heart, Users, ShieldAlert, Crown
+  Building2, Award, Heart, Users, ShieldAlert, Crown, BookOpen, Layers
 } from 'lucide-react';
 import '../styles/about.css';
 import '../styles/join.css';
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
-};
 
 const DEFAULT_LEADERSHIP_ROLES = [
   'First Lead',
@@ -40,7 +34,6 @@ export default function JoinUs() {
       .then(r => r.json())
       .then(d => {
         if (d.success && Array.isArray(d.data)) {
-          // Filter to only Active units for applications
           const activeUnits = d.data.filter(u => u.status === 'Active');
           setUnits(activeUnits);
 
@@ -107,7 +100,6 @@ export default function JoinUs() {
     const { name, value } = e.target;
     setFormData(prev => {
       const updated = { ...prev, [name]: value };
-      // If user changes unitId, optionally update college placeholder if empty
       if (name === 'unitId') {
         const matchingUnit = units.find(u => (u._id || u.id) === value);
         if (matchingUnit && matchingUnit.institution && !prev.college) {
@@ -139,11 +131,11 @@ export default function JoinUs() {
     setErrorMsg('');
     if (currentStep === 1) {
       if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
-        setErrorMsg('Please fill in your personal contact details (Name, Email, Phone).');
+        setErrorMsg('Please fill in your contact information (Name, Email, Phone).');
         return false;
       }
       if (!formData.unitId) {
-        setErrorMsg('Please select a target MAGIC Youth Unit.');
+        setErrorMsg('Please select your target MAGIC Youth chapter.');
         return false;
       }
       if (formData.membershipType === 'LEADERSHIP' && !formData.preferredLeadershipRole) {
@@ -175,12 +167,14 @@ export default function JoinUs() {
   const nextStep = () => {
     if (validateStep()) {
       setCurrentStep(prev => Math.min(prev + 1, 7));
+      window.scrollTo({ top: 180, behavior: 'smooth' });
     }
   };
 
   const prevStep = () => {
     setErrorMsg('');
     setCurrentStep(prev => Math.max(prev - 1, 1));
+    window.scrollTo({ top: 180, behavior: 'smooth' });
   };
 
   const handleSubmit = async (e) => {
@@ -223,202 +217,222 @@ export default function JoinUs() {
   };
 
   const steps = [
-    { num: 1, label: 'Type & Unit', icon: User },
-    { num: 2, label: 'Academic', icon: GraduationCap },
-    { num: 3, label: 'Skills', icon: Wrench },
-    { num: 4, label: 'Interests', icon: Sparkles },
-    { num: 5, label: 'Motivation', icon: MessageSquare },
-    { num: 6, label: 'Uploads', icon: FileUp },
-    { num: 7, label: 'Review', icon: ClipboardList }
+    { num: 1, label: 'Type & Unit' },
+    { num: 2, label: 'Academic' },
+    { num: 3, label: 'Skills' },
+    { num: 4, label: 'Interests' },
+    { num: 5, label: 'Motivation' },
+    { num: 6, label: 'Uploads' },
+    { num: 7, label: 'Review' }
   ];
 
   const selectedUnitObj = units.find(u => (u._id || u.id) === formData.unitId);
 
   return (
     <div>
-      {/* ── JOIN HERO ───────────────────────────────────────────── */}
-      <section className="join-hero page-header-section" style={{ backgroundColor: 'var(--bg-secondary)', padding: '3.5rem 1.5rem 2.25rem', borderBottom: '1px solid var(--border-color)', textAlign: 'center' }}>
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} style={{ maxWidth: '850px', margin: '0 auto' }}>
-          <span className="section-eyebrow" style={{ color: 'var(--primary-blue)', fontSize: '0.8125rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'inline-block' }}>
-            <span style={{ color: 'var(--primary-pink)', marginRight: '6px' }}>●</span> YES-J &bull; MAGIC YOUTH MEMBERSHIP
+      {/* ── 1. REFINED HERO SECTION ── */}
+      <section className="join-hero-section">
+        <div className="join-hero-content">
+          <span className="join-eyebrow">
+            <span style={{ color: 'var(--primary-pink)', fontSize: '0.9rem' }}>●</span> YES-J &bull; MAGIC YOUTH MEMBERSHIP
           </span>
-          <h1 className="page-header-title" style={{ fontSize: 'clamp(2.25rem, 4vw, 3rem)', fontWeight: 900, lineHeight: 1.15, marginBottom: '0.75rem', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            Become a <span style={{ color: 'var(--primary-blue)' }}>Change</span> <span style={{ color: 'var(--primary-pink)' }}>Agent</span>
+          <h1 className="join-title">
+            Become a Member of MAGIC Youth
           </h1>
-          <p className="page-header-subtitle" style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '680px', margin: '0 auto' }}>
-            Join a campus-based movement forming young people as leaders of conscience, compassion, and commitment.
+          <p className="join-subtitle">
+            Join a campus-based collegiate movement forming student leaders of conscience, compassion, and commitment across our chartered collegiate chapters.
           </p>
-        </motion.div>
+        </div>
       </section>
 
-      {/* ── FORM CONTAINER ──────────────────────────────────────── */}
-      <section className="join-section" style={{ backgroundColor: 'var(--bg-primary)', padding: '3.5rem 1.5rem' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr', gap: '4rem', alignItems: 'start' }} className="join-split-layout">
+      {/* ── 2. MAIN APPLICATION CONTENT ── */}
+      <section className="join-main-section">
+        <div className="join-layout-grid">
           
-          {/* WHY JOIN SIDEBAR */}
-          <div className="join-sidebar" style={{ position: 'sticky', top: '80px' }}>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '2rem', color: 'var(--text-primary)' }}>Why Join MAGIC Youth?</h2>
+          {/* ── LEFT SIDEBAR: INSTITUTIONAL CONTEXT ── */}
+          <aside className="join-sidebar-card">
+            <h2 className="join-sidebar-heading">Chapter Membership</h2>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--primary-blue-light)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Award size={24} />
+            <div className="join-sidebar-list">
+              <div className="join-sidebar-item">
+                <div className="join-sidebar-icon-wrap">
+                  <Award size={18} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Leadership &amp; Growth</h3>
-                  <p style={{ color: 'var(--text-secondary)' }}>Develop practical leadership skills by organizing events, managing budgets, and leading student committees.</p>
+                  <h3 className="join-sidebar-item-title">Student Leadership Formation</h3>
+                  <p className="join-sidebar-item-desc">
+                    Develop practical organizational governance, team coordination, and student committee leadership skills.
+                  </p>
                 </div>
               </div>
               
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--bg-accent-blue)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Heart size={24} />
+              <div className="join-sidebar-item">
+                <div className="join-sidebar-icon-wrap" style={{ backgroundColor: '#FFF1F2', color: 'var(--primary-pink)' }}>
+                  <Heart size={18} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Community Impact</h3>
-                  <p style={{ color: 'var(--text-secondary)' }}>Directly impact your community through organized volunteering and social awareness drives.</p>
+                  <h3 className="join-sidebar-item-title">Grassroots Social Action</h3>
+                  <p className="join-sidebar-item-desc">
+                    Lead structured community service drives, literacy tutoring, and campus environmental initiatives.
+                  </p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Users size={24} />
+              <div className="join-sidebar-item">
+                <div className="join-sidebar-icon-wrap" style={{ backgroundColor: '#FEF3C7', color: '#B45309' }}>
+                  <Users size={18} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>Collegiate Network</h3>
-                  <p style={{ color: 'var(--text-secondary)' }}>Join a massive network of like-minded students across different collegiate chapters under MAGIC Youth.</p>
+                  <h3 className="join-sidebar-item-title">Inter-Collegiate Network</h3>
+                  <p className="join-sidebar-item-desc">
+                    Collaborate with student leaders, animators, and coordinators across chartered collegiate chapters.
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* APPLICATION FORM */}
-          <div className="join-form-wrapper" style={{ backgroundColor: 'var(--bg-secondary)', padding: '2rem', borderRadius: '1.5rem', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #E2E8F0', fontSize: '0.78125rem', color: '#64748B', lineHeight: 1.5 }}>
+              Applications are reviewed unit-wise by chapter coordinators upon submission.
+            </div>
+          </aside>
+
+          {/* ── RIGHT MAIN: APPLICATION FORM ── */}
+          <main className="join-form-card">
             {isSubmitted ? (
-            <div className="join-card" style={{ padding: '3.5rem 2rem', textAlign: 'center' }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', color: 'var(--primary-blue)' }}>
-                <CheckCircle2 style={{ width: 36, height: 36 }} />
-              </div>
-              <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1F2937' }}>Application Received!</h2>
-              <p style={{ fontSize: '0.9375rem', color: '#4B5563', maxWidth: '28rem', margin: '0.75rem auto 2rem', lineHeight: 1.6 }}>
-                Thank you, <strong>{formData.name}</strong>! Your application for <strong>{selectedUnitObj?.name || 'MAGIC Youth'}</strong> has been submitted.
-                {formData.membershipType === 'LEADERSHIP' ? (
-                  <span style={{ display: 'block', marginTop: '0.5rem', color: '#0369A1', fontWeight: 600 }}>
-                    Your nomination for <strong>{formData.preferredLeadershipRole}</strong> has been logged for the chapter election &amp; selection process.
-                  </span>
-                ) : (
-                  <span style={{ display: 'block', marginTop: '0.5rem' }}>
-                    Our chapter coordinators will review your membership and contact you with onboarding details.
-                  </span>
-                )}
-              </p>
-              <button
-                onClick={() => {
-                  setIsSubmitted(false);
-                  setCurrentStep(1);
-                  setFormData({
-                    name: '', email: '', phone: '', gender: 'Male', dob: '',
-                    college: '', department: '', year: '1st Year', city: '',
-                    unitId: units[0]?._id || units[0]?.id || '',
-                    membershipType: 'MEMBER', preferredLeadershipRole: 'First Lead',
-                    skills: [], interests: [], previousExperience: '', reason: ''
-                  });
-                  setFiles({ resume: null, profileImage: null });
-                }}
-                className="btn-primary"
-              >
-                Submit Another Application
-              </button>
-            </div>
-          ) : (
-            <div className="join-card">
-              {/* Stepper Bar */}
-              <div className="stepper-bar">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {steps.map(s => {
-                    let stateClass = 'inactive';
-                    if (currentStep === s.num) stateClass = 'active';
-                    else if (currentStep > s.num) stateClass = 'completed';
-
-                    return (
-                      <div key={s.num} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                        <div className={`stepper-step ${stateClass}`}>
-                          {currentStep > s.num ? '✓' : s.num}
-                        </div>
-                        <span style={{ fontSize: '0.75rem', fontWeight: currentStep === s.num ? 700 : 500, color: currentStep === s.num ? 'var(--primary-blue)' : '#6B7280' }}>
-                          {s.label}
-                        </span>
-                      </div>
-                    );
-                  })}
+              <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', backgroundColor: '#DCFCE7', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+                  <CheckCircle2 size={32} />
                 </div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                  Application Submitted
+                </h2>
+                <p style={{ fontSize: '0.9375rem', color: '#475569', maxWidth: '30rem', margin: '0.75rem auto 1.75rem', lineHeight: 1.6 }}>
+                  Thank you, <strong>{formData.name}</strong>. Your membership application for <strong>{selectedUnitObj?.name || 'MAGIC Youth'}</strong> has been received.
+                  {formData.membershipType === 'LEADERSHIP' ? (
+                    <span style={{ display: 'block', marginTop: '0.5rem', color: '#0369A1', fontWeight: 600 }}>
+                      Your nomination for <strong>{formData.preferredLeadershipRole}</strong> has been forwarded to the chapter selection committee.
+                    </span>
+                  ) : (
+                    <span style={{ display: 'block', marginTop: '0.5rem' }}>
+                      Your chapter coordinators will review your details and contact you with onboarding information.
+                    </span>
+                  )}
+                </p>
+                <button
+                  onClick={() => {
+                    setIsSubmitted(false);
+                    setCurrentStep(1);
+                    setFormData({
+                      name: '', email: '', phone: '', gender: 'Male', dob: '',
+                      college: '', department: '', year: '1st Year', city: '',
+                      unitId: units[0]?._id || units[0]?.id || '',
+                      membershipType: 'MEMBER', preferredLeadershipRole: 'First Lead',
+                      skills: [], interests: [], previousExperience: '', reason: ''
+                    });
+                    setFiles({ resume: null, profileImage: null });
+                  }}
+                  className="btn-primary"
+                  style={{ backgroundColor: 'var(--primary-blue)', color: '#FFFFFF', padding: '0.625rem 1.5rem', borderRadius: '0.5rem', border: 'none', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Submit Another Application
+                </button>
               </div>
-
-              {/* Form Content */}
-              <form onSubmit={handleSubmit} style={{ padding: '2rem' }}>
-                {errorMsg && (
-                  <div style={{ padding: '0.875rem 1rem', borderRadius: '0.75rem', backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', color: '#991B1B', fontSize: '0.84375rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <AlertCircle style={{ width: 18, height: 18, flexShrink: 0 }} />
-                    <span>{errorMsg}</span>
+            ) : (
+              <div>
+                {/* Stepper Header */}
+                <div className="join-stepper-wrapper">
+                  {/* Mobile Stepper Pill */}
+                  <div className="join-stepper-mobile">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8125rem', fontWeight: 700, color: '#0F172A' }}>
+                      <span>Step {currentStep} of {steps.length}</span>
+                      <span style={{ color: 'var(--primary-blue)' }}>{steps[currentStep - 1].label}</span>
+                    </div>
+                    <div className="join-stepper-progress-bar">
+                      <div className="join-stepper-progress-fill" style={{ width: `${(currentStep / steps.length) * 100}%` }} />
+                    </div>
                   </div>
-                )}
 
-                <AnimatePresence mode="wait">
-                  {/* STEP 1: Personal & Unit Selection */}
+                  {/* Desktop Stepper */}
+                  <div className="join-stepper-desktop">
+                    {steps.map((s) => {
+                      let state = 'inactive';
+                      if (currentStep === s.num) state = 'active';
+                      else if (currentStep > s.num) state = 'completed';
+
+                      return (
+                        <div key={s.num} className="join-step-item">
+                          <div className={`join-step-bubble ${state}`}>
+                            {currentStep > s.num ? '✓' : s.num}
+                          </div>
+                          <span className={`join-step-label ${state}`}>
+                            {s.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Form Body */}
+                <form onSubmit={handleSubmit} className="join-form-body">
+                  {errorMsg && (
+                    <div style={{ padding: '0.75rem 1rem', borderRadius: '0.5rem', backgroundColor: '#FFF1F2', border: '1px solid #FDA4AF', color: '#BE123C', fontSize: '0.84375rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                      <span>{errorMsg}</span>
+                    </div>
+                  )}
+
+                  {/* ── STEP 1: Membership Type & Unit Selection ── */}
                   {currentStep === 1 && (
-                    <motion.div key="step1" variants={fadeUp} initial="hidden" animate="visible" exit="hidden" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.25rem' }}>Step 1: Membership Type &amp; Personal Info</h3>
+                    <div>
+                      <h3 className="join-form-step-title">Step 1: Chapter &amp; Membership Selection</h3>
                       
                       {/* Unit Selection */}
-                      <div style={{ backgroundColor: '#F8FAFC', padding: '1rem', borderRadius: '0.75rem', border: '1.5px solid #E2E8F0' }}>
-                        <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.4rem' }}>
-                          Select Target Unit / Chapter *
-                        </label>
+                      <div className="join-field-group">
+                        <label className="join-label">Select Collegiate Chapter / Unit *</label>
                         {units.length > 0 ? (
-                          <select name="unitId" value={formData.unitId} onChange={handleChange} className="join-input" style={{ fontWeight: 600, backgroundColor: '#FFFFFF' }} required>
+                          <select name="unitId" value={formData.unitId} onChange={handleChange} className="join-input" required>
                             {units.map(u => (
                               <option key={u._id || u.id} value={u._id || u.id}>
-                                {u.name} {u.institution ? `(${u.institution})` : ''} {u.isDefault || u.is_default ? '★ (Default Unit)' : ''}
+                                {u.name} {u.institution ? `(${u.institution})` : ''} {u.isDefault || u.is_default ? '★ (Default Chapter)' : ''}
                               </option>
                             ))}
                           </select>
                         ) : (
                           <div style={{ fontSize: '0.8125rem', color: '#64748B' }}>Loading active chapters...</div>
                         )}
-                        <span style={{ fontSize: '0.75rem', color: '#64748B', display: 'block', marginTop: '0.35rem' }}>
-                          Applications are only accepted for currently active MAGIC Youth collegiate units.
+                        <span style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '0.2rem' }}>
+                          Applications are accepted for all active chartered MAGIC Youth units.
                         </span>
                       </div>
 
-                      {/* Membership Type Selector */}
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 800, color: '#0F172A', marginBottom: '0.5rem' }}>
-                          Membership Type *
-                        </label>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      {/* Membership Type Radio */}
+                      <div className="join-field-group" style={{ marginTop: '1rem' }}>
+                        <label className="join-label">Membership Category *</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
                           <button
                             type="button"
                             onClick={() => setFormData(f => ({ ...f, membershipType: 'MEMBER' }))}
                             style={{
-                              padding: '1rem',
-                              borderRadius: '0.75rem',
-                              border: `2px solid ${formData.membershipType === 'MEMBER' ? '#0284C7' : '#E2E8F0'}`,
+                              padding: '0.875rem 1rem',
+                              borderRadius: '0.5rem',
+                              border: `1.5px solid ${formData.membershipType === 'MEMBER' ? 'var(--primary-blue)' : '#CBD5E1'}`,
                               backgroundColor: formData.membershipType === 'MEMBER' ? '#EFF6FF' : '#FFFFFF',
                               cursor: 'pointer',
                               textAlign: 'left',
                               display: 'flex',
                               flexDirection: 'column',
-                              gap: '0.35rem'
+                              gap: '0.25rem'
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <span style={{ fontWeight: 800, fontSize: '0.9375rem', color: formData.membershipType === 'MEMBER' ? '#0284C7' : '#374151' }}>
-                                ○ MEMBER
+                              <span style={{ fontWeight: 700, fontSize: '0.875rem', color: formData.membershipType === 'MEMBER' ? 'var(--primary-blue)' : '#0F172A' }}>
+                                ○ Regular Member
                               </span>
-                              {formData.membershipType === 'MEMBER' && <CheckCircle2 size={16} color="#0284C7" />}
+                              {formData.membershipType === 'MEMBER' && <CheckCircle2 size={16} color="var(--primary-blue)" />}
                             </div>
                             <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                              Join as an active general member participating in events &amp; volunteering.
+                              Participate in chapter events, community projects, and workshops.
                             </span>
                           </button>
 
@@ -426,47 +440,41 @@ export default function JoinUs() {
                             type="button"
                             onClick={() => setFormData(f => ({ ...f, membershipType: 'LEADERSHIP' }))}
                             style={{
-                              padding: '1rem',
-                              borderRadius: '0.75rem',
-                              border: `2px solid ${formData.membershipType === 'LEADERSHIP' ? '#E11D48' : '#E2E8F0'}`,
+                              padding: '0.875rem 1rem',
+                              borderRadius: '0.5rem',
+                              border: `1.5px solid ${formData.membershipType === 'LEADERSHIP' ? 'var(--primary-pink)' : '#CBD5E1'}`,
                               backgroundColor: formData.membershipType === 'LEADERSHIP' ? '#FFF1F2' : '#FFFFFF',
                               cursor: 'pointer',
                               textAlign: 'left',
                               display: 'flex',
                               flexDirection: 'column',
-                              gap: '0.35rem'
+                              gap: '0.25rem'
                             }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <span style={{ fontWeight: 800, fontSize: '0.9375rem', color: formData.membershipType === 'LEADERSHIP' ? '#E11D48' : '#374151' }}>
-                                ★ LEADERSHIP
+                              <span style={{ fontWeight: 700, fontSize: '0.875rem', color: formData.membershipType === 'LEADERSHIP' ? 'var(--primary-pink)' : '#0F172A' }}>
+                                ★ Leadership Nomination
                               </span>
-                              {formData.membershipType === 'LEADERSHIP' && <Crown size={16} color="#E11D48" />}
+                              {formData.membershipType === 'LEADERSHIP' && <Crown size={16} color="var(--primary-pink)" />}
                             </div>
                             <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                              Nominate yourself for consideration in chapter leadership roles.
+                              Nominate for consideration in the chapter executive committee.
                             </span>
                           </button>
                         </div>
                       </div>
 
-                      {/* Leadership Role Options & Notice (If Leadership chosen) */}
+                      {/* Leadership Nomination Details & Advisory (If Leadership chosen) */}
                       {formData.membershipType === 'LEADERSHIP' && (
-                        <div style={{ backgroundColor: '#FFF7ED', border: '1.5px solid #FED7AA', borderRadius: '0.875rem', padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#C2410C', fontWeight: 800, fontSize: '0.875rem' }}>
-                            <Crown size={18} /> PREFERRED LEADERSHIP ROLE (NOMINATION)
-                          </div>
-                          
+                        <div style={{ backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: '0.5rem', padding: '1rem', marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                           <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#431407', marginBottom: '0.375rem' }}>
-                              Select Preferred Role *
-                            </label>
+                            <label className="join-label" style={{ color: '#9A3412' }}>Preferred Leadership Role *</label>
                             <select
                               name="preferredLeadershipRole"
                               value={formData.preferredLeadershipRole}
                               onChange={handleChange}
                               className="join-input"
-                              style={{ backgroundColor: '#FFFFFF', fontWeight: 600 }}
+                              style={{ backgroundColor: '#FFFFFF', marginTop: '0.25rem' }}
                               required
                             >
                               {leadershipRoles.map((r, idx) => (
@@ -475,63 +483,64 @@ export default function JoinUs() {
                             </select>
                           </div>
 
-                          {/* Important Nomination Advisory */}
-                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', background: '#FFFFFF', padding: '0.75rem 1rem', borderRadius: '0.5rem', border: '1px solid #FDBA74', fontSize: '0.78125rem', color: '#9A3412', lineHeight: 1.5 }}>
-                            <ShieldAlert size={18} style={{ flexShrink: 0, marginTop: '2px', color: '#EA580C' }} />
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', background: '#FFFFFF', padding: '0.625rem 0.75rem', borderRadius: '0.375rem', border: '1px solid #FED7AA', fontSize: '0.78125rem', color: '#9A3412', lineHeight: 1.5 }}>
+                            <ShieldAlert size={16} style={{ flexShrink: 0, marginTop: '2px', color: '#EA580C' }} />
                             <div>
-                              <strong>Leadership Nomination Notice:</strong> Selecting a leadership role indicates your interest and nomination for the chapter election &amp; selection process. It is <em>not</em> an automatic appointment. Final roles are officially designated by the administration following interview/selection. If not assigned a leadership post, your application remains active for regular membership.
+                              <strong>Nomination Notice:</strong> Selecting a leadership role indicates your nomination for the chapter election &amp; selection process. It is not an automatic appointment. Final roles are designated by the administration following evaluation. If not assigned a leadership post, your application remains active for regular membership.
                             </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Personal Contact Inputs */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>Full Name *</label>
+                      {/* Contact Fields */}
+                      <div style={{ marginTop: '1.25rem' }}>
+                        <div className="join-field-group">
+                          <label className="join-label">Full Name *</label>
                           <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Ananya Rao" className="join-input" required />
                         </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>Email Address *</label>
-                          <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="name@example.com" className="join-input" required />
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+                          <div className="join-field-group">
+                            <label className="join-label">Email Address *</label>
+                            <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="name@example.com" className="join-input" required />
+                          </div>
+                          <div className="join-field-group">
+                            <label className="join-label">Phone Number *</label>
+                            <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+91 98765 43210" className="join-input" required />
+                          </div>
                         </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>Phone Number *</label>
-                          <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+91 98765 43210" className="join-input" required />
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>Gender</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                          <div className="join-field-group">
+                            <label className="join-label">Gender</label>
                             <select name="gender" value={formData.gender} onChange={handleChange} className="join-input">
                               <option value="Male">Male</option>
                               <option value="Female">Female</option>
                               <option value="Other">Other</option>
                             </select>
                           </div>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>Date of Birth</label>
+                          <div className="join-field-group">
+                            <label className="join-label">Date of Birth</label>
                             <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="join-input" />
                           </div>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
 
-                  {/* STEP 2: Academic */}
+                  {/* ── STEP 2: Academic Details ── */}
                   {currentStep === 2 && (
-                    <motion.div key="step2" variants={fadeUp} initial="hidden" animate="visible" exit="hidden" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.5rem' }}>Step 2: Academic Details</h3>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>College / Institution *</label>
+                    <div>
+                      <h3 className="join-form-step-title">Step 2: Academic Details</h3>
+                      <div className="join-field-group">
+                        <label className="join-label">College / Educational Institution *</label>
                         <input type="text" name="college" value={formData.college} onChange={handleChange} placeholder="e.g. Loyola College" className="join-input" required />
                       </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>Department / Branch *</label>
+                      <div className="join-field-group">
+                        <label className="join-label">Department / Course of Study *</label>
                         <input type="text" name="department" value={formData.department} onChange={handleChange} placeholder="e.g. Computer Science and Engineering" className="join-input" required />
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>Year of Study</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                        <div className="join-field-group">
+                          <label className="join-label">Year of Study</label>
                           <select name="year" value={formData.year} onChange={handleChange} className="join-input">
                             <option value="1st Year">1st Year</option>
                             <option value="2nd Year">2nd Year</option>
@@ -540,20 +549,22 @@ export default function JoinUs() {
                             <option value="Postgraduate">Postgraduate</option>
                           </select>
                         </div>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>City / Location *</label>
+                        <div className="join-field-group">
+                          <label className="join-label">City / Location *</label>
                           <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="e.g. Vijayawada" className="join-input" required />
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
 
-                  {/* STEP 3: Skills */}
+                  {/* ── STEP 3: Skills ── */}
                   {currentStep === 3 && (
-                    <motion.div key="step3" variants={fadeUp} initial="hidden" animate="visible" exit="hidden" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.25rem' }}>Step 3: Skills &amp; Capabilities</h3>
-                      <p style={{ fontSize: '0.84375rem', color: '#6B7280' }}>Select all skills you can contribute to MAGIC Youth events *</p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div>
+                      <h3 className="join-form-step-title">Step 3: Skills &amp; Capabilities</h3>
+                      <p style={{ fontSize: '0.8125rem', color: '#64748B', marginTop: '-0.75rem', marginBottom: '1rem' }}>
+                        Select the skills you can contribute to chapter activities *
+                      </p>
+                      <div className="join-chips-grid">
                         {skillOptions.map(skill => {
                           const selected = formData.skills.includes(skill);
                           return (
@@ -568,15 +579,17 @@ export default function JoinUs() {
                           );
                         })}
                       </div>
-                    </motion.div>
+                    </div>
                   )}
 
-                  {/* STEP 4: Interests */}
+                  {/* ── STEP 4: Interests ── */}
                   {currentStep === 4 && (
-                    <motion.div key="step4" variants={fadeUp} initial="hidden" animate="visible" exit="hidden" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.25rem' }}>Step 4: Areas of Interest</h3>
-                      <p style={{ fontSize: '0.84375rem', color: '#6B7280' }}>Select event categories you wish to participate in</p>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div>
+                      <h3 className="join-form-step-title">Step 4: Areas of Interest</h3>
+                      <p style={{ fontSize: '0.8125rem', color: '#64748B', marginTop: '-0.75rem', marginBottom: '1rem' }}>
+                        Select the initiative categories you are interested in participating in
+                      </p>
+                      <div className="join-chips-grid">
                         {interestOptions.map(interest => {
                           const selected = formData.interests.includes(interest);
                           return (
@@ -591,136 +604,166 @@ export default function JoinUs() {
                           );
                         })}
                       </div>
-                    </motion.div>
+                    </div>
                   )}
 
-                  {/* STEP 5: Motivation */}
+                  {/* ── STEP 5: Motivation Statement ── */}
                   {currentStep === 5 && (
-                    <motion.div key="step5" variants={fadeUp} initial="hidden" animate="visible" exit="hidden" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.5rem' }}>Step 5: Motivation Statement</h3>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>
-                          Why do you want to join MAGIC Youth? *
-                        </label>
+                    <div>
+                      <h3 className="join-form-step-title">Step 5: Motivation Statement</h3>
+                      <div className="join-field-group">
+                        <label className="join-label">Why do you want to join MAGIC Youth? *</label>
                         <textarea
                           name="reason"
                           value={formData.reason}
                           onChange={handleChange}
                           rows="4"
-                          placeholder="Tell us what drives you to join our youth movement..."
+                          placeholder="State what motivates you to participate in our youth movement..."
                           className="join-input"
-                          style={{ resize: 'none' }}
+                          style={{ resize: 'vertical' }}
                           required
                         />
                       </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.375rem' }}>
-                          Previous Volunteering / Leadership Experience (Optional)
-                        </label>
+                      <div className="join-field-group">
+                        <label className="join-label">Previous Volunteering / Leadership Experience (Optional)</label>
                         <textarea
                           name="previousExperience"
                           value={formData.previousExperience}
                           onChange={handleChange}
                           rows="3"
-                          placeholder="Past community service, student clubs, or organizing experience..."
+                          placeholder="Mention any past campus clubs, NGO projects, or organizing experience..."
                           className="join-input"
-                          style={{ resize: 'none' }}
+                          style={{ resize: 'vertical' }}
                         />
                       </div>
-                    </motion.div>
+                    </div>
                   )}
 
-                  {/* STEP 6: Uploads */}
+                  {/* ── STEP 6: Document Uploads ── */}
                   {currentStep === 6 && (
-                    <motion.div key="step6" variants={fadeUp} initial="hidden" animate="visible" exit="hidden" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.25rem' }}>Step 6: Document Uploads</h3>
-                      <p style={{ fontSize: '0.84375rem', color: '#6B7280' }}>Upload your profile picture and resume for coordinator review.</p>
+                    <div>
+                      <h3 className="join-form-step-title">Step 6: Document Uploads</h3>
+                      <p style={{ fontSize: '0.8125rem', color: '#64748B', marginTop: '-0.75rem', marginBottom: '1.25rem' }}>
+                        Upload your profile photo and optional resume for coordinator review.
+                      </p>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                        <div style={{ border: '1px dashed #D1D5DB', borderRadius: '1rem', padding: '1.5rem', textAlign: 'center', backgroundColor: '#F8F7FC' }}>
-                          <ImageIcon style={{ width: 32, height: 32, color: 'var(--primary-blue)', margin: '0 auto 0.5rem' }} />
-                          <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937' }}>Profile Photo</div>
-                          <div style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0.25rem 0 1rem' }}>JPG or PNG format</div>
-                          <label className="btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.75rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+                        <div className="join-upload-box">
+                          <ImageIcon size={28} color="var(--primary-blue)" style={{ margin: '0 auto 0.5rem' }} />
+                          <div style={{ fontSize: '0.84375rem', fontWeight: 700, color: '#0F172A' }}>Profile Photo</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748B', margin: '0.2rem 0 0.75rem' }}>JPG or PNG format</div>
+                          <label style={{ display: 'inline-block', padding: '0.4rem 0.875rem', background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
                             Choose File
                             <input type="file" name="profileImage" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
                           </label>
                           {files.profileImage && (
-                            <div style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 700, marginTop: '0.5rem' }}>✓ {files.profileImage.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#16A34A', fontWeight: 700, marginTop: '0.5rem' }}>✓ {files.profileImage.name}</div>
                           )}
                         </div>
 
-                        <div style={{ border: '1px dashed #D1D5DB', borderRadius: '1rem', padding: '1.5rem', textAlign: 'center', backgroundColor: '#F8F7FC' }}>
-                          <FileUp style={{ width: 32, height: 32, color: 'var(--primary-blue)', margin: '0 auto 0.5rem' }} />
-                          <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#1F2937' }}>Resume / CV</div>
-                          <div style={{ fontSize: '0.75rem', color: '#6B7280', margin: '0.25rem 0 1rem' }}>PDF format only</div>
-                          <label className="btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', fontSize: '0.75rem' }}>
+                        <div className="join-upload-box">
+                          <FileUp size={28} color="var(--primary-blue)" style={{ margin: '0 auto 0.5rem' }} />
+                          <div style={{ fontSize: '0.84375rem', fontWeight: 700, color: '#0F172A' }}>Resume / CV (Optional)</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748B', margin: '0.2rem 0 0.75rem' }}>PDF format only</div>
+                          <label style={{ display: 'inline-block', padding: '0.4rem 0.875rem', background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
                             Choose File
                             <input type="file" name="resume" accept=".pdf" onChange={handleFileChange} style={{ display: 'none' }} />
                           </label>
                           {files.resume && (
-                            <div style={{ fontSize: '0.75rem', color: '#10B981', fontWeight: 700, marginTop: '0.5rem' }}>✓ {files.resume.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#16A34A', fontWeight: 700, marginTop: '0.5rem' }}>✓ {files.resume.name}</div>
                           )}
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
 
-                  {/* STEP 7: Review */}
+                  {/* ── STEP 7: Review & Verification ── */}
                   {currentStep === 7 && (
-                    <motion.div key="step7" variants={fadeUp} initial="hidden" animate="visible" exit="hidden" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1F2937', marginBottom: '0.25rem' }}>Step 7: Review &amp; Submit</h3>
-                      <p style={{ fontSize: '0.84375rem', color: '#6B7280', marginBottom: '1rem' }}>Please verify your details before final submission.</p>
+                    <div>
+                      <h3 className="join-form-step-title">Step 7: Review &amp; Submit</h3>
+                      <p style={{ fontSize: '0.8125rem', color: '#64748B', marginTop: '-0.75rem', marginBottom: '1rem' }}>
+                        Please verify your details before submitting your application.
+                      </p>
 
-                      <div style={{ backgroundColor: '#F8F7FC', border: '1px solid #E5E7EB', borderRadius: '1rem', padding: '1.25rem', fontSize: '0.84375rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <div><strong>Selected Unit:</strong> {selectedUnitObj?.name || 'MAGIC Youth'}</div>
-                        <div>
-                          <strong>Membership Type:</strong>{' '}
-                          <span style={{ fontWeight: 800, color: formData.membershipType === 'LEADERSHIP' ? '#E11D48' : '#0284C7' }}>
-                            {formData.membershipType === 'LEADERSHIP' ? '★ LEADERSHIP NOMINATION' : '● REGULAR MEMBER'}
-                          </span>
+                      <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '1rem 1.25rem', fontSize: '0.8125rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                          <span style={{ color: '#64748B' }}>Target Chapter:</span>
+                          <strong style={{ color: '#0F172A' }}>{selectedUnitObj?.name || 'MAGIC Youth'}</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                          <span style={{ color: '#64748B' }}>Membership Type:</span>
+                          <strong style={{ color: formData.membershipType === 'LEADERSHIP' ? 'var(--primary-pink)' : 'var(--primary-blue)' }}>
+                            {formData.membershipType === 'LEADERSHIP' ? '★ Leadership Nomination' : '● Regular Member'}
+                          </strong>
                         </div>
                         {formData.membershipType === 'LEADERSHIP' && (
-                          <div><strong>Preferred Leadership Role:</strong> <span style={{ fontWeight: 700, color: '#C2410C' }}>{formData.preferredLeadershipRole}</span> (Nomination)</div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                            <span style={{ color: '#64748B' }}>Preferred Role:</span>
+                            <strong style={{ color: '#C2410C' }}>{formData.preferredLeadershipRole} (Nomination)</strong>
+                          </div>
                         )}
-                        <hr style={{ border: 'none', borderTop: '1px solid #E2E8F0', margin: '0.5rem 0' }} />
-                        <div><strong>Name:</strong> {formData.name} ({formData.gender})</div>
-                        <div><strong>Email:</strong> {formData.email}</div>
-                        <div><strong>Phone:</strong> {formData.phone}</div>
-                        <div><strong>College:</strong> {formData.college}</div>
-                        <div><strong>Department:</strong> {formData.department} ({formData.year})</div>
-                        <div><strong>City:</strong> {formData.city}</div>
-                        <div><strong>Skills:</strong> {formData.skills.join(', ') || 'None selected'}</div>
-                        <div><strong>Interests:</strong> {formData.interests.join(', ') || 'None selected'}</div>
-                        <div style={{ marginTop: '0.5rem', fontStyle: 'italic', color: '#4B5563' }}>"{formData.reason}"</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                          <span style={{ color: '#64748B' }}>Applicant Name:</span>
+                          <strong style={{ color: '#0F172A' }}>{formData.name} ({formData.gender})</strong>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                          <span style={{ color: '#64748B' }}>Email &amp; Phone:</span>
+                          <span style={{ color: '#0F172A' }}>{formData.email} &bull; {formData.phone}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                          <span style={{ color: '#64748B' }}>Institution:</span>
+                          <span style={{ color: '#0F172A' }}>{formData.college}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem' }}>
+                          <span style={{ color: '#64748B' }}>Dept &amp; Year:</span>
+                          <span style={{ color: '#0F172A' }}>{formData.department} ({formData.year})</span>
+                        </div>
+                        <div>
+                          <span style={{ color: '#64748B', display: 'block', marginBottom: '0.2rem' }}>Motivation:</span>
+                          <span style={{ color: '#334155', fontStyle: 'italic' }}>"{formData.reason}"</span>
+                        </div>
                       </div>
-                    </motion.div>
+                    </div>
                   )}
-                </AnimatePresence>
 
-                {/* Form Buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2rem', paddingTop: '1.25rem', borderTop: '1px solid #E5E7EB' }}>
-                  {currentStep > 1 ? (
-                    <button type="button" onClick={prevStep} className="btn-secondary" style={{ padding: '0.625rem 1.25rem', fontSize: '0.8125rem' }}>
-                      ← Back
-                    </button>
-                  ) : <div />}
+                  {/* Form Action Buttons */}
+                  <div className="join-form-actions">
+                    {currentStep > 1 ? (
+                      <button
+                        type="button"
+                        onClick={prevStep}
+                        className="btn-secondary"
+                        style={{ padding: '0.55rem 1.125rem', fontSize: '0.8125rem', cursor: 'pointer', borderRadius: '0.375rem' }}
+                      >
+                        ← Previous
+                      </button>
+                    ) : <div />}
 
-                  {currentStep < 7 ? (
-                    <button type="button" onClick={nextStep} className="btn-primary" style={{ padding: '0.625rem 1.5rem', fontSize: '0.8125rem' }}>
-                      Next Step →
-                    </button>
-                  ) : (
-                    <button type="submit" disabled={isSubmitting} className="btn-primary" style={{ padding: '0.75rem 2rem', fontSize: '0.875rem' }}>
-                      {isSubmitting ? 'Submitting...' : formData.membershipType === 'LEADERSHIP' ? 'Submit Leadership Nomination' : 'Submit Membership Application'}
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-          )}
+                    {currentStep < steps.length ? (
+                      <button
+                        type="button"
+                        onClick={nextStep}
+                        className="btn-primary"
+                        style={{ padding: '0.55rem 1.375rem', fontSize: '0.8125rem', cursor: 'pointer', borderRadius: '0.375rem', backgroundColor: 'var(--primary-blue)', color: '#FFFFFF', border: 'none', fontWeight: 700 }}
+                      >
+                        Next Step →
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="btn-primary"
+                        style={{ padding: '0.625rem 1.75rem', fontSize: '0.875rem', cursor: 'pointer', borderRadius: '0.375rem', backgroundColor: 'var(--primary-blue)', color: '#FFFFFF', border: 'none', fontWeight: 700 }}
+                      >
+                        {isSubmitting ? 'Submitting Application...' : formData.membershipType === 'LEADERSHIP' ? 'Submit Leadership Nomination' : 'Submit Membership Application'}
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            )}
+          </main>
         </div>
-      </div>
       </section>
     </div>
   );
