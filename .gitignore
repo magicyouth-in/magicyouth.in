@@ -1,8 +1,14 @@
 # ── Dependencies ──────────────────────────────────────────────
 node_modules/
 
-# ── Environment secrets ───────────────────────────────────────
+# ── Environment Secrets ───────────────────────────────────────
 .env
+.env.*
+!.env.example
+
+# ── Build Output & Coverage ──────────────────────────────────
+coverage/
+dist/videos/
 
 # ── Local SQLite database (legacy) ───────────────────────────
 data/
@@ -13,7 +19,7 @@ data/
 # ── Uploaded files (store separately in production) ──────────
 uploads/
 
-# ── OS / Editor ───────────────────────────────────────────────
+# ── OS / Editor / Logs ────────────────────────────────────────
 .DS_Store
 Thumbs.db
 .vscode/
@@ -22,5 +28,5 @@ Thumbs.db
 # ── Package lock (keep package-lock.json, ignore npm-debug) ──
 npm-debug.log*
 
-dist/videos/
+# ── Scratch ───────────────────────────────────────────────────
 scratch/
