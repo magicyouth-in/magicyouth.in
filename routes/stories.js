@@ -1,7 +1,8 @@
 /**
  * routes/stories.js
- * API router for MAGIC Youth Stories & Testimonials management.
- * Supports image uploads via Supabase Storage / local fallback, and MongoDB Atlas.
+ * Production API router for MAGIC Youth Stories & Testimonials.
+ * Uses MongoDB Atlas (stories collection) as the permanent source of truth
+ * and Supabase Storage for permanent cover image assets.
  */
 
 const express = require('express');
@@ -12,22 +13,25 @@ const fs = require('fs');
 const os = require('os');
 const Story = require('../database/models/Story');
 const { connectDB } = require('../database/mongoose');
-const supabase = require('../utils/supabaseClient');
 const { BUCKETS, uploadFile } = require('../utils/supabaseStorage');
 const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
 
-// Ensure MongoDB Atlas connection for all story requests
+// Ensure MongoDB Atlas connection before handling any story requests
 router.use(async (req, res, next) => {
   try {
-    await connectDB();
+    const conn = await connectDB();
+    if (!conn) {
+      return res.status(503).json({ success: false, message: 'Database service unavailable. Please check MongoDB Atlas connection.' });
+    }
+    next();
   } catch (err) {
-    console.warn('[MongoDB Story Route Note]', err.message);
+    console.error('[MongoDB Story Route Error]', err.message);
+    return res.status(503).json({ success: false, message: `Database connection failure: ${err.message}` });
   }
-  next();
 });
 
-// Setup multer for story cover images
+// Multer storage for story cover images
 const tmpDir = os.tmpdir();
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, tmpDir),
@@ -55,23 +59,25 @@ const uploadCover = multer({
   fileFilter,
 });
 
-// Helper function to upload local file to Supabase or local storage
+/**
+ * Upload cover image to permanent Supabase Storage or public uploads folder
+ */
 async function processImageFile(file) {
   if (!file) return null;
   const filePath = file.path;
   const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
   const destName = `stories/${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
 
-  // 1. Try Supabase Storage (Events or Gallery bucket)
+  // 1. Try Supabase Storage (Permanent Public Asset)
   try {
-    const targetBucket = BUCKETS.EVENTS || BUCKETS.GALLERY || 'events';
+    const targetBucket = BUCKETS.GALLERY || BUCKETS.EVENTS || 'gallery';
     const { publicUrl } = await uploadFile(targetBucket, filePath, destName, file.mimetype);
     if (publicUrl) return publicUrl;
   } catch (supaErr) {
     console.warn('[Supabase Story Image Upload Note]', supaErr.message);
   }
 
-  // 2. Try writing to public uploads directory
+  // 2. Fallback: Public uploads directory
   try {
     const publicUploadDir = path.join(__dirname, '..', 'uploads', 'stories');
     if (!fs.existsSync(publicUploadDir)) {
@@ -83,7 +89,7 @@ async function processImageFile(file) {
     return `/uploads/stories/${publicFileName}`;
   } catch {}
 
-  // 3. Fallback: Base64 data URL
+  // 3. Fallback: Data URL
   try {
     const buffer = fs.readFileSync(filePath);
     return `data:${file.mimetype || 'image/jpeg'};base64,${buffer.toString('base64')}`;
@@ -91,9 +97,6 @@ async function processImageFile(file) {
     return null;
   }
 }
-
-// In-memory cache fallback for resilient zero-downtime serving
-let memoryStories = [];
 
 function mapStoryResponse(story) {
   const s = story.toObject ? story.toObject() : story;
@@ -129,7 +132,7 @@ function mapStoryResponse(story) {
 
 /**
  * GET /api/stories
- * Fetch all stories. Public gets only Published unless ?all=1 or status parameter provided.
+ * Fetch all stories from MongoDB Atlas.
  */
 router.get('/', async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -143,78 +146,45 @@ router.get('/', async (req, res) => {
       filter.status = 'Published';
     }
 
-    if (unitId) filter.unitId = unitId;
-    if (academicYear) filter.academicYear = academicYear;
+    if (unitId && unitId !== 'All') filter.unitId = unitId;
+    if (academicYear && academicYear !== 'All') filter.academicYear = academicYear;
 
-    let mongoList = null;
-    try {
-      let query = Story.find(filter).sort({ createdAt: -1 });
-      if (search) {
-        query = Story.find({
-          ...filter,
-          $or: [
-            { title: { $regex: search, $options: 'i' } },
-            { subtitle: { $regex: search, $options: 'i' } },
-            { impact: { $regex: search, $options: 'i' } },
-            { program: { $regex: search, $options: 'i' } },
-          ],
-        }).sort({ createdAt: -1 });
-      }
-      mongoList = await query.exec();
-    } catch (dbErr) {
-      console.warn('[MongoDB Story Query Note]', dbErr.message);
-    }
-
-    if (mongoList !== null) {
-      const formatted = mongoList.map(mapStoryResponse);
-      memoryStories = formatted;
-      return res.json({ success: true, data: formatted });
-    }
-
-    // Filter memory cache fallback only if Mongo was unreachable
-    let filteredMemory = memoryStories;
-    if (filter.status) {
-      filteredMemory = filteredMemory.filter(m => m.status === filter.status);
-    }
-    if (unitId && unitId !== 'All') {
-      filteredMemory = filteredMemory.filter(m => m.unitId === unitId || m.chapter === unitId);
-    }
+    let query = Story.find(filter).sort({ createdAt: -1 });
     if (search) {
-      const s = search.toLowerCase();
-      filteredMemory = filteredMemory.filter(m => 
-        (m.title && m.title.toLowerCase().includes(s)) ||
-        (m.subtitle && m.subtitle.toLowerCase().includes(s)) ||
-        (m.program && m.program.toLowerCase().includes(s))
-      );
+      query = Story.find({
+        ...filter,
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { subtitle: { $regex: search, $options: 'i' } },
+          { impact: { $regex: search, $options: 'i' } },
+          { program: { $regex: search, $options: 'i' } },
+        ],
+      }).sort({ createdAt: -1 });
     }
 
-    res.json({ success: true, data: filteredMemory });
+    const mongoList = await query.exec();
+    const formatted = (mongoList || []).map(mapStoryResponse);
+    return res.json({ success: true, data: formatted });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message, data: memoryStories });
+    console.error('[GET /api/stories Error]', err.message);
+    res.status(500).json({ success: false, message: err.message, data: [] });
   }
 });
 
 /**
  * GET /api/stories/:id
- * Get single story by ID.
+ * Get single story by ID from MongoDB Atlas.
  */
 router.get('/:id', async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   try {
-    try {
-      const story = await Story.findById(req.params.id);
-      if (story) {
-        return res.json({ success: true, data: mapStoryResponse(story) });
-      }
-    } catch {}
-
-    const mem = memoryStories.find(m => m._id === req.params.id || m.id === req.params.id);
-    if (mem) {
-      return res.json({ success: true, data: mem });
+    const story = await Story.findById(req.params.id);
+    if (!story) {
+      return res.status(404).json({ success: false, message: 'Story not found.' });
     }
-
-    res.status(404).json({ success: false, message: 'Story not found.' });
+    return res.json({ success: true, data: mapStoryResponse(story) });
   } catch (err) {
+    console.error(`[GET /api/stories/${req.params.id} Error]`, err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -245,7 +215,7 @@ router.post('/upload-image', authenticateAdmin, requireAnyAdmin, uploadCover.sin
 
 /**
  * POST /api/stories
- * Create a new story. Supports multipart/form-data with coverImage file OR json with coverImage url.
+ * Create a new story and permanently persist to MongoDB Atlas.
  */
 router.post('/', authenticateAdmin, requireAnyAdmin, uploadCover.single('coverImage'), async (req, res) => {
   let tmpFile = req.file ? req.file.path : null;
@@ -303,27 +273,11 @@ router.post('/', authenticateAdmin, requireAnyAdmin, uploadCover.single('coverIm
       isFeatured: isFeatured === true || isFeatured === 'true',
     };
 
-    let savedStory = null;
+    // Save directly to MongoDB Atlas
+    const storyDoc = new Story(newStoryData);
+    const savedStory = await storyDoc.save();
 
-    // 1. Save to MongoDB
-    try {
-      const storyDoc = new Story(newStoryData);
-      savedStory = await storyDoc.save();
-    } catch (dbErr) {
-      console.warn('[MongoDB Story Save Note]', dbErr.message);
-    }
-
-    const storyResult = savedStory 
-      ? mapStoryResponse(savedStory)
-      : {
-          ...newStoryData,
-          _id: `story_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-    // Update memory cache
-    memoryStories.unshift(storyResult);
+    const storyResult = mapStoryResponse(savedStory);
 
     try {
       await logAction(req, 'Create Story', 'Story', storyResult._id, unitId || null);
@@ -336,11 +290,12 @@ router.post('/', authenticateAdmin, requireAnyAdmin, uploadCover.single('coverIm
 
     res.status(201).json({
       success: true,
-      message: 'Story created successfully.',
+      message: 'Story created successfully and stored in database.',
       data: storyResult,
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('[POST /api/stories Save Error]', err.message);
+    res.status(500).json({ success: false, message: `Failed to save story to database: ${err.message}` });
   } finally {
     if (tmpFile && fs.existsSync(tmpFile)) {
       try { fs.unlinkSync(tmpFile); } catch {}
@@ -350,7 +305,7 @@ router.post('/', authenticateAdmin, requireAnyAdmin, uploadCover.single('coverIm
 
 /**
  * PUT /api/stories/:id
- * Update an existing story.
+ * Update an existing story in MongoDB Atlas.
  */
 router.put('/:id', authenticateAdmin, requireAnyAdmin, uploadCover.single('coverImage'), async (req, res) => {
   let tmpFile = req.file ? req.file.path : null;
@@ -376,7 +331,7 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, uploadCover.single('cover
       if (uploadedUrl) newCoverUrl = uploadedUrl;
     }
 
-    const updates = { updatedAt: new Date().toISOString() };
+    const updates = {};
     if (title !== undefined) updates.title = title.trim();
     if (subtitle !== undefined) updates.subtitle = subtitle.trim();
     if (newCoverUrl) updates.coverImage = newCoverUrl.trim();
@@ -391,13 +346,7 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, uploadCover.single('cover
     if (author !== undefined) updates.author = author.trim();
     if (isFeatured !== undefined) updates.isFeatured = isFeatured === true || isFeatured === 'true';
 
-    let existingStory = null;
-    try {
-      existingStory = await Story.findById(req.params.id);
-    } catch {}
-    if (!existingStory) {
-      existingStory = memoryStories.find(m => m._id === req.params.id || m.id === req.params.id);
-    }
+    const existingStory = await Story.findById(req.params.id);
     if (!existingStory) {
       return res.status(404).json({ success: false, message: 'Story not found.' });
     }
@@ -408,36 +357,12 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, uploadCover.single('cover
       return res.status(403).json({ success: false, message: 'Forbidden.' });
     }
 
-    let updatedStory = null;
-
-    // 1. Try Mongo
-    try {
-      updatedStory = await Story.findByIdAndUpdate(req.params.id, updates, { new: true });
-    } catch {}
-
-    let formattedResult;
-    if (updatedStory) {
-      formattedResult = mapStoryResponse(updatedStory);
-    } else {
-      // 2. Fallback memory
-      const idx = memoryStories.findIndex(m => m._id === req.params.id || m.id === req.params.id);
-      if (idx !== -1) {
-        memoryStories[idx] = { ...memoryStories[idx], ...updates };
-        formattedResult = memoryStories[idx];
-      }
+    const updatedStory = await Story.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
+    if (!updatedStory) {
+      return res.status(404).json({ success: false, message: 'Story not found after update.' });
     }
 
-    if (!formattedResult) {
-      return res.status(404).json({ success: false, message: 'Story not found.' });
-    }
-
-    // Update in-memory cache list
-    const mIdx = memoryStories.findIndex(m => m._id === req.params.id || m.id === req.params.id);
-    if (mIdx !== -1) {
-      memoryStories[mIdx] = formattedResult;
-    } else {
-      memoryStories.unshift(formattedResult);
-    }
+    const formattedResult = mapStoryResponse(updatedStory);
 
     try {
       await logAction(req, 'Update Story', 'Story', req.params.id, unitId || existingStory.unitId || null);
@@ -450,11 +375,12 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, uploadCover.single('cover
 
     res.json({
       success: true,
-      message: 'Story updated successfully.',
+      message: 'Story updated successfully in database.',
       data: formattedResult,
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(`[PUT /api/stories/${req.params.id} Error]`, err.message);
+    res.status(500).json({ success: false, message: `Failed to update story in database: ${err.message}` });
   } finally {
     if (tmpFile && fs.existsSync(tmpFile)) {
       try { fs.unlinkSync(tmpFile); } catch {}
@@ -464,17 +390,11 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, uploadCover.single('cover
 
 /**
  * DELETE /api/stories/:id
- * Delete a story.
+ * Delete a story permanently from MongoDB Atlas.
  */
 router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    let existingStory = null;
-    try {
-      existingStory = await Story.findById(req.params.id);
-    } catch {}
-    if (!existingStory) {
-      existingStory = memoryStories.find(m => m._id === req.params.id || m.id === req.params.id);
-    }
+    const existingStory = await Story.findById(req.params.id);
     if (!existingStory) {
       return res.status(404).json({ success: false, message: 'Story not found.' });
     }
@@ -482,13 +402,7 @@ router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Forbidden.' });
     }
 
-    let deleted = false;
-    try {
-      const resDoc = await Story.findByIdAndDelete(req.params.id);
-      if (resDoc) deleted = true;
-    } catch {}
-
-    memoryStories = memoryStories.filter(m => m._id !== req.params.id && m.id !== req.params.id);
+    await Story.findByIdAndDelete(req.params.id);
 
     try {
       await logAction(req, 'Delete Story', 'Story', req.params.id, null);
@@ -499,9 +413,10 @@ router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
       io.emit('story-deleted', { id: req.params.id });
     }
 
-    res.json({ success: true, message: 'Story deleted successfully.' });
+    res.json({ success: true, message: 'Story deleted permanently from database.' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(`[DELETE /api/stories/${req.params.id} Error]`, err.message);
+    res.status(500).json({ success: false, message: `Failed to delete story from database: ${err.message}` });
   }
 });
 

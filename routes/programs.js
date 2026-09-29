@@ -1,7 +1,8 @@
 /**
  * routes/programs.js
  * Dedicated API router for MAGIC Youth Recurring / Flagship Programs.
- * Supports image uploads via Supabase Storage / local fallback, and MongoDB / Supabase.
+ * Uses MongoDB Atlas (programs collection) as the permanent source of truth
+ * and Supabase Storage for permanent posters and images.
  */
 
 const express = require('express');
@@ -20,11 +21,15 @@ const { logAction } = require('../utils/auditLog');
 // Ensure MongoDB Atlas connection for all program requests
 router.use(async (req, res, next) => {
   try {
-    await connectDB();
+    const conn = await connectDB();
+    if (!conn) {
+      return res.status(503).json({ success: false, message: 'Database service unavailable. Please check MongoDB Atlas connection.' });
+    }
+    next();
   } catch (err) {
-    console.warn('[MongoDB Program Route Note]', err.message);
+    console.error('[MongoDB Program Route Error]', err.message);
+    return res.status(503).json({ success: false, message: `Database connection failure: ${err.message}` });
   }
-  next();
 });
 
 // Multer storage for program images
@@ -88,36 +93,6 @@ async function processProgramImage(file) {
   }
 }
 
-// In-memory cache for zero-downtime resilience
-let memoryPrograms = [
-  {
-    _id: 'prog-1',
-    id: 'prog-1',
-    title: 'Compassion Connect',
-    category: 'Community Outreach',
-    status: 'Ongoing',
-    description: 'Structured community solidarity and relief initiative providing direct assistance, emotional solidarity, and healthcare support to vulnerable populations.',
-    poster: null,
-    unitId: null,
-    academicYearId: null,
-    startDate: '2025-06-01',
-    endDate: null,
-  },
-  {
-    _id: 'prog-2',
-    id: 'prog-2',
-    title: 'Youth Leadership Formation',
-    category: 'Leadership Lab',
-    status: 'Ongoing',
-    description: 'Intensive student leadership workshop and ethical discernment academy empowering campus changemakers with community organizing and peer mentoring skills.',
-    poster: null,
-    unitId: null,
-    academicYearId: null,
-    startDate: '2025-07-01',
-    endDate: null,
-  }
-];
-
 // Helper to populate unit and academic year objects
 async function populateProgramRelations(prog) {
   let unitObj = null;
@@ -150,7 +125,7 @@ async function populateProgramRelations(prog) {
 
 /**
  * GET /api/programs
- * Fetch all programs with optional unit, academicYear, status, or search filters.
+ * Fetch all programs from MongoDB Atlas with optional unit, academicYear, status, or search filters.
  */
 router.get('/', async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -162,47 +137,25 @@ router.get('/', async (req, res) => {
     if (academicYearId && academicYearId !== 'All') filter.academicYearId = academicYearId;
     if (status && status !== 'All') filter.status = status;
 
-    let mongoList = null;
-    try {
-      let query = Program.find(filter).sort({ displayOrder: 1, createdAt: -1 });
-      if (search) {
-        query = Program.find({
-          ...filter,
-          $or: [
-            { title: { $regex: search, $options: 'i' } },
-            { description: { $regex: search, $options: 'i' } },
-            { category: { $regex: search, $options: 'i' } },
-          ]
-        }).sort({ displayOrder: 1, createdAt: -1 });
-      }
-      mongoList = await query.exec();
-    } catch (dbErr) {
-      console.warn('[MongoDB Program Query Note]', dbErr.message);
+    let query = Program.find(filter).sort({ displayOrder: 1, createdAt: -1 });
+    if (search) {
+      query = Program.find({
+        ...filter,
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { category: { $regex: search, $options: 'i' } },
+        ]
+      }).sort({ displayOrder: 1, createdAt: -1 });
     }
 
-    let list = [];
-    if (mongoList !== null) {
-      list = mongoList.map(p => p.toObject ? p.toObject() : p);
-      if (list.length > 0) {
-        memoryPrograms = list;
-      }
-    } else {
-      list = memoryPrograms.filter(p => {
-        const unitMatch = !unitId || unitId === 'All' || p.unitId === unitId || p.unitId?._id === unitId;
-        const yearMatch = !academicYearId || academicYearId === 'All' || p.academicYearId === academicYearId || p.academicYearId?._id === academicYearId;
-        const statusMatch = !status || status === 'All' || (p.status || '').toLowerCase() === status.toLowerCase();
-        const searchMatch = !search || (
-          (p.title && p.title.toLowerCase().includes(search.toLowerCase())) ||
-          (p.description && p.description.toLowerCase().includes(search.toLowerCase()))
-        );
-        return unitMatch && yearMatch && statusMatch && searchMatch;
-      });
-    }
-
+    const mongoList = await query.exec();
+    const list = (mongoList || []).map(p => p.toObject ? p.toObject() : p);
     const populated = await Promise.all(list.map(populateProgramRelations));
     res.json({ success: true, data: populated });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message, data: memoryPrograms });
+    console.error('[GET /api/programs Error]', err.message);
+    res.status(500).json({ success: false, message: err.message, data: [] });
   }
 });
 
@@ -211,19 +164,10 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    let prog = null;
-    try {
-      prog = await Program.findById(req.params.id);
-      if (prog) prog = prog.toObject();
-    } catch {}
-
-    if (!prog) {
-      prog = memoryPrograms.find(p => p._id === req.params.id || p.id === req.params.id);
-    }
-
+    const prog = await Program.findById(req.params.id);
     if (!prog) return res.status(404).json({ success: false, message: 'Program not found.' });
 
-    const populated = await populateProgramRelations(prog);
+    const populated = await populateProgramRelations(prog.toObject());
     res.json({ success: true, data: populated });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -232,7 +176,7 @@ router.get('/:id', async (req, res) => {
 
 /**
  * POST /api/programs
- * Create a new program.
+ * Create a new program in MongoDB Atlas.
  */
 router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('poster'), async (req, res) => {
   let tmpFile = req.file ? req.file.path : null;
@@ -252,10 +196,10 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('poster'), as
     }
 
     const newProg = {
-      title,
-      shortDescription: shortDescription || '',
-      description,
-      category: category || 'Flagship Initiative',
+      title: title.trim(),
+      shortDescription: shortDescription ? shortDescription.trim() : '',
+      description: description.trim(),
+      category: category ? category.trim() : 'Flagship Initiative',
       status: status || 'Ongoing',
       unitId: unitId || null,
       academicYearId: academicYearId || null,
@@ -265,26 +209,15 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('poster'), as
       displayOrder: parseInt(displayOrder) || 0,
     };
 
-    let saved = null;
-    try {
-      saved = await Program.create(newProg);
-      saved = saved.toObject();
-    } catch {
-      saved = {
-        ...newProg,
-        _id: `prog-${Date.now()}`,
-        id: `prog-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      memoryPrograms.unshift(saved);
-    }
+    const created = await Program.create(newProg);
+    const saved = created.toObject();
 
-    await logAction(req, 'Create Program', 'Program', saved._id || saved.id, unitId);
+    await logAction(req, 'Create Program', 'Program', saved._id, unitId);
     const populated = await populateProgramRelations(saved);
     res.status(201).json({ success: true, data: populated, message: 'Program created successfully.' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('[POST /api/programs Error]', err.message);
+    res.status(500).json({ success: false, message: `Failed to save program: ${err.message}` });
   } finally {
     if (tmpFile && fs.existsSync(tmpFile)) {
       try { fs.unlinkSync(tmpFile); } catch {}
@@ -294,20 +227,12 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('poster'), as
 
 /**
  * PUT /api/programs/:id
- * Update an existing program.
+ * Update an existing program in MongoDB Atlas.
  */
 router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), async (req, res) => {
   let tmpFile = req.file ? req.file.path : null;
   try {
-    let existing = null;
-    try {
-      existing = await Program.findById(req.params.id);
-    } catch {}
-
-    if (!existing) {
-      existing = memoryPrograms.find(p => p._id === req.params.id || p.id === req.params.id);
-    }
-
+    const existing = await Program.findById(req.params.id);
     if (!existing) return res.status(404).json({ success: false, message: 'Program not found.' });
 
     const currentUnitId = existing.unitId || existing.unit_id;
@@ -324,10 +249,10 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), 
     }
 
     const updates = {
-      title: req.body.title !== undefined ? req.body.title : existing.title,
-      shortDescription: req.body.shortDescription !== undefined ? req.body.shortDescription : (existing.shortDescription || ''),
-      description: req.body.description !== undefined ? req.body.description : existing.description,
-      category: req.body.category !== undefined ? req.body.category : existing.category,
+      title: req.body.title !== undefined ? req.body.title.trim() : existing.title,
+      shortDescription: req.body.shortDescription !== undefined ? req.body.shortDescription.trim() : (existing.shortDescription || ''),
+      description: req.body.description !== undefined ? req.body.description.trim() : existing.description,
+      category: req.body.category !== undefined ? req.body.category.trim() : existing.category,
       status: req.body.status !== undefined ? req.body.status : existing.status,
       unitId: req.body.unitId !== undefined ? req.body.unitId : existing.unitId,
       academicYearId: req.body.academicYearId !== undefined ? req.body.academicYearId : existing.academicYearId,
@@ -338,28 +263,15 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), 
       updatedAt: new Date().toISOString(),
     };
 
-    let updated = null;
-    try {
-      updated = await Program.findByIdAndUpdate(req.params.id, updates, { new: true });
-      if (updated) updated = updated.toObject();
-    } catch {}
-
-    if (!updated) {
-      const idx = memoryPrograms.findIndex(p => p._id === req.params.id || p.id === req.params.id);
-      if (idx !== -1) {
-        memoryPrograms[idx] = { ...memoryPrograms[idx], ...updates };
-        updated = memoryPrograms[idx];
-      } else {
-        updated = { _id: req.params.id, id: req.params.id, ...updates };
-        memoryPrograms.unshift(updated);
-      }
-    }
+    const updated = await Program.findByIdAndUpdate(req.params.id, updates, { new: true });
+    if (!updated) return res.status(404).json({ success: false, message: 'Program not found.' });
 
     await logAction(req, 'Edit Program', 'Program', req.params.id, updates.unitId);
-    const populated = await populateProgramRelations(updated);
+    const populated = await populateProgramRelations(updated.toObject());
     res.json({ success: true, data: populated, message: 'Program updated successfully.' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(`[PUT /api/programs/${req.params.id} Error]`, err.message);
+    res.status(500).json({ success: false, message: `Failed to update program: ${err.message}` });
   } finally {
     if (tmpFile && fs.existsSync(tmpFile)) {
       try { fs.unlinkSync(tmpFile); } catch {}
@@ -372,13 +284,15 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), 
  */
 router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    let existing = null;
-    try {
-      existing = await Program.findById(req.params.id);
-      if (existing) await Program.findByIdAndDelete(req.params.id);
-    } catch {}
+    const existing = await Program.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Program not found.' });
 
-    memoryPrograms = memoryPrograms.filter(p => p._id !== req.params.id && p.id !== req.params.id);
+    const currentUnitId = existing.unitId || existing.unit_id;
+    if (currentUnitId && !canAccessUnit(req.admin, currentUnitId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden.' });
+    }
+
+    await Program.findByIdAndDelete(req.params.id);
 
     await logAction(req, 'Delete Program', 'Program', req.params.id);
     res.json({ success: true, message: 'Program deleted successfully.' });

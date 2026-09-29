@@ -1,7 +1,8 @@
 /**
  * routes/impact.js
  * Dedicated API router for MAGIC Youth Verified Impact Outcomes & Metrics.
- * Supports image uploads via Supabase Storage / local fallback, and MongoDB / Supabase.
+ * Uses MongoDB Atlas (impacts collection) as the permanent source of truth
+ * and Supabase Storage for permanent posters/graphics.
  */
 
 const express = require('express');
@@ -20,11 +21,15 @@ const { logAction } = require('../utils/auditLog');
 // Ensure MongoDB Atlas connection for all impact requests
 router.use(async (req, res, next) => {
   try {
-    await connectDB();
+    const conn = await connectDB();
+    if (!conn) {
+      return res.status(503).json({ success: false, message: 'Database service unavailable. Please check MongoDB Atlas connection.' });
+    }
+    next();
   } catch (err) {
-    console.warn('[MongoDB Impact Route Note]', err.message);
+    console.error('[MongoDB Impact Route Error]', err.message);
+    return res.status(503).json({ success: false, message: `Database connection failure: ${err.message}` });
   }
-  next();
 });
 
 // Multer storage for impact images
@@ -88,34 +93,6 @@ async function processImpactImage(file) {
   }
 }
 
-// In-memory cache for zero-downtime resilience
-let memoryImpacts = [
-  {
-    _id: 'imp-1',
-    id: 'imp-1',
-    title: 'People Supported',
-    metricValue: '21',
-    description: 'Individuals provided with direct crisis assistance, essential support kits, and healthcare solidarity.',
-    poster: null,
-    unitId: null,
-    academicYearId: null,
-    status: 'Published',
-    date: '2025-08-15',
-  },
-  {
-    _id: 'imp-2',
-    id: 'imp-2',
-    title: 'Students Connected to Counselling',
-    metricValue: '4',
-    description: 'Youth guided through specialized professional psychological support during mental wellness awareness campaigns.',
-    poster: null,
-    unitId: null,
-    academicYearId: null,
-    status: 'Published',
-    date: '2025-09-10',
-  }
-];
-
 // Helper to populate unit and academic year objects
 async function populateImpactRelations(imp) {
   let unitObj = null;
@@ -148,7 +125,7 @@ async function populateImpactRelations(imp) {
 
 /**
  * GET /api/impact
- * Fetch all impact records with optional unit, academicYear, status, or search filters.
+ * Fetch all impact records from MongoDB Atlas with optional unit, academicYear, status, or search filters.
  */
 router.get('/', async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -164,48 +141,25 @@ router.get('/', async (req, res) => {
       filter.status = 'Published';
     }
 
-    let mongoList = null;
-    try {
-      let query = Impact.find(filter).sort({ displayOrder: 1, createdAt: -1 });
-      if (search) {
-        query = Impact.find({
-          ...filter,
-          $or: [
-            { title: { $regex: search, $options: 'i' } },
-            { description: { $regex: search, $options: 'i' } },
-            { metricValue: { $regex: search, $options: 'i' } },
-          ]
-        }).sort({ displayOrder: 1, createdAt: -1 });
-      }
-      mongoList = await query.exec();
-    } catch (dbErr) {
-      console.warn('[MongoDB Impact Query Note]', dbErr.message);
+    let query = Impact.find(filter).sort({ displayOrder: 1, createdAt: -1 });
+    if (search) {
+      query = Impact.find({
+        ...filter,
+        $or: [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { metricValue: { $regex: search, $options: 'i' } },
+        ]
+      }).sort({ displayOrder: 1, createdAt: -1 });
     }
 
-    let list = [];
-    if (mongoList !== null) {
-      list = mongoList.map(i => i.toObject ? i.toObject() : i);
-      if (list.length > 0) {
-        memoryImpacts = list;
-      }
-    } else {
-      list = memoryImpacts.filter(i => {
-        const unitMatch = !unitId || unitId === 'All' || i.unitId === unitId || i.unitId?._id === unitId;
-        const yearMatch = !academicYearId || academicYearId === 'All' || i.academicYearId === academicYearId || i.academicYearId?._id === academicYearId;
-        const statusMatch = !status || status === 'All' || (i.status || '').toLowerCase() === status.toLowerCase();
-        const searchMatch = !search || (
-          (i.title && i.title.toLowerCase().includes(search.toLowerCase())) ||
-          (i.description && i.description.toLowerCase().includes(search.toLowerCase())) ||
-          (i.metricValue && i.metricValue.toLowerCase().includes(search.toLowerCase()))
-        );
-        return unitMatch && yearMatch && statusMatch && searchMatch;
-      });
-    }
-
+    const mongoList = await query.exec();
+    const list = (mongoList || []).map(i => i.toObject ? i.toObject() : i);
     const populated = await Promise.all(list.map(populateImpactRelations));
     res.json({ success: true, data: populated });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message, data: memoryImpacts });
+    console.error('[GET /api/impact Error]', err.message);
+    res.status(500).json({ success: false, message: err.message, data: [] });
   }
 });
 
@@ -214,19 +168,10 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    let imp = null;
-    try {
-      imp = await Impact.findById(req.params.id);
-      if (imp) imp = imp.toObject();
-    } catch {}
-
-    if (!imp) {
-      imp = memoryImpacts.find(i => i._id === req.params.id || i.id === req.params.id);
-    }
-
+    const imp = await Impact.findById(req.params.id);
     if (!imp) return res.status(404).json({ success: false, message: 'Impact record not found.' });
 
-    const populated = await populateImpactRelations(imp);
+    const populated = await populateImpactRelations(imp.toObject());
     res.json({ success: true, data: populated });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -235,14 +180,14 @@ router.get('/:id', async (req, res) => {
 
 /**
  * POST /api/impact
- * Create a new impact record.
+ * Create a new impact outcome and persist directly to MongoDB Atlas.
  */
 router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('poster'), async (req, res) => {
   let tmpFile = req.file ? req.file.path : null;
   try {
-    const { title, metricValue, description, unitId, academicYearId, programId, eventId, status, date, displayOrder } = req.body;
+    const { title, metricValue, description, date, status, unitId, academicYearId, displayOrder } = req.body;
     if (!title || !metricValue) {
-      return res.status(400).json({ success: false, message: 'Title and metricValue are required.' });
+      return res.status(400).json({ success: false, message: 'Title and metric value are required.' });
     }
 
     if (unitId && !canAccessUnit(req.admin, unitId)) {
@@ -255,39 +200,26 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('poster'), as
     }
 
     const newImp = {
-      title,
-      metricValue,
-      description: description || '',
-      poster: posterUrl,
+      title: title.trim(),
+      metricValue: metricValue.trim(),
+      description: description ? description.trim() : '',
+      date: date || null,
+      status: status || 'Published',
       unitId: unitId || null,
       academicYearId: academicYearId || null,
-      programId: programId || null,
-      eventId: eventId || null,
-      status: status || 'Published',
-      date: date || new Date().toISOString().split('T')[0],
+      poster: posterUrl,
       displayOrder: parseInt(displayOrder) || 0,
     };
 
-    let saved = null;
-    try {
-      saved = await Impact.create(newImp);
-      saved = saved.toObject();
-    } catch {
-      saved = {
-        ...newImp,
-        _id: `imp-${Date.now()}`,
-        id: `imp-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      memoryImpacts.unshift(saved);
-    }
+    const created = await Impact.create(newImp);
+    const saved = created.toObject();
 
-    await logAction(req, 'Create Impact Record', 'Impact', saved._id || saved.id, unitId);
+    await logAction(req, 'Create Impact', 'Impact', saved._id, unitId);
     const populated = await populateImpactRelations(saved);
-    res.status(201).json({ success: true, data: populated, message: 'Impact record created successfully.' });
+    res.status(201).json({ success: true, data: populated, message: 'Impact outcome created successfully.' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error('[POST /api/impact Error]', err.message);
+    res.status(500).json({ success: false, message: `Failed to save impact outcome: ${err.message}` });
   } finally {
     if (tmpFile && fs.existsSync(tmpFile)) {
       try { fs.unlinkSync(tmpFile); } catch {}
@@ -297,20 +229,12 @@ router.post('/', authenticateAdmin, requireAnyAdmin, upload.single('poster'), as
 
 /**
  * PUT /api/impact/:id
- * Update an existing impact record.
+ * Update an impact record in MongoDB Atlas.
  */
 router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), async (req, res) => {
   let tmpFile = req.file ? req.file.path : null;
   try {
-    let existing = null;
-    try {
-      existing = await Impact.findById(req.params.id);
-    } catch {}
-
-    if (!existing) {
-      existing = memoryImpacts.find(i => i._id === req.params.id || i.id === req.params.id);
-    }
-
+    const existing = await Impact.findById(req.params.id);
     if (!existing) return res.status(404).json({ success: false, message: 'Impact record not found.' });
 
     const currentUnitId = existing.unitId || existing.unit_id;
@@ -327,42 +251,27 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), 
     }
 
     const updates = {
-      title: req.body.title !== undefined ? req.body.title : existing.title,
-      metricValue: req.body.metricValue !== undefined ? req.body.metricValue : existing.metricValue,
-      description: req.body.description !== undefined ? req.body.description : existing.description,
-      poster: posterUrl,
+      title: req.body.title !== undefined ? req.body.title.trim() : existing.title,
+      metricValue: req.body.metricValue !== undefined ? req.body.metricValue.trim() : existing.metricValue,
+      description: req.body.description !== undefined ? req.body.description.trim() : existing.description,
+      date: req.body.date !== undefined ? req.body.date : existing.date,
+      status: req.body.status !== undefined ? req.body.status : existing.status,
       unitId: req.body.unitId !== undefined ? req.body.unitId : existing.unitId,
       academicYearId: req.body.academicYearId !== undefined ? req.body.academicYearId : existing.academicYearId,
-      programId: req.body.programId !== undefined ? req.body.programId : existing.programId,
-      eventId: req.body.eventId !== undefined ? req.body.eventId : existing.eventId,
-      status: req.body.status !== undefined ? req.body.status : existing.status,
-      date: req.body.date !== undefined ? req.body.date : existing.date,
       displayOrder: req.body.displayOrder !== undefined ? parseInt(req.body.displayOrder) : existing.displayOrder,
+      poster: posterUrl,
       updatedAt: new Date().toISOString(),
     };
 
-    let updated = null;
-    try {
-      updated = await Impact.findByIdAndUpdate(req.params.id, updates, { new: true });
-      if (updated) updated = updated.toObject();
-    } catch {}
+    const updated = await Impact.findByIdAndUpdate(req.params.id, updates, { new: true });
+    if (!updated) return res.status(404).json({ success: false, message: 'Impact record not found.' });
 
-    if (!updated) {
-      const idx = memoryImpacts.findIndex(i => i._id === req.params.id || i.id === req.params.id);
-      if (idx !== -1) {
-        memoryImpacts[idx] = { ...memoryImpacts[idx], ...updates };
-        updated = memoryImpacts[idx];
-      } else {
-        updated = { _id: req.params.id, id: req.params.id, ...updates };
-        memoryImpacts.unshift(updated);
-      }
-    }
-
-    await logAction(req, 'Edit Impact Record', 'Impact', req.params.id, updates.unitId);
-    const populated = await populateImpactRelations(updated);
-    res.json({ success: true, data: populated, message: 'Impact record updated successfully.' });
+    await logAction(req, 'Edit Impact', 'Impact', req.params.id, updates.unitId);
+    const populated = await populateImpactRelations(updated.toObject());
+    res.json({ success: true, data: populated, message: 'Impact outcome updated successfully.' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error(`[PUT /api/impact/${req.params.id} Error]`, err.message);
+    res.status(500).json({ success: false, message: `Failed to update impact outcome: ${err.message}` });
   } finally {
     if (tmpFile && fs.existsSync(tmpFile)) {
       try { fs.unlinkSync(tmpFile); } catch {}
@@ -375,16 +284,18 @@ router.put('/:id', authenticateAdmin, requireAnyAdmin, upload.single('poster'), 
  */
 router.delete('/:id', authenticateAdmin, requireAnyAdmin, async (req, res) => {
   try {
-    let existing = null;
-    try {
-      existing = await Impact.findById(req.params.id);
-      if (existing) await Impact.findByIdAndDelete(req.params.id);
-    } catch {}
+    const existing = await Impact.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Impact record not found.' });
 
-    memoryImpacts = memoryImpacts.filter(i => i._id !== req.params.id && i.id !== req.params.id);
+    const currentUnitId = existing.unitId || existing.unit_id;
+    if (currentUnitId && !canAccessUnit(req.admin, currentUnitId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden.' });
+    }
 
-    await logAction(req, 'Delete Impact Record', 'Impact', req.params.id);
-    res.json({ success: true, message: 'Impact record deleted successfully.' });
+    await Impact.findByIdAndDelete(req.params.id);
+
+    await logAction(req, 'Delete Impact', 'Impact', req.params.id);
+    res.json({ success: true, message: 'Impact outcome deleted successfully.' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

@@ -26,7 +26,8 @@ function _verify(token) {
  * Fails with 401 if token is missing, expired, or admin is Inactive.
  */
 async function authenticateAdmin(req, res, next) {
-  const token = req.cookies?.magicyouth_token;
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  const token = req.cookies?.magicyouth_token || (authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : null);
   if (!token) return res.status(401).json({ success: false, message: 'Unauthorized. Please log in.' });
 
   const decoded = _verify(token);
