@@ -18,6 +18,7 @@ const rateLimit    = require('express-rate-limit');
 
 const supabase = require('./utils/supabaseClient');
 const { initStorageBuckets } = require('./utils/supabaseStorage');
+const { connectDB } = require('./database/mongoose');
 
 const app    = express();
 app.set('trust proxy', 1);
@@ -200,6 +201,7 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 async function start() {
   try {
     await initStorageBuckets();
+    await connectDB();
 
     const { data: mainAdmins } = await supabase.from('admin_users').select('id').eq('role', 'MAIN_ADMIN');
     if (!mainAdmins || mainAdmins.length === 0) {

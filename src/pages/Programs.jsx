@@ -31,12 +31,8 @@ export default function Programs() {
         }
 
         if (unitsData.success && Array.isArray(unitsData.data)) {
-          const uList = unitsData.data;
-          setUnits(uList);
-          const defaultUnit = uList.find(u => u.isDefault || u.is_default) || uList[0];
-          if (defaultUnit) {
-            setSelectedUnit(defaultUnit._id || defaultUnit.id);
-          }
+          setUnits(unitsData.data);
+          // Initial filter remains 'All' (All Chapters) as required
         }
 
         if (yearsData.success && Array.isArray(yearsData.data)) {

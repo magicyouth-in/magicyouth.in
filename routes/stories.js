@@ -11,10 +11,21 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const Story = require('../database/models/Story');
+const { connectDB } = require('../database/mongoose');
 const supabase = require('../utils/supabaseClient');
 const { BUCKETS, uploadFile } = require('../utils/supabaseStorage');
 const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
+
+// Ensure MongoDB Atlas connection for all story requests
+router.use(async (req, res, next) => {
+  try {
+    await connectDB();
+  } catch (err) {
+    console.warn('[MongoDB Story Route Note]', err.message);
+  }
+  next();
+});
 
 // Setup multer for story cover images
 const tmpDir = os.tmpdir();
@@ -135,7 +146,7 @@ router.get('/', async (req, res) => {
     if (unitId) filter.unitId = unitId;
     if (academicYear) filter.academicYear = academicYear;
 
-    let mongoList = [];
+    let mongoList = null;
     try {
       let query = Story.find(filter).sort({ createdAt: -1 });
       if (search) {
@@ -150,18 +161,23 @@ router.get('/', async (req, res) => {
         }).sort({ createdAt: -1 });
       }
       mongoList = await query.exec();
-    } catch {}
+    } catch (dbErr) {
+      console.warn('[MongoDB Story Query Note]', dbErr.message);
+    }
 
-    if (mongoList && mongoList.length > 0) {
+    if (mongoList !== null) {
       const formatted = mongoList.map(mapStoryResponse);
       memoryStories = formatted;
       return res.json({ success: true, data: formatted });
     }
 
-    // Filter memory cache fallback
+    // Filter memory cache fallback only if Mongo was unreachable
     let filteredMemory = memoryStories;
     if (filter.status) {
       filteredMemory = filteredMemory.filter(m => m.status === filter.status);
+    }
+    if (unitId && unitId !== 'All') {
+      filteredMemory = filteredMemory.filter(m => m.unitId === unitId || m.chapter === unitId);
     }
     if (search) {
       const s = search.toLowerCase();

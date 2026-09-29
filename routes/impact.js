@@ -11,10 +11,21 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const Impact = require('../database/models/Impact');
+const { connectDB } = require('../database/mongoose');
 const supabase = require('../utils/supabaseClient');
 const { BUCKETS, uploadFile, deleteFile } = require('../utils/supabaseStorage');
 const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
+
+// Ensure MongoDB Atlas connection for all impact requests
+router.use(async (req, res, next) => {
+  try {
+    await connectDB();
+  } catch (err) {
+    console.warn('[MongoDB Impact Route Note]', err.message);
+  }
+  next();
+});
 
 // Multer storage for impact images
 const tmpDir = os.tmpdir();
@@ -153,7 +164,7 @@ router.get('/', async (req, res) => {
       filter.status = 'Published';
     }
 
-    let mongoList = [];
+    let mongoList = null;
     try {
       let query = Impact.find(filter).sort({ displayOrder: 1, createdAt: -1 });
       if (search) {
@@ -167,11 +178,16 @@ router.get('/', async (req, res) => {
         }).sort({ displayOrder: 1, createdAt: -1 });
       }
       mongoList = await query.exec();
-    } catch {}
+    } catch (dbErr) {
+      console.warn('[MongoDB Impact Query Note]', dbErr.message);
+    }
 
     let list = [];
-    if (mongoList && mongoList.length > 0) {
+    if (mongoList !== null) {
       list = mongoList.map(i => i.toObject ? i.toObject() : i);
+      if (list.length > 0) {
+        memoryImpacts = list;
+      }
     } else {
       list = memoryImpacts.filter(i => {
         const unitMatch = !unitId || unitId === 'All' || i.unitId === unitId || i.unitId?._id === unitId;

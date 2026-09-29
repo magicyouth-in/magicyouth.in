@@ -17,7 +17,8 @@ const DEFAULT_LEADERSHIP_ROLES = [
   'Social Media Coordinator',
   'Event Coordinator',
   'Volunteer Coordinator',
-  'Cultural Coordinator'
+  'Cultural Coordinator',
+  'Communication Coordinator'
 ];
 
 export default function JoinUs() {

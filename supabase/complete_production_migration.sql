@@ -48,7 +48,8 @@ VALUES
   ('Social Media Coordinator', 6, TRUE),
   ('Event Coordinator', 7, TRUE),
   ('Volunteer Coordinator', 8, TRUE),
-  ('Cultural Coordinator', 9, TRUE)
+  ('Cultural Coordinator', 9, TRUE),
+  ('Communication Coordinator', 10, TRUE)
 ON CONFLICT (name) DO NOTHING;
 
 CREATE INDEX IF NOT EXISTS idx_leadership_roles_order ON leadership_roles(display_order);

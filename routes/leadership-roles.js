@@ -27,6 +27,7 @@ const DEFAULT_ROLES = [
   { name: 'Event Coordinator', display_order: 7, is_active: true },
   { name: 'Volunteer Coordinator', display_order: 8, is_active: true },
   { name: 'Cultural Coordinator', display_order: 9, is_active: true },
+  { name: 'Communication Coordinator', display_order: 10, is_active: true },
 ];
 
 /** GET /api/leadership-roles — Public list of active roles */

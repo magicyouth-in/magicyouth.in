@@ -1,7 +1,5 @@
 const mongoose = require('mongoose');
 
-
-
 let cached = global.mongoose;
 
 if (!cached) {
@@ -16,12 +14,12 @@ async function connectDB() {
   if (!cached.promise) {
     const uri = process.env.MONGODB_URI;
     if (!uri) {
-      throw new Error('Please define the MONGODB_URI environment variable inside .env');
+      console.warn('[DB] MONGODB_URI not defined in environment variables');
+      return null;
     }
     const opts = {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 10000,
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
       maxPoolSize: 10,
     };
 
@@ -35,10 +33,12 @@ async function connectDB() {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
-    throw e;
+    console.warn('[DB] MongoDB Connection Error:', e.message);
+    return null;
   }
 
   return cached.conn;
 }
 
 module.exports = { connectDB };
+

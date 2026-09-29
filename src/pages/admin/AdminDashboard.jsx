@@ -4088,7 +4088,8 @@ function JoinApplicationsModule({ toast, units, admin }) {
     'Social Media Coordinator',
     'Event Coordinator',
     'Volunteer Coordinator',
-    'Cultural Coordinator'
+    'Cultural Coordinator',
+    'Communication Coordinator'
   ];
 
   const loadRequests = useCallback(() => {
@@ -5505,7 +5506,8 @@ function AdminMembersModule({ toast, units, academicYears = [], admin }) {
     'Social Media Coordinator',
     'Event Coordinator',
     'Volunteer Coordinator',
-    'Cultural Coordinator'
+    'Cultural Coordinator',
+    'Communication Coordinator'
   ];
 
   const load = useCallback(async () => {

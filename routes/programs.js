@@ -11,10 +11,21 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const Program = require('../database/models/Program');
+const { connectDB } = require('../database/mongoose');
 const supabase = require('../utils/supabaseClient');
 const { BUCKETS, uploadFile, deleteFile } = require('../utils/supabaseStorage');
 const { authenticateAdmin, requireAnyAdmin, canAccessUnit } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
+
+// Ensure MongoDB Atlas connection for all program requests
+router.use(async (req, res, next) => {
+  try {
+    await connectDB();
+  } catch (err) {
+    console.warn('[MongoDB Program Route Note]', err.message);
+  }
+  next();
+});
 
 // Multer storage for program images
 const tmpDir = os.tmpdir();
@@ -151,7 +162,7 @@ router.get('/', async (req, res) => {
     if (academicYearId && academicYearId !== 'All') filter.academicYearId = academicYearId;
     if (status && status !== 'All') filter.status = status;
 
-    let mongoList = [];
+    let mongoList = null;
     try {
       let query = Program.find(filter).sort({ displayOrder: 1, createdAt: -1 });
       if (search) {
@@ -165,11 +176,16 @@ router.get('/', async (req, res) => {
         }).sort({ displayOrder: 1, createdAt: -1 });
       }
       mongoList = await query.exec();
-    } catch {}
+    } catch (dbErr) {
+      console.warn('[MongoDB Program Query Note]', dbErr.message);
+    }
 
     let list = [];
-    if (mongoList && mongoList.length > 0) {
+    if (mongoList !== null) {
       list = mongoList.map(p => p.toObject ? p.toObject() : p);
+      if (list.length > 0) {
+        memoryPrograms = list;
+      }
     } else {
       list = memoryPrograms.filter(p => {
         const unitMatch = !unitId || unitId === 'All' || p.unitId === unitId || p.unitId?._id === unitId;
