@@ -14,6 +14,44 @@ const { logAction } = require('../utils/auditLog');
 /** Explicit public/admin unit columns required by frontend components */
 const UNIT_SELECT_COLUMNS = 'id, name, code, institution, location, description, logo, status, is_default, contact_email, contact_phone, created_at, updated_at';
 
+// Baseline chartered units if database is temporarily unavailable or in migration
+const DEFAULT_UNITS = [
+  {
+    id: 'c1a70001-0000-4000-8000-000000000001',
+    _id: 'c1a70001-0000-4000-8000-000000000001',
+    name: 'Andhra Loyola Institute of Engineering and Technology',
+    code: 'ALIET',
+    institution: 'Andhra Loyola Institute of Engineering and Technology',
+    location: 'Vijayawada, Andhra Pradesh',
+    description: 'Chartered campus unit at ALIET fostering innovation, youth leadership, and community service.',
+    logo: null,
+    status: 'Active',
+    is_default: true,
+    isDefault: true,
+    contact_email: 'aliet@magicyouth.org',
+    contact_phone: '+91 98765 43210',
+    created_at: '2025-01-01T00:00:00.000Z',
+    updated_at: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'c1a70002-0000-4000-8000-000000000002',
+    _id: 'c1a70002-0000-4000-8000-000000000002',
+    name: 'Andhra Loyola College',
+    code: 'ALC',
+    institution: 'Andhra Loyola College',
+    location: 'Vijayawada, Andhra Pradesh',
+    description: 'Flagship collegiate chapter at ALC coordinating student outreach and social empowerment initiatives.',
+    logo: null,
+    status: 'Active',
+    is_default: false,
+    isDefault: false,
+    contact_email: 'alc@magicyouth.org',
+    contact_phone: '+91 98765 43211',
+    created_at: '2025-01-01T00:00:00.000Z',
+    updated_at: '2025-01-01T00:00:00.000Z',
+  }
+];
+
 /** Module-scoped in-memory cache for fast chapter retrieval with stale-while-revalidate fallback */
 let unitsMemoryCache = {
   publicData: null,
@@ -61,13 +99,15 @@ router.get('/default', async (req, res) => {
 
     const activeFallback = (allUnits || []).find(isActiveUnit) || allUnits?.[0] || null;
 
-    if (!activeFallback) {
-      return res.status(404).json({ success: false, message: 'No active units found.' });
+    if (activeFallback) {
+      return res.json({ success: true, data: { ...activeFallback, _id: activeFallback.id, isDefault: !!activeFallback.is_default } });
     }
 
-    return res.json({ success: true, data: { ...activeFallback, _id: activeFallback.id, isDefault: !!activeFallback.is_default } });
+    // Fallback to chartered default unit
+    return res.json({ success: true, data: DEFAULT_UNITS[0], isFallback: true });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    console.warn('[UNITS DEFAULT] Serving fallback default unit due to database error:', err.message);
+    return res.json({ success: true, data: DEFAULT_UNITS[0], isFallback: true });
   }
 });
 
@@ -106,7 +146,7 @@ router.get('/', async (req, res) => {
 
     if (error) throw error;
 
-    let list = units || [];
+    let list = units && units.length > 0 ? units : DEFAULT_UNITS;
 
     // Filter inactive units unless explicitly requested (e.g. by admin)
     if (!includeInactive) {
@@ -125,8 +165,8 @@ router.get('/', async (req, res) => {
 
     const formatted = list.map(u => ({
       ...u,
-      _id: u.id,
-      isDefault: !!u.is_default,
+      _id: u.id || u._id,
+      isDefault: !!(u.is_default || u.isDefault),
       // Normalize status display casing
       status: String(u.status || '').toLowerCase() === 'upcoming' ? 'Upcoming' :
               String(u.status || '').toLowerCase() === 'inactive' ? 'Inactive' :
@@ -152,7 +192,10 @@ router.get('/', async (req, res) => {
       return res.json({ success: true, data: unitsMemoryCache.publicData, isStale: true });
     }
 
-    return res.status(500).json({ success: false, message: 'Failed to retrieve chapters. Please try again.' });
+    // Baseline chartered units fallback (mirrors routes/leadership-roles.js) so applicants are never blocked
+    console.warn('[UNITS GET] Serving default fallback units due to database error/timeout.');
+    const fallbackList = includeInactive ? DEFAULT_UNITS : DEFAULT_UNITS.filter(isActiveUnit);
+    return res.json({ success: true, data: fallbackList, isFallback: true });
   }
 });
 
@@ -160,9 +203,19 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { data: unit, error } = await supabase.from('units').select('*').eq('id', req.params.id).single();
-    if (error || !unit) return res.status(404).json({ success: false, message: 'Unit not found.' });
-    res.json({ success: true, data: { ...unit, _id: unit.id, isDefault: !!unit.is_default } });
+    if (unit) {
+      return res.json({ success: true, data: { ...unit, _id: unit.id, isDefault: !!unit.is_default } });
+    }
+    const fallback = DEFAULT_UNITS.find(u => u.id === req.params.id || u._id === req.params.id);
+    if (fallback) {
+      return res.json({ success: true, data: fallback, isFallback: true });
+    }
+    return res.status(404).json({ success: false, message: 'Unit not found.' });
   } catch (err) {
+    const fallback = DEFAULT_UNITS.find(u => u.id === req.params.id || u._id === req.params.id);
+    if (fallback) {
+      return res.json({ success: true, data: fallback, isFallback: true });
+    }
     res.status(400).json({ success: false, message: 'Invalid unit ID.' });
   }
 });
@@ -356,3 +409,4 @@ router.patch('/:id/unarchive', authenticateAdmin, requireMainAdmin, async (req, 
 });
 
 module.exports = router;
+module.exports.DEFAULT_UNITS = DEFAULT_UNITS;

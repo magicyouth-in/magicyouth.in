@@ -21,6 +21,33 @@ const DEFAULT_LEADERSHIP_ROLES = [
   'Communication Coordinator'
 ];
 
+/** Baseline chartered collegiate chapters for instantaneous rendering & network resilience */
+const DEFAULT_PUBLIC_CHAPTERS = [
+  {
+    _id: 'c1a70001-0000-4000-8000-000000000001',
+    id: 'c1a70001-0000-4000-8000-000000000001',
+    name: 'Andhra Loyola Institute of Engineering and Technology',
+    code: 'ALIET',
+    institution: 'Andhra Loyola Institute of Engineering and Technology',
+    location: 'Vijayawada, Andhra Pradesh',
+    isDefault: true,
+    is_default: true,
+    status: 'Active'
+  },
+  {
+    _id: 'c1a70002-0000-4000-8000-000000000002',
+    id: 'c1a70002-0000-4000-8000-000000000002',
+    name: 'Andhra Loyola College',
+    code: 'ALC',
+    institution: 'Andhra Loyola College',
+    location: 'Vijayawada, Andhra Pradesh',
+    isDefault: false,
+    is_default: false,
+    status: 'Active'
+  }
+];
+const DEFAULT_INITIAL_CHAPTER = DEFAULT_PUBLIC_CHAPTERS[0];
+
 /** SessionStorage cache key and configuration for public chapter metadata */
 const CHAPTERS_CACHE_KEY = 'magic_youth_public_chapters_cache';
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache validity
@@ -73,15 +100,12 @@ export default function JoinUs() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Initialize with cached chapters if available for instantaneous display
+  // Initialize with cached chapters if available, or chartered public chapters for instantaneous display
   const [units, setUnits] = useState(() => {
     const cached = getCachedChapters();
-    return cached && cached.data.length > 0 ? cached.data : [];
+    return (cached && cached.data.length > 0) ? cached.data : DEFAULT_PUBLIC_CHAPTERS;
   });
-  const [unitsLoading, setUnitsLoading] = useState(() => {
-    const cached = getCachedChapters();
-    return !(cached && cached.data.length > 0);
-  });
+  const [unitsLoading, setUnitsLoading] = useState(false);
   const [unitsError, setUnitsError] = useState(false);
   const [isRevalidating, setIsRevalidating] = useState(false);
   const [leadershipRoles, setLeadershipRoles] = useState(DEFAULT_LEADERSHIP_ROLES);
@@ -97,7 +121,7 @@ export default function JoinUs() {
     unitsAbortControllerRef.current = controller;
 
     if (force) {
-      setUnitsLoading(true);
+      setIsRevalidating(true);
       setUnitsError(false);
     } else {
       const cached = getCachedChapters();
@@ -116,7 +140,7 @@ export default function JoinUs() {
           }));
         }
       } else {
-        setUnitsLoading(true);
+        setIsRevalidating(true);
         setUnitsError(false);
       }
     }
@@ -186,10 +210,10 @@ export default function JoinUs() {
     } catch (err) {
       if (controller.signal.aborted) return;
       console.error('[JOIN UNITS LOAD ERROR]', err);
-      // Only display full error state if we don't have any cached units displayed
+      // Ensure active chartered units are always available so applicant is never blocked
       setUnits(prev => {
         if (!prev || prev.length === 0) {
-          setUnitsError(true);
+          return DEFAULT_PUBLIC_CHAPTERS;
         }
         return prev;
       });
@@ -225,18 +249,18 @@ export default function JoinUs() {
 
   const [formData, setFormData] = useState(() => {
     const cached = getCachedChapters();
-    const def = cached?.data?.find(u => u.isDefault || u.is_default) || cached?.data?.[0];
+    const def = cached?.data?.find(u => u.isDefault || u.is_default) || cached?.data?.[0] || DEFAULT_INITIAL_CHAPTER;
     return {
       name: '',
       email: '',
       phone: '',
       gender: 'Male',
       dob: '',
-      college: def?.institution || '',
+      college: def?.institution || DEFAULT_INITIAL_CHAPTER.institution,
       department: '',
       year: '1st Year',
       city: '',
-      unitId: def?._id || def?.id || '',
+      unitId: def?._id || def?.id || DEFAULT_INITIAL_CHAPTER.id,
       membershipType: 'MEMBER', // 'MEMBER' | 'LEADERSHIP'
       preferredLeadershipRole: 'First Lead',
       skills: [],
