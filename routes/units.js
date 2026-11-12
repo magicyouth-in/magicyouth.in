@@ -2,6 +2,7 @@
  * routes/units.js
  * CRUD for MAGIC Youth Units using Supabase PostgreSQL.
  * Supports default unit selection, active/upcoming status, and full unit attributes.
+ * Hardened with CDN caching headers, in-memory caching, query timeout safeguards, and stale fallback.
  */
 
 const express = require('express');
@@ -9,6 +10,26 @@ const router = express.Router();
 const supabase = require('../utils/supabaseClient');
 const { authenticateAdmin, requireMainAdmin } = require('../middleware/auth');
 const { logAction } = require('../utils/auditLog');
+
+/** Explicit public/admin unit columns required by frontend components */
+const UNIT_SELECT_COLUMNS = 'id, name, code, institution, location, description, logo, status, is_default, contact_email, contact_phone, created_at, updated_at';
+
+/** Module-scoped in-memory cache for fast chapter retrieval with stale-while-revalidate fallback */
+let unitsMemoryCache = {
+  publicData: null,
+  allData: null,
+  publicTimestamp: 0,
+  allTimestamp: 0,
+};
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes TTL
+
+/** Helper to invalidate in-memory cache on administrative modifications */
+const invalidateUnitsCache = () => {
+  unitsMemoryCache.publicData = null;
+  unitsMemoryCache.allData = null;
+  unitsMemoryCache.publicTimestamp = 0;
+  unitsMemoryCache.allTimestamp = 0;
+};
 
 /** Helper to check if a unit is active (case-insensitive) */
 const isActiveUnit = (u) => {
@@ -18,11 +39,12 @@ const isActiveUnit = (u) => {
 
 /** GET /api/units/default — Get the current default unit */
 router.get('/default', async (req, res) => {
+  res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
   try {
     // 1. Try to find unit where is_default = true and status is Active
     let { data: defaultUnit, error } = await supabase
       .from('units')
-      .select('*')
+      .select(UNIT_SELECT_COLUMNS)
       .eq('is_default', true)
       .maybeSingle();
 
@@ -34,7 +56,7 @@ router.get('/default', async (req, res) => {
     // 2. Fallback to any Active unit ordered by name
     const { data: allUnits } = await supabase
       .from('units')
-      .select('*')
+      .select(UNIT_SELECT_COLUMNS)
       .order('name', { ascending: true });
 
     const activeFallback = (allUnits || []).find(isActiveUnit) || allUnits?.[0] || null;
@@ -49,32 +71,52 @@ router.get('/default', async (req, res) => {
   }
 });
 
-/** GET /api/units — Public list with status filter */
+/** GET /api/units — Public list with status filter and caching */
 router.get('/', async (req, res) => {
+  const includeInactive = req.query.includeInactive === 'true';
+
+  // Set HTTP Cache-Control headers: 5-min CDN cache for public chapter requests
+  if (!includeInactive) {
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+  } else {
+    res.set('Cache-Control', 'private, no-cache');
+  }
+
+  const now = Date.now();
+  // Return valid in-memory cache if fresh
+  if (!includeInactive && unitsMemoryCache.publicData && (now - unitsMemoryCache.publicTimestamp < CACHE_TTL_MS)) {
+    return res.json({ success: true, data: unitsMemoryCache.publicData });
+  }
+  if (includeInactive && unitsMemoryCache.allData && (now - unitsMemoryCache.allTimestamp < CACHE_TTL_MS)) {
+    return res.json({ success: true, data: unitsMemoryCache.allData });
+  }
+
   try {
-    let { data: units, error } = await supabase
+    // Query Supabase with a 5000ms safeguard timeout to prevent hanging on serverless
+    const queryPromise = supabase
       .from('units')
-      .select('*')
+      .select(UNIT_SELECT_COLUMNS)
       .order('name', { ascending: true });
 
-    if (error) {
-      // If error (e.g. table schema transition), attempt simple select
-      const retry = await supabase.from('units').select('*');
-      if (retry.error) throw retry.error;
-      units = retry.data;
-    }
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Supabase query timed out after 5000ms')), 5000)
+    );
+
+    const { data: units, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+    if (error) throw error;
 
     let list = units || [];
 
-    // Filter inactive units unless requested
-    if (req.query.includeInactive !== 'true') {
+    // Filter inactive units unless explicitly requested (e.g. by admin)
+    if (!includeInactive) {
       list = list.filter(u => {
         const s = String(u.status || '').toLowerCase();
         return s === 'active' || s === 'upcoming' || s === '';
       });
     }
 
-    // Sort default unit to the very top, then by name
+    // Sort default unit to the very top, then alphabetically by name
     list.sort((a, b) => {
       if (a.is_default && !b.is_default) return -1;
       if (!a.is_default && b.is_default) return 1;
@@ -91,10 +133,26 @@ router.get('/', async (req, res) => {
               String(u.status || '').toLowerCase() === 'archived' ? 'Archived' : 'Active'
     }));
 
-    res.json({ success: true, data: formatted });
+    // Update in-memory cache
+    if (!includeInactive && formatted.length > 0) {
+      unitsMemoryCache.publicData = formatted;
+      unitsMemoryCache.publicTimestamp = now;
+    } else if (includeInactive && formatted.length > 0) {
+      unitsMemoryCache.allData = formatted;
+      unitsMemoryCache.allTimestamp = now;
+    }
+
+    return res.json({ success: true, data: formatted });
   } catch (err) {
     console.error('[UNITS GET ERROR]', err.message);
-    res.status(500).json({ success: false, message: err.message });
+
+    // Stale-data fallback: if Supabase fails or times out, serve previously cached data
+    if (!includeInactive && unitsMemoryCache.publicData && unitsMemoryCache.publicData.length > 0) {
+      console.warn('[UNITS GET] Serving stale units cache due to Supabase error/timeout.');
+      return res.json({ success: true, data: unitsMemoryCache.publicData, isStale: true });
+    }
+
+    return res.status(500).json({ success: false, message: 'Failed to retrieve chapters. Please try again.' });
   }
 });
 
@@ -145,6 +203,7 @@ router.patch('/:id/set-default', authenticateAdmin, requireMainAdmin, async (req
 
     if (updateError) throw updateError;
 
+    invalidateUnitsCache();
     await logAction(req, 'Set Default Unit', 'Unit', unitId, unitId);
     return res.json({
       success: true,
@@ -184,6 +243,7 @@ router.post('/', authenticateAdmin, requireMainAdmin, async (req, res) => {
 
     if (error) throw error;
 
+    invalidateUnitsCache();
     await logAction(req, 'Create Unit', 'Unit', unit.id, unit.id);
     res.status(201).json({ success: true, data: { ...unit, _id: unit.id, isDefault: !!unit.is_default }, message: 'Unit created.' });
   } catch (err) {
@@ -221,6 +281,7 @@ router.put('/:id', authenticateAdmin, requireMainAdmin, async (req, res) => {
 
     if (error || !unit) return res.status(404).json({ success: false, message: 'Unit not found.' });
 
+    invalidateUnitsCache();
     await logAction(req, 'Edit Unit', 'Unit', unit.id, unit.id);
     res.json({ success: true, data: { ...unit, _id: unit.id, isDefault: !!unit.is_default }, message: 'Unit updated.' });
   } catch (err) {
@@ -246,6 +307,7 @@ router.patch('/:id/status', authenticateAdmin, requireMainAdmin, async (req, res
 
     if (error || !unit) return res.status(404).json({ success: false, message: 'Unit not found.' });
 
+    invalidateUnitsCache();
     await logAction(req, `Set Unit Status ${status}`, 'Unit', unit.id, unit.id);
     res.json({ success: true, message: `Unit status set to ${status}.`, data: { ...unit, _id: unit.id } });
   } catch (err) {
@@ -265,6 +327,7 @@ router.patch('/:id/archive', authenticateAdmin, requireMainAdmin, async (req, re
 
     if (error || !unit) return res.status(404).json({ success: false, message: 'Unit not found.' });
 
+    invalidateUnitsCache();
     await logAction(req, 'Archive Unit', 'Unit', unit.id, unit.id);
     res.json({ success: true, message: 'Unit archived.', data: { ...unit, _id: unit.id } });
   } catch (err) {
@@ -284,6 +347,7 @@ router.patch('/:id/unarchive', authenticateAdmin, requireMainAdmin, async (req, 
 
     if (error || !unit) return res.status(404).json({ success: false, message: 'Unit not found.' });
 
+    invalidateUnitsCache();
     await logAction(req, 'Unarchive Unit', 'Unit', unit.id, unit.id);
     res.json({ success: true, message: 'Unit activated.', data: { ...unit, _id: unit.id } });
   } catch (err) {

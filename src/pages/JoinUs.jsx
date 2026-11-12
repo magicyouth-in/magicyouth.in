@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   CheckCircle2, ArrowRight, ArrowLeft,
   User, GraduationCap, Wrench, MessageSquare, AlertCircle,
@@ -21,62 +21,192 @@ const DEFAULT_LEADERSHIP_ROLES = [
   'Communication Coordinator'
 ];
 
+/** SessionStorage cache key and configuration for public chapter metadata */
+const CHAPTERS_CACHE_KEY = 'magic_youth_public_chapters_cache';
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache validity
+const FETCH_TIMEOUT_MS = 6000; // 6-second request timeout safeguard
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB maximum upload limit matching backend multer
+
+/** Helper to safely retrieve cached public chapters from sessionStorage */
+const getCachedChapters = () => {
+  try {
+    const raw = sessionStorage.getItem(CHAPTERS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (!Array.isArray(parsed.data) || parsed.data.length === 0) return null;
+    if (typeof parsed.timestamp !== 'number') return null;
+    const isStale = (Date.now() - parsed.timestamp) > CACHE_TTL_MS;
+    return { data: parsed.data, isStale };
+  } catch (e) {
+    try { sessionStorage.removeItem(CHAPTERS_CACHE_KEY); } catch (_) {}
+    return null;
+  }
+};
+
+/** Helper to safely store public chapter metadata in sessionStorage */
+const setCachedChapters = (data) => {
+  try {
+    if (Array.isArray(data) && data.length > 0) {
+      sessionStorage.setItem(CHAPTERS_CACHE_KEY, JSON.stringify({
+        timestamp: Date.now(),
+        // Store only non-sensitive public chapter attributes
+        data: data.map(u => ({
+          _id: u._id || u.id,
+          id: u.id || u._id,
+          name: u.name,
+          institution: u.institution || '',
+          isDefault: !!(u.isDefault || u.is_default),
+          is_default: !!(u.isDefault || u.is_default),
+          status: u.status || 'Active'
+        }))
+      }));
+    }
+  } catch (e) {
+    // Gracefully handle private browsing or quota limitations
+  }
+};
+
 export default function JoinUs() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [units, setUnits] = useState([]);
-  const [unitsLoading, setUnitsLoading] = useState(true);
+
+  // Initialize with cached chapters if available for instantaneous display
+  const [units, setUnits] = useState(() => {
+    const cached = getCachedChapters();
+    return cached && cached.data.length > 0 ? cached.data : [];
+  });
+  const [unitsLoading, setUnitsLoading] = useState(() => {
+    const cached = getCachedChapters();
+    return !(cached && cached.data.length > 0);
+  });
   const [unitsError, setUnitsError] = useState(false);
+  const [isRevalidating, setIsRevalidating] = useState(false);
   const [leadershipRoles, setLeadershipRoles] = useState(DEFAULT_LEADERSHIP_ROLES);
 
-  const loadUnits = useCallback(() => {
-    setUnitsLoading(true);
-    setUnitsError(false);
-    fetch('/api/units?includeInactive=false')
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(d => {
-        if (d.success && Array.isArray(d.data) && d.data.length > 0) {
-          // Normalize active units (case-insensitive)
-          const activeList = d.data.filter(u => {
-            const s = String(u.status || '').toLowerCase();
-            return s === 'active' || s === '';
-          });
+  const unitsAbortControllerRef = useRef(null);
 
-          const finalUnits = activeList.length > 0 ? activeList : d.data;
-          setUnits(finalUnits);
+  const loadUnits = useCallback(async (force = false) => {
+    // Cancel any prior in-flight request to prevent duplicate network calls
+    if (unitsAbortControllerRef.current) {
+      unitsAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    unitsAbortControllerRef.current = controller;
 
-          // Preselect default unit if form doesn't have one
-          const def = finalUnits.find(u => u.isDefault || u.is_default) || finalUnits[0];
-          if (def) {
-            setFormData(prev => ({
-              ...prev,
-              unitId: prev.unitId || def._id || def.id,
-              college: prev.college || def.institution || ''
-            }));
-          }
-        } else {
-          setUnits([]);
-        }
-      })
-      .catch(err => {
-        console.error('[JOIN UNITS LOAD ERROR]', err);
-        setUnitsError(true);
-      })
-      .finally(() => {
+    if (force) {
+      setUnitsLoading(true);
+      setUnitsError(false);
+    } else {
+      const cached = getCachedChapters();
+      if (cached && cached.data.length > 0) {
+        setUnits(cached.data);
         setUnitsLoading(false);
+        setUnitsError(false);
+        setIsRevalidating(true);
+
+        const def = cached.data.find(u => u.isDefault || u.is_default) || cached.data[0];
+        if (def) {
+          setFormData(prev => ({
+            ...prev,
+            unitId: prev.unitId || def._id || def.id,
+            college: prev.college || def.institution || ''
+          }));
+        }
+      } else {
+        setUnitsLoading(true);
+        setUnitsError(false);
+      }
+    }
+
+    const executeFetchAttempt = async () => {
+      const timeoutController = new AbortController();
+      const timer = setTimeout(() => timeoutController.abort(), FETCH_TIMEOUT_MS);
+
+      const onAbort = () => timeoutController.abort();
+      controller.signal.addEventListener('abort', onAbort);
+
+      try {
+        const res = await fetch('/api/units?includeInactive=false', {
+          signal: timeoutController.signal,
+          headers: { 'Accept': 'application/json' }
+        });
+        clearTimeout(timer);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+      } catch (err) {
+        clearTimeout(timer);
+        throw err;
+      } finally {
+        controller.signal.removeEventListener('abort', onAbort);
+      }
+    };
+
+    try {
+      let data = null;
+      try {
+        data = await executeFetchAttempt();
+      } catch (firstErr) {
+        if (controller.signal.aborted) return;
+        console.warn('[JOIN UNITS] Primary request failed or timed out, executing 1 automatic retry...', firstErr.message);
+        // Brief pause before single automatic retry
+        await new Promise(r => setTimeout(r, 1000));
+        if (controller.signal.aborted) return;
+        data = await executeFetchAttempt();
+      }
+
+      if (controller.signal.aborted) return;
+
+      if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
+        // Normalize active units (case-insensitive)
+        const activeList = data.data.filter(u => {
+          const s = String(u.status || '').toLowerCase();
+          return s === 'active' || s === '';
+        });
+
+        const finalUnits = activeList.length > 0 ? activeList : data.data;
+        setUnits(finalUnits);
+        setCachedChapters(finalUnits);
+        setUnitsError(false);
+
+        // Preselect default unit if form doesn't have one
+        const def = finalUnits.find(u => u.isDefault || u.is_default) || finalUnits[0];
+        if (def) {
+          setFormData(prev => ({
+            ...prev,
+            unitId: prev.unitId || def._id || def.id,
+            college: prev.college || def.institution || ''
+          }));
+        }
+      } else {
+        setUnits([]);
+      }
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      console.error('[JOIN UNITS LOAD ERROR]', err);
+      // Only display full error state if we don't have any cached units displayed
+      setUnits(prev => {
+        if (!prev || prev.length === 0) {
+          setUnitsError(true);
+        }
+        return prev;
       });
+    } finally {
+      if (!controller.signal.aborted) {
+        setUnitsLoading(false);
+        setIsRevalidating(false);
+      }
+    }
   }, []);
 
   useEffect(() => {
     loadUnits();
 
-    // Fetch Leadership Roles
-    fetch('/api/leadership-roles')
+    // Fetch Leadership Roles with abort cleanup
+    const rolesController = new AbortController();
+    fetch('/api/leadership-roles', { signal: rolesController.signal })
       .then(r => r.json())
       .then(d => {
         if (d.success && Array.isArray(d.data) && d.data.length > 0) {
@@ -84,25 +214,36 @@ export default function JoinUs() {
         }
       })
       .catch(() => {});
+
+    return () => {
+      if (unitsAbortControllerRef.current) {
+        unitsAbortControllerRef.current.abort();
+      }
+      rolesController.abort();
+    };
   }, [loadUnits]);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    gender: 'Male',
-    dob: '',
-    college: '',
-    department: '',
-    year: '1st Year',
-    city: '',
-    unitId: '',
-    membershipType: 'MEMBER', // 'MEMBER' | 'LEADERSHIP'
-    preferredLeadershipRole: 'First Lead',
-    skills: [],
-    interests: [],
-    previousExperience: '',
-    reason: '',
+  const [formData, setFormData] = useState(() => {
+    const cached = getCachedChapters();
+    const def = cached?.data?.find(u => u.isDefault || u.is_default) || cached?.data?.[0];
+    return {
+      name: '',
+      email: '',
+      phone: '',
+      gender: 'Male',
+      dob: '',
+      college: def?.institution || '',
+      department: '',
+      year: '1st Year',
+      city: '',
+      unitId: def?._id || def?.id || '',
+      membershipType: 'MEMBER', // 'MEMBER' | 'LEADERSHIP'
+      preferredLeadershipRole: 'First Lead',
+      skills: [],
+      interests: [],
+      previousExperience: '',
+      reason: '',
+    };
   });
 
   const [files, setFiles] = useState({
@@ -146,10 +287,41 @@ export default function JoinUs() {
   };
 
   const handleFileChange = (e) => {
+    setErrorMsg('');
     const { name, files: selectedFiles } = e.target;
-    if (selectedFiles[0]) {
-      setFiles(prev => ({ ...prev, [name]: selectedFiles[0] }));
+    const file = selectedFiles?.[0];
+    if (!file) return;
+
+    // 1. File Size Validation (<= 10MB limit matching server multer)
+    if (file.size > MAX_FILE_SIZE) {
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      const label = name === 'profileImage' ? 'Profile photo' : 'Resume / CV';
+      setErrorMsg(`${label} (${sizeMb} MB) exceeds the maximum allowed size of 10 MB. Please select a smaller file.`);
+      e.target.value = '';
+      setFiles(prev => ({ ...prev, [name]: null }));
+      return;
     }
+
+    // 2. File Type Validation
+    if (name === 'profileImage') {
+      const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(file.name);
+      if (!isImage) {
+        setErrorMsg('Please upload a valid image file (JPG, PNG, or WebP) for your profile photo.');
+        e.target.value = '';
+        setFiles(prev => ({ ...prev, [name]: null }));
+        return;
+      }
+    } else if (name === 'resume') {
+      const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+      if (!isPdf) {
+        setErrorMsg('Please upload your resume in PDF format (.pdf).');
+        e.target.value = '';
+        setFiles(prev => ({ ...prev, [name]: null }));
+        return;
+      }
+    }
+
+    setFiles(prev => ({ ...prev, [name]: file }));
   };
 
   const validateStep = () => {
@@ -159,8 +331,29 @@ export default function JoinUs() {
         setErrorMsg('Please fill in your contact information (Name, Email, Phone).');
         return false;
       }
-      if (!formData.unitId && units.length > 0) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+        setErrorMsg('Please enter a valid email address.');
+        return false;
+      }
+      if (formData.phone.trim().replace(/\D/g, '').length < 7) {
+        setErrorMsg('Please enter a valid phone number.');
+        return false;
+      }
+      if (unitsLoading && units.length === 0) {
+        setErrorMsg('Loading active chapters. Please wait a moment before proceeding.');
+        return false;
+      }
+      if ((unitsError || units.length === 0) && !formData.unitId) {
+        setErrorMsg('Collegiate chapters must be loaded before you can proceed. Please click Retry.');
+        return false;
+      }
+      if (!formData.unitId) {
         setErrorMsg('Please select your target MAGIC Youth chapter.');
+        return false;
+      }
+      const matchingUnit = units.find(u => (u._id || u.id) === formData.unitId);
+      if (!matchingUnit && units.length > 0) {
+        setErrorMsg('Selected chapter is invalid. Please select an active chapter.');
         return false;
       }
       if (formData.membershipType === 'LEADERSHIP' && !formData.preferredLeadershipRole) {
@@ -175,7 +368,7 @@ export default function JoinUs() {
       }
     }
     if (currentStep === 3) {
-      if (formData.skills.length === 0) {
+      if (!Array.isArray(formData.skills) || formData.skills.length === 0) {
         setErrorMsg('Please select at least one skill.');
         return false;
       }
@@ -185,6 +378,82 @@ export default function JoinUs() {
         setErrorMsg('Please state your motivation for joining MAGIC Youth.');
         return false;
       }
+    }
+    if (currentStep === 6) {
+      if (files.profileImage && files.profileImage.size > MAX_FILE_SIZE) {
+        setErrorMsg('Profile photo exceeds the 10 MB limit. Please select a smaller file.');
+        return false;
+      }
+      if (files.resume && files.resume.size > MAX_FILE_SIZE) {
+        setErrorMsg('Resume exceeds the 10 MB limit. Please select a smaller file.');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  /** Comprehensive validator verifying all registration steps before final submission */
+  const validateAllSteps = () => {
+    setErrorMsg('');
+    // Step 1
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
+      setErrorMsg('Please complete your contact details (Name, Email, Phone) in Step 1.');
+      setCurrentStep(1);
+      return false;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      setErrorMsg('Please provide a valid email address in Step 1.');
+      setCurrentStep(1);
+      return false;
+    }
+    if (formData.phone.trim().replace(/\D/g, '').length < 7) {
+      setErrorMsg('Please provide a valid phone number in Step 1.');
+      setCurrentStep(1);
+      return false;
+    }
+    if (!formData.unitId) {
+      setErrorMsg('Please select your target Collegiate Chapter in Step 1.');
+      setCurrentStep(1);
+      return false;
+    }
+    if (units.length > 0 && !units.some(u => (u._id || u.id) === formData.unitId)) {
+      setErrorMsg('The selected chapter is not recognized. Please choose from active chapters in Step 1.');
+      setCurrentStep(1);
+      return false;
+    }
+    if (formData.membershipType === 'LEADERSHIP' && !formData.preferredLeadershipRole) {
+      setErrorMsg('Please select your preferred leadership role in Step 1.');
+      setCurrentStep(1);
+      return false;
+    }
+    // Step 2
+    if (!formData.college.trim() || !formData.department.trim() || !formData.city.trim()) {
+      setErrorMsg('Please complete your academic details (College, Department, City) in Step 2.');
+      setCurrentStep(2);
+      return false;
+    }
+    // Step 3
+    if (!Array.isArray(formData.skills) || formData.skills.length === 0) {
+      setErrorMsg('Please select at least one skill in Step 3.');
+      setCurrentStep(3);
+      return false;
+    }
+    // Step 5
+    if (!formData.reason.trim()) {
+      setErrorMsg('Please state your motivation for joining in Step 5.');
+      setCurrentStep(5);
+      return false;
+    }
+    // Step 6 files validation
+    if (files.profileImage && files.profileImage.size > MAX_FILE_SIZE) {
+      setErrorMsg('Profile photo exceeds 10 MB limit. Please re-upload in Step 6.');
+      setCurrentStep(6);
+      return false;
+    }
+    if (files.resume && files.resume.size > MAX_FILE_SIZE) {
+      setErrorMsg('Resume exceeds 10 MB limit. Please re-upload in Step 6.');
+      setCurrentStep(6);
+      return false;
     }
     return true;
   };
@@ -204,7 +473,8 @@ export default function JoinUs() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateStep()) return;
+    if (isSubmitting) return;
+    if (!validateAllSteps()) return;
 
     setIsSubmitting(true);
     setErrorMsg('');
@@ -215,7 +485,7 @@ export default function JoinUs() {
         if (Array.isArray(formData[key])) {
           bodyData.append(key, JSON.stringify(formData[key]));
         } else {
-          bodyData.append(key, formData[key]);
+          bodyData.append(key, formData[key] ?? '');
         }
       });
 
@@ -232,10 +502,10 @@ export default function JoinUs() {
       if (data.success) {
         setIsSubmitted(true);
       } else {
-        setErrorMsg(data.message || 'Failed to submit application. Please try again.');
+        setErrorMsg(data.message || 'Failed to submit application. Please verify your details and try again.');
       }
     } catch {
-      setErrorMsg('Network error. Please check your connection and try again.');
+      setErrorMsg('Network error. Please check your internet connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -414,25 +684,45 @@ export default function JoinUs() {
                       
                       {/* Unit Selection */}
                       <div className="join-field-group">
-                        <label className="join-label">Select Collegiate Chapter / Unit *</label>
-                        {unitsLoading ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                          <label className="join-label" style={{ marginBottom: 0 }}>Select Collegiate Chapter / Unit *</label>
+                          {isRevalidating && (
+                            <span style={{ fontSize: '0.72rem', color: '#0284C7', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <Loader2 size={11} className="animate-spin" /> Syncing chapters...
+                            </span>
+                          )}
+                        </div>
+
+                        {unitsLoading && units.length === 0 ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6875rem 0.875rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', color: '#64748B', fontSize: '0.84375rem' }}>
                             <Loader2 size={16} className="animate-spin" color="var(--primary-blue)" />
                             <span>Loading active chapters from database...</span>
                           </div>
-                        ) : unitsError || units.length === 0 ? (
+                        ) : unitsError && units.length === 0 ? (
                           <div style={{ padding: '0.75rem 1rem', backgroundColor: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', fontSize: '0.8125rem', color: '#9A3412' }}>
                             <span>Unable to load chapters. Please verify your connection.</span>
                             <button
                               type="button"
-                              onClick={loadUnits}
+                              onClick={() => loadUnits(true)}
                               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#FFFFFF', border: '1px solid #FDBA74', padding: '0.3rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 700, color: '#C2410C', cursor: 'pointer' }}
                             >
                               <RefreshCw size={12} /> Retry
                             </button>
                           </div>
+                        ) : units.length === 0 ? (
+                          <div style={{ padding: '0.75rem 1rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', fontSize: '0.8125rem', color: '#64748B' }}>
+                            <span>No active collegiate chapters available at this time.</span>
+                            <button
+                              type="button"
+                              onClick={() => loadUnits(true)}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#FFFFFF', border: '1px solid #CBD5E1', padding: '0.3rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                            >
+                              <RefreshCw size={12} /> Refresh
+                            </button>
+                          </div>
                         ) : (
                           <select name="unitId" value={formData.unitId} onChange={handleChange} className="join-input" required>
+                            {!formData.unitId && <option value="" disabled>-- Select your Collegiate Chapter --</option>}
                             {units.map(u => (
                               <option key={u._id || u.id} value={u._id || u.id}>
                                 {u.name} {u.institution ? `(${u.institution})` : ''} {u.isDefault || u.is_default ? '★ (Default Chapter)' : ''}
@@ -687,33 +977,51 @@ export default function JoinUs() {
                     <div>
                       <h3 className="join-form-step-title">Step 6: Document Uploads</h3>
                       <p style={{ fontSize: '0.8125rem', color: '#64748B', marginTop: '-0.75rem', marginBottom: '1.25rem' }}>
-                        Upload your profile photo and optional resume for coordinator review.
+                        Upload your profile photo and optional resume for coordinator review. Max file size: 10 MB per file.
                       </p>
 
                       <div className="join-upload-grid">
                         <div className="join-upload-box">
                           <ImageIcon size={28} color="var(--primary-blue)" style={{ margin: '0 auto 0.5rem' }} />
                           <div style={{ fontSize: '0.84375rem', fontWeight: 700, color: '#0F172A' }}>Profile Photo</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748B', margin: '0.2rem 0 0.75rem' }}>JPG or PNG format</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748B', margin: '0.2rem 0 0.75rem' }}>JPG, PNG, or WebP (Max 10 MB)</div>
                           <label style={{ display: 'inline-block', padding: '0.4rem 0.875rem', background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
                             Choose File
-                            <input type="file" name="profileImage" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                            <input type="file" name="profileImage" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} style={{ display: 'none' }} />
                           </label>
                           {files.profileImage && (
-                            <div style={{ fontSize: '0.75rem', color: '#16A34A', fontWeight: 700, marginTop: '0.5rem' }}>✓ {files.profileImage.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#16A34A', fontWeight: 700, marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                              <span>✓ {files.profileImage.name} ({(files.profileImage.size / (1024 * 1024)).toFixed(1)} MB)</span>
+                              <button
+                                type="button"
+                                onClick={() => setFiles(f => ({ ...f, profileImage: null }))}
+                                style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+                              >
+                                Remove
+                              </button>
+                            </div>
                           )}
                         </div>
 
                         <div className="join-upload-box">
                           <FileUp size={28} color="var(--primary-blue)" style={{ margin: '0 auto 0.5rem' }} />
                           <div style={{ fontSize: '0.84375rem', fontWeight: 700, color: '#0F172A' }}>Resume / CV (Optional)</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748B', margin: '0.2rem 0 0.75rem' }}>PDF format only</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748B', margin: '0.2rem 0 0.75rem' }}>PDF format only (Max 10 MB)</div>
                           <label style={{ display: 'inline-block', padding: '0.4rem 0.875rem', background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}>
                             Choose File
-                            <input type="file" name="resume" accept=".pdf" onChange={handleFileChange} style={{ display: 'none' }} />
+                            <input type="file" name="resume" accept="application/pdf,.pdf" onChange={handleFileChange} style={{ display: 'none' }} />
                           </label>
                           {files.resume && (
-                            <div style={{ fontSize: '0.75rem', color: '#16A34A', fontWeight: 700, marginTop: '0.5rem' }}>✓ {files.resume.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#16A34A', fontWeight: 700, marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}>
+                              <span>✓ {files.resume.name} ({(files.resume.size / (1024 * 1024)).toFixed(1)} MB)</span>
+                              <button
+                                type="button"
+                                onClick={() => setFiles(f => ({ ...f, resume: null }))}
+                                style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}
+                              >
+                                Remove
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -731,7 +1039,9 @@ export default function JoinUs() {
                       <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '0.5rem', padding: '1rem 1.25rem', fontSize: '0.8125rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.35rem' }}>
                           <span style={{ color: '#64748B' }}>Target Chapter:</span>
-                          <strong style={{ color: '#0F172A' }}>{selectedUnitObj?.name || 'MAGIC Youth'}</strong>
+                          <strong style={{ color: '#0F172A' }}>
+                            {selectedUnitObj ? `${selectedUnitObj.name}${selectedUnitObj.institution ? ` (${selectedUnitObj.institution})` : ''}` : 'Not selected'}
+                          </strong>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.5rem', flexWrap: 'wrap', gap: '0.35rem' }}>
                           <span style={{ color: '#64748B' }}>Membership Category:</span>
@@ -796,8 +1106,22 @@ export default function JoinUs() {
                         type="submit"
                         disabled={isSubmitting}
                         className="btn-primary"
-                        style={{ padding: '0.625rem 1.75rem', fontSize: '0.875rem', cursor: 'pointer', borderRadius: '0.375rem', backgroundColor: 'var(--primary-blue)', color: '#FFFFFF', border: 'none', fontWeight: 700 }}
+                        style={{
+                          padding: '0.625rem 1.75rem',
+                          fontSize: '0.875rem',
+                          cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                          opacity: isSubmitting ? 0.7 : 1,
+                          borderRadius: '0.375rem',
+                          backgroundColor: 'var(--primary-blue)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}
                       >
+                        {isSubmitting && <Loader2 size={16} className="animate-spin" />}
                         {isSubmitting ? 'Submitting Application...' : formData.membershipType === 'LEADERSHIP' ? 'Submit Leadership Nomination' : 'Submit Membership Application'}
                       </button>
                     )}

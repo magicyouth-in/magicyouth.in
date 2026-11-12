@@ -47,13 +47,39 @@ router.post('/', upload.fields([{ name: 'resume', maxCount: 1 }, { name: 'profil
     // Validate Unit
     let finalUnitId = unitId || null;
     if (finalUnitId) {
-      const { data: unitData } = await supabase.from('units').select('id, status').eq('id', finalUnitId).maybeSingle();
-      if (unitData && unitData.status !== 'Active') {
-        return res.status(400).json({ success: false, message: 'The selected unit is not currently accepting applications.' });
+      const { data: unitData, error: unitError } = await supabase
+        .from('units')
+        .select('id, status')
+        .eq('id', finalUnitId)
+        .maybeSingle();
+
+      if (unitError) {
+        console.error('[JOIN] Supabase unit query error:', unitError.message);
+        return res.status(500).json({ success: false, message: 'Failed to verify chapter status. Please try again.' });
+      }
+
+      if (!unitData) {
+        return res.status(400).json({ success: false, message: 'The selected chapter does not exist. Please choose an active chapter.' });
+      }
+
+      const unitStatus = String(unitData.status || '').toLowerCase();
+      if (unitStatus !== 'active' && unitStatus !== '') {
+        return res.status(400).json({ success: false, message: 'The selected chapter is not currently accepting applications.' });
       }
     } else {
       // If no unit selected, fallback to default active unit
-      const { data: defUnit } = await supabase.from('units').select('id').eq('is_default', true).eq('status', 'Active').maybeSingle();
+      const { data: defUnit, error: defUnitError } = await supabase
+        .from('units')
+        .select('id')
+        .eq('is_default', true)
+        .eq('status', 'Active')
+        .maybeSingle();
+
+      if (defUnitError) {
+        console.error('[JOIN] Supabase default unit query error:', defUnitError.message);
+        return res.status(500).json({ success: false, message: 'Failed to verify default chapter. Please try again.' });
+      }
+
       if (defUnit) finalUnitId = defUnit.id;
     }
 
